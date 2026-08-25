@@ -387,48 +387,49 @@ export default function StorefrontHomePage() {
               </p>
 
               {/* Quick Category Jump Chips */}
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 pt-1">
-                <span className="text-sm font-bold text-[#1E201D] mr-1">Popular Varieties:</span>
-                <Link
-                  href="/shop?category=Mutton%20Alternatives"
-                  className="px-3 py-1.5 rounded-xl bg-white border border-[#4F534C]/20 text-sm font-extrabold text-[#1E201D] hover:bg-[#4D583F] hover:text-white transition-all shadow-xs flex items-center gap-1.5"
-                >
-                  <Utensils className="w-4 h-4 text-[#4D583F]" />
-                  <span>Veg Mutton</span>
-                </Link>
-                <Link
-                  href="/shop?category=Seafood%20Alternatives"
-                  className="px-3 py-1.5 rounded-xl bg-white border border-[#4F534C]/20 text-sm font-extrabold text-[#1E201D] hover:bg-[#4D583F] hover:text-white transition-all shadow-xs flex items-center gap-1.5"
-                >
-                  <Sparkles className="w-4 h-4 text-[#4D583F]" />
-                  <span>Veg Fish</span>
-                </Link>
-                <Link
-                  href="/shop?category=Poultry%20Alternatives"
-                  className="px-3 py-1.5 rounded-xl bg-white border border-[#4F534C]/20 text-sm font-extrabold text-[#1E201D] hover:bg-[#4D583F] hover:text-white transition-all shadow-xs flex items-center gap-1.5"
-                >
-                  <Flame className="w-4 h-4 text-[#4D583F]" />
-                  <span>Chicken Strips</span>
-                </Link>
+              <div className="w-full text-center lg:text-left pt-1 space-y-2">
+                <span className="text-sm font-bold text-[#1E201D] block">Popular Varieties:</span>
+                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2">
+                  <Link
+                    href="/shop?category=Mutton%20Alternatives"
+                    className="px-3 py-1.5 rounded-xl bg-white border border-[#4F534C]/20 text-xs sm:text-sm font-bold text-[#1E201D] hover:bg-[#4D583F] hover:text-white transition-all shadow-xs flex items-center gap-1.5 whitespace-nowrap"
+                  >
+                    <Utensils className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#4D583F]" />
+                    <span>Veg Mutton</span>
+                  </Link>
+                  <Link
+                    href="/shop?category=Seafood%20Alternatives"
+                    className="px-3 py-1.5 rounded-xl bg-white border border-[#4F534C]/20 text-xs sm:text-sm font-bold text-[#1E201D] hover:bg-[#4D583F] hover:text-white transition-all shadow-xs flex items-center gap-1.5 whitespace-nowrap"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#4D583F]" />
+                    <span>Veg Fish</span>
+                  </Link>
+                  <Link
+                    href="/shop?category=Poultry%20Alternatives"
+                    className="px-3 py-1.5 rounded-xl bg-white border border-[#4F534C]/20 text-xs sm:text-sm font-bold text-[#1E201D] hover:bg-[#4D583F] hover:text-white transition-all shadow-xs flex items-center gap-1.5 whitespace-nowrap"
+                  >
+                    <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#4D583F]" />
+                    <span>Chicken Strips</span>
+                  </Link>
+                </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2 w-full sm:w-auto">
+              <div className="flex flex-row items-center justify-center lg:justify-start gap-2 sm:gap-3 pt-2 w-full sm:w-auto">
                 <Link
                   href="/shop"
-                  className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#4D583F] hover:bg-[#3d4732] text-white font-black text-base transition-all shadow-xl hover:shadow-2xl flex items-center justify-center gap-3 group active:scale-95"
+                  className="flex-1 sm:flex-none px-2 sm:px-8 py-3 sm:py-4 rounded-xl bg-[#4D583F] hover:bg-[#3d4732] text-white font-black text-[12px] sm:text-base transition-all shadow-md hover:shadow-xl flex items-center justify-center gap-1.5 sm:gap-3 group active:scale-95 text-center"
                 >
-                  <ShoppingBag className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                  <span>Explore Full Menu</span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 group-hover:scale-110 transition-transform" />
+                  <span><span className="hidden sm:inline">Explore Full Menu</span><span className="sm:hidden">Full Menu</span></span>
                 </Link>
 
                 <a
                   href="#why-switch"
-                  className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-white hover:bg-[#EAF0E5] text-[#1E201D] font-bold text-base transition-all border border-[#4F534C]/20 shadow-sm flex items-center justify-center gap-2"
+                  className="flex-1 sm:flex-none px-2 sm:px-7 py-3 sm:py-4 rounded-xl bg-white hover:bg-[#EAF0E5] text-[#1E201D] font-bold text-[12px] sm:text-base transition-all border border-[#4F534C]/20 shadow-sm flex items-center justify-center gap-1.5 sm:gap-2 text-center"
                 >
-                  <Zap className="w-5 h-5 text-amber-600" />
-                  <span>Why Switch to Plant Meat?</span>
+                  <Zap className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 text-amber-600" />
+                  <span><span className="hidden sm:inline">Why Switch to Plant Meat?</span><span className="sm:hidden">Why Switch?</span></span>
                 </a>
               </div>
 
@@ -486,8 +487,8 @@ export default function StorefrontHomePage() {
                           style={{ animation: 'sliderProgress 5s linear infinite' }}
                         />
                       )}
-                      <IconComp className={`w-3.5 h-3.5 relative z-10 ${heroDishIndex === idx ? 'text-white' : 'text-[#4D583F]'}`} />
-                      <span className="relative z-10">{tab.name}</span>
+                      <IconComp className={`w-3.5 h-3.5 shrink-0 relative z-10 ${heroDishIndex === idx ? 'text-white' : 'text-[#4D583F]'}`} />
+                      <span className="relative z-10 whitespace-nowrap">{tab.name}</span>
                     </button>
                   );
                 })}
@@ -643,9 +644,9 @@ export default function StorefrontHomePage() {
                     <span className="text-[10px] uppercase tracking-widest font-bold text-[#A5B889] mb-1">
                       100% Plant Based
                     </span>
-                    <h3 className="text-white font-black text-xl flex items-center justify-between font-display">
-                      {cat.name}
-                      <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm group-hover:bg-[#4D583F] group-hover:text-white transition-all shadow-md">
+                    <h3 className="text-white font-black text-lg sm:text-xl flex items-center justify-between gap-2 font-display">
+                      <span className="line-clamp-2">{cat.name}</span>
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm group-hover:bg-[#4D583F] group-hover:text-white transition-all shadow-md">
                         <ArrowRight className="w-4 h-4" />
                       </div>
                     </h3>
@@ -783,15 +784,17 @@ export default function StorefrontHomePage() {
                       <div className="flex items-center gap-2 pt-1">
                         <button
                           onClick={(e) => handleAddToCart(product, e)}
-                          className="flex-1 py-2.5 bg-[#4D583F] text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 active:scale-95"
+                          className="flex-1 py-2 sm:py-2.5 px-2 bg-[#4D583F] text-white font-bold text-[11px] sm:text-xs rounded-xl flex items-center justify-center gap-1 sm:gap-2 active:scale-95 whitespace-nowrap"
                         >
-                          <ShoppingBag className="w-3.5 h-3.5" /> Quick Add
+                          <ShoppingBag className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                          <span className="hidden sm:inline">Quick Add</span>
+                          <span className="sm:hidden">Add</span>
                         </button>
                         <button
                           onClick={(e) => handleAddToCart(product, e)}
-                          className="w-10 h-10 rounded-xl border border-[#4F534C]/20 flex items-center justify-center text-[#1E201D] active:scale-95"
+                          className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl border border-[#4F534C]/20 flex items-center justify-center text-[#1E201D] active:scale-95"
                         >
-                          <Plus className="w-4 h-4" />
+                          <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </button>
                       </div>
                     </div>
@@ -1277,26 +1280,25 @@ export default function StorefrontHomePage() {
                 Connect directly with 10,000+ plant-based foodies! Get instant stock updates, delicious cooking recipes, and fast customer support on WhatsApp.
               </p>
 
-              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <div className="pt-2 flex flex-row items-center justify-center gap-2 sm:gap-4 w-full">
                 <a
                   href="https://wa.me/919876543210?text=Hi%20Sakthi%20Frozen%20Foods!%20I%20want%20to%20join%20the%20WhatsApp%20VIP%20Community."
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-sm md:text-base transition-all shadow-xl hover:shadow-2xl flex items-center justify-center gap-3 active:scale-95 border border-emerald-400/30"
+                  className="flex-1 sm:flex-none px-2 sm:px-8 py-3 sm:py-4 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-[12px] sm:text-base transition-all shadow-xl hover:shadow-2xl flex items-center justify-center gap-1.5 sm:gap-3 active:scale-95 border border-emerald-400/30 text-center"
                 >
-                  <WhatsAppIcon className="w-6 h-6" />
-                  <span>Join Official WhatsApp Group</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <WhatsAppIcon className="w-4 h-4 sm:w-6 sm:h-6 shrink-0" />
+                  <span><span className="hidden sm:inline">Join Official WhatsApp Group</span><span className="sm:hidden">Join Group</span></span>
                 </a>
 
                 <a
                   href="https://wa.me/919876543210?text=Hi%20Sakthi%20Frozen%20Foods!%20I%20have%20a%20question%20about%20your%20products."
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm transition-all backdrop-blur-md border border-white/15 flex items-center justify-center gap-2"
+                  className="flex-1 sm:flex-none px-2 sm:px-6 py-3 sm:py-4 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-[12px] sm:text-sm transition-all backdrop-blur-md border border-white/15 flex items-center justify-center gap-1.5 sm:gap-2 text-center"
                 >
-                  <MessageSquare className="w-4 h-4 text-emerald-400" />
-                  <span>Chat on WhatsApp</span>
+                  <MessageSquare className="w-4 h-4 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
+                  <span><span className="hidden sm:inline">Chat on WhatsApp</span><span className="sm:hidden">Chat</span></span>
                 </a>
               </div>
 
