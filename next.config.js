@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  serverExternalPackages: ['mongoose', 'mongodb'],
+  experimental: {
+    serverComponentsExternalPackages: ['mongoose', 'mongodb'],
+  },
   images: {
     remotePatterns: [
       {

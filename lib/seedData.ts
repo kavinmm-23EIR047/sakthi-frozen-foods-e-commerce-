@@ -18,6 +18,7 @@ export interface ProductType {
   image: string;
   rating: number;
   isPopular?: boolean;
+  variants?: { weight: string; price: number }[];
 }
 
 export interface OrderItemType {
