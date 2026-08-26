@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { fetchApi } from '@/lib/apiConfig';
 import Link from 'next/link';
-import { ArrowRight, Lock, Mail, AlertCircle } from 'lucide-react';
+import { ArrowRight, Lock, Mail, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -89,13 +90,16 @@ export default function LoginPage() {
                   <Lock className="h-4 w-4 text-[#61665D]" />
                 </div>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F] focus:border-transparent transition-all shadow-sm placeholder:text-[#A7ADA9]"
+                  className="w-full pl-10 pr-12 py-3 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F] focus:border-transparent transition-all shadow-sm placeholder:text-[#A7ADA9]"
                   placeholder="••••••••"
                 />
+                <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-[#61665D] hover:text-[#4D583F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4D583F]" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword}>
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 

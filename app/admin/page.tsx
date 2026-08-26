@@ -347,25 +347,25 @@ export default function AdminPortalPage() {
     <div className="min-h-screen bg-[#E8EEE0] text-[#1E201D] font-sans">
       {/* Top Navbar */}
       <header className="bg-[#1E201D] text-white sticky top-0 z-30 shadow-md">
-        <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#4D583F] flex items-center justify-center text-white shadow-md">
-              <LayoutDashboard className="w-5 h-5" />
+        <div className="mx-auto flex min-h-16 w-full max-w-7xl items-center justify-between gap-2 px-3 py-2 sm:min-h-20 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#4D583F] text-white shadow-md sm:h-10 sm:w-10 sm:rounded-xl">
+              <LayoutDashboard className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <span className="text-lg font-extrabold tracking-tight block leading-none font-poppins">
+            <div className="min-w-0">
+              <span className="block truncate text-xs font-extrabold leading-none tracking-tight sm:text-lg font-poppins">
                 SAKTHI ADMIN PORTAL
               </span>
-              <span className="text-[10px] font-semibold text-[#A7ADA9] uppercase tracking-widest block mt-0.5">
+              <span className="mt-0.5 hidden text-[10px] font-semibold uppercase tracking-widest text-[#A7ADA9] sm:block">
                 E-Commerce Management Console
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
             <button
               onClick={fetchData}
-              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-xs flex items-center gap-1.5 font-semibold"
+              className="flex min-h-9 min-w-9 items-center justify-center gap-1.5 rounded-lg bg-white/10 p-2 text-xs font-semibold transition-colors hover:bg-white/20 sm:min-h-0 sm:min-w-0"
               title="Refresh Data"
             >
               <RefreshCw className="w-4 h-4" />
@@ -374,20 +374,52 @@ export default function AdminPortalPage() {
 
             <Link
               href="/"
-              className="px-4 py-2 rounded-xl bg-[#4D583F] text-white text-xs font-bold hover:bg-[#414b35] transition-all flex items-center gap-2 shadow"
+              className="flex min-h-9 items-center gap-1 rounded-lg bg-[#4D583F] px-2.5 py-2 text-[10px] font-bold text-white shadow transition-all hover:bg-[#414b35] sm:gap-2 sm:rounded-xl sm:px-4 sm:text-xs"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back to Store</span>
+              <span className="hidden sm:inline">Back to Store</span>
+              <span className="sm:hidden">Store</span>
             </Link>
           </div>
         </div>
       </header>
 
       {/* Main Admin Content */}
-      <div className="site-shell py-6 sm:py-8 space-y-6">
+      <div className="site-shell grid gap-6 py-6 sm:py-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-8">
+        <aside className="rounded-2xl border border-[#4F534C]/15 bg-white p-3 shadow-sm lg:sticky lg:top-24 lg:h-fit">
+          <p className="px-3 pb-2 pt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#61665D]">Workspace</p>
+          <nav className="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:flex lg:flex-col">
+            {[
+              ['analytics', 'Analytics', BarChart2, null],
+              ['products', 'Products', Package, products.length],
+              ['categories', 'Categories', List, categories.length],
+              ['orders', 'Orders', ShoppingBag, orders.length],
+              ['users', 'Users', Users, users.length],
+              ['reviews', 'Reviews', Star, reviews.length],
+            ].map(([id, label, Icon, count]) => {
+              const isActive = activeTab === id;
+              const NavIcon = Icon as React.ElementType;
+              return (
+                <button
+                  key={id as string}
+                  onClick={() => setActiveTab(id as typeof activeTab)}
+                  className={`flex min-h-11 min-w-0 items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs font-bold transition-colors lg:w-full lg:px-3 ${
+                    isActive ? 'bg-[#4D583F] text-white shadow-sm' : 'text-[#52574E] hover:bg-[#EAF0E5] hover:text-[#1E201D]'
+                  }`}
+                >
+                  <NavIcon className={`h-4 w-4 shrink-0 ${id === 'reviews' && !isActive ? 'fill-amber-500 text-amber-500' : ''}`} />
+                  <span className="truncate">{String(label)}</span>
+                  {count !== null && <span className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] ${isActive ? 'bg-white/20' : 'bg-[#EAF0E5] text-[#4D583F]'}`}>{count as number}</span>}
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        <div className="min-w-0 space-y-6">
         {/* Metric Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <div className="p-5 rounded-2xl bg-white border border-[#4F534C]/15 shadow-sm flex items-center gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+          <div className="flex items-center gap-3 rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm sm:p-5">
             <div className="w-12 h-12 rounded-xl bg-[#4D583F] text-white flex items-center justify-center shrink-0">
               <DollarSign className="w-6 h-6" />
             </div>
@@ -397,7 +429,7 @@ export default function AdminPortalPage() {
             </div>
           </div>
 
-          <div className="p-5 rounded-2xl bg-white border border-[#4F534C]/15 shadow-sm flex items-center gap-4">
+          <div className="flex items-center gap-3 rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm sm:p-5">
             <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
               <ShoppingBag className="w-6 h-6" />
             </div>
@@ -407,7 +439,7 @@ export default function AdminPortalPage() {
             </div>
           </div>
 
-          <div className="p-5 rounded-2xl bg-white border border-[#4F534C]/15 shadow-sm flex items-center gap-4">
+          <div className="flex items-center gap-3 rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm sm:p-5">
             <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
               <Package className="w-6 h-6" />
             </div>
@@ -417,7 +449,7 @@ export default function AdminPortalPage() {
             </div>
           </div>
 
-          <div className="p-5 rounded-2xl bg-white border border-[#4F534C]/15 shadow-sm flex items-center gap-4">
+          <div className="flex items-center gap-3 rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm sm:p-5">
             <div className="w-12 h-12 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0">
               <Users className="w-6 h-6" />
             </div>
@@ -429,7 +461,7 @@ export default function AdminPortalPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-[#4F534C]/20 gap-2 overflow-x-auto whitespace-nowrap scrollbar-none pb-1">
+        <div className="hidden">
           <button
             onClick={() => setActiveTab('analytics')}
             className={`py-3 px-5 font-extrabold text-sm border-b-2 flex items-center gap-2 transition-all ${
@@ -504,9 +536,9 @@ export default function AdminPortalPage() {
 
         {/* TAB 0: ANALYTICS */}
         {activeTab === 'analytics' && (
-          <div className="bg-white rounded-2xl border border-[#4F534C]/15 shadow-sm p-6">
-            <h3 className="text-xl font-bold text-[#1E201D] mb-6 font-poppins">Revenue by Order Status</h3>
-            <div className="h-80 w-full">
+          <div className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm sm:p-6">
+            <h3 className="mb-4 text-base font-bold text-[#1E201D] sm:mb-6 sm:text-xl font-poppins">Revenue by Order Status</h3>
+            <div className="h-56 w-full sm:h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={revenueByStatus} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EAF0E5" />
@@ -549,7 +581,7 @@ export default function AdminPortalPage() {
             </div>
 
             {/* Products Table */}
-            <div className="bg-white rounded-2xl border border-[#4F534C]/15 shadow-sm overflow-hidden">
+            <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm lg:block">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-[#1E201D]">
                   <thead className="bg-[#EAF0E5] text-[#4D583F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
@@ -659,6 +691,29 @@ export default function AdminPortalPage() {
                 </table>
               </div>
             </div>
+            <div className="grid gap-3 lg:hidden">
+              {filteredProducts.map((p) => (
+                <article key={p.id} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
+                  <div className="flex gap-3">
+                    <img src={p.image} alt={p.name} className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#4D583F]">#{p.code} · {p.category}</p>
+                      <h3 className="truncate text-sm font-black text-[#1E201D]">{p.name}</h3>
+                      <p className="mt-1 line-clamp-2 text-xs text-[#61665D]">{p.description}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#4F534C]/10 pt-3 text-xs">
+                    <span className="rounded bg-[#EAF0E5] px-2 py-1 font-bold text-[#4D583F]">{p.weight}</span>
+                    <span className="font-black text-[#4D583F]">₹{p.price}</span>
+                    <span className="rounded bg-amber-100 px-2 py-1 font-bold text-amber-800">{p.stock} in stock</span>
+                    <div className="ml-auto flex items-center gap-1">
+                      <button onClick={() => openEditModal(p)} className="rounded-lg p-2 text-blue-700 hover:bg-blue-50" aria-label={`Edit ${p.name}`}><Edit className="h-4 w-4" /></button>
+                      <button onClick={() => handleDeleteProduct(p.id, p.name)} className="rounded-lg p-2 text-red-600 hover:bg-red-50" aria-label={`Delete ${p.name}`}><Trash2 className="h-4 w-4" /></button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
         )}
 
@@ -676,7 +731,7 @@ export default function AdminPortalPage() {
               </button>
             </div>
             
-            <div className="bg-white rounded-2xl border border-[#4F534C]/15 shadow-sm overflow-hidden">
+            <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm lg:block">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-[#1E201D]">
                   <thead className="bg-[#EAF0E5] text-[#4D583F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
@@ -722,13 +777,29 @@ export default function AdminPortalPage() {
                 </table>
               </div>
             </div>
+            <div className="grid gap-3 lg:hidden">
+              {categories.map((cat) => (
+                <article key={cat.id} className="flex items-center gap-3 rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
+                  <img src={cat.image} alt={cat.name} className="h-14 w-14 shrink-0 rounded-xl object-cover" />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-sm font-black">{cat.name}</h3>
+                    <p className="mt-1 line-clamp-2 text-xs text-[#61665D]">{cat.description}</p>
+                  </div>
+                  <div className="flex shrink-0 gap-1">
+                    <button onClick={() => openEditCategoryModal(cat)} className="rounded-lg p-2 text-blue-700 hover:bg-blue-50" aria-label={`Edit ${cat.name}`}><Edit className="h-4 w-4" /></button>
+                    <button onClick={() => handleDeleteCategory(cat.id, cat.name)} className="rounded-lg p-2 text-red-600 hover:bg-red-50" aria-label={`Delete ${cat.name}`}><Trash2 className="h-4 w-4" /></button>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
         )}
 
         {/* TAB 2: ORDERS MANAGEMENT */}
         {activeTab === 'orders' && (
-          <div className="bg-white rounded-2xl border border-[#4F534C]/15 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="space-y-3">
+            <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm lg:block">
+              <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-[#1E201D]">
                 <thead className="bg-[#EAF0E5] text-[#4D583F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
                   <tr>
@@ -793,6 +864,27 @@ export default function AdminPortalPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
+            </div>
+            <div className="grid gap-3 lg:hidden">
+              {orders.map((ord) => (
+                <article key={ord.id} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-black text-[#4D583F]">{ord.orderNumber}</p>
+                      <h3 className="mt-1 text-sm font-bold">{ord.customerName}</h3>
+                      <p className="text-xs text-[#61665D]">{ord.customerPhone}</p>
+                    </div>
+                    <span className="text-sm font-black text-[#4D583F]">₹{ord.totalAmount}</span>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between gap-3 border-t border-[#4F534C]/10 pt-3">
+                    <select value={ord.status} onChange={(e) => handleUpdateOrderStatus(ord.id, e.target.value)} className="min-h-10 rounded-lg border border-[#4F534C]/20 bg-[#E8EEE0] px-2 text-xs font-bold">
+                      <option value="Pending">Pending</option><option value="Processing">Processing</option><option value="Shipped">Shipped</option><option value="Delivered">Delivered</option><option value="Cancelled">Cancelled</option>
+                    </select>
+                    <button onClick={() => setSelectedOrderModal(ord)} className="inline-flex min-h-10 items-center gap-1 rounded-lg bg-[#EAF0E5] px-3 text-xs font-bold text-[#4D583F]"><Eye className="h-4 w-4" />Items ({ord.items?.length || 0})</button>
+                  </div>
+                </article>
+              ))}
             </div>
           </div>
         )}
@@ -813,7 +905,7 @@ export default function AdminPortalPage() {
               </div>
             </div>
             
-            <div className="bg-white rounded-2xl border border-[#4F534C]/15 shadow-sm overflow-hidden">
+            <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm lg:block">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-[#1E201D]">
                   <thead className="bg-[#EAF0E5] text-[#4D583F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
@@ -853,6 +945,14 @@ export default function AdminPortalPage() {
                 </table>
               </div>
             </div>
+            <div className="grid gap-3 lg:hidden">
+              {filteredUsers.map((usr) => (
+                <article key={usr.id} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-sm font-black">{usr.name}</h3><p className="truncate text-xs text-[#61665D]">{usr.email}</p></div><span className="rounded-full bg-[#EAF0E5] px-2 py-1 text-[10px] font-bold text-[#4D583F]">{usr.role}</span></div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[#4F534C]/10 pt-3 text-xs"><p><span className="block text-[#61665D]">Phone</span>{usr.phone}</p><p><span className="block text-[#61665D]">Total spent</span><strong className="text-[#4D583F]">₹{usr.totalSpent}</strong></p></div>
+                </article>
+              ))}
+            </div>
           </div>
         )}
 
@@ -866,7 +966,7 @@ export default function AdminPortalPage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-[#4F534C]/15 shadow-sm overflow-hidden">
+            <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm lg:block">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-[#1E201D]">
                   <thead className="bg-[#EAF0E5] text-[#4D583F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
@@ -913,8 +1013,17 @@ export default function AdminPortalPage() {
                 </table>
               </div>
             </div>
+            <div className="grid gap-3 lg:hidden">
+              {reviews.map((rev) => (
+                <article key={rev._id || rev.id} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3"><div className="flex min-w-0 items-center gap-2"><div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4D583F] text-xs font-black text-white">{rev.authorName.slice(0, 1)}</div><div className="min-w-0"><h3 className="truncate text-sm font-black">{rev.authorName}</h3><p className="text-xs text-[#61665D]">{rev.location || 'India'} · {rev.dateText || 'Recently'}</p></div></div><button onClick={async () => { if (!confirm(`Delete review from "${rev.authorName}"?`)) return; await fetchApi(`/reviews/${rev._id || rev.id}`, { method: 'DELETE' }); fetchData(); }} className="rounded-lg p-2 text-red-600 hover:bg-red-50" aria-label={`Delete review from ${rev.authorName}`}><Trash2 className="h-4 w-4" /></button></div>
+                  <p className="mt-3 text-sm font-bold text-amber-600">{rev.rating} ★</p><p className="mt-1 text-xs leading-relaxed text-[#61665D]">{rev.comment}</p>
+                </article>
+              ))}
+            </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* Add / Edit Product Modal */}
