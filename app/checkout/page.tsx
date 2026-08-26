@@ -125,7 +125,7 @@ export default function CheckoutPage() {
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <Navbar />
 
-      <main className="w-full max-w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12 flex-1">
+      <main className="site-shell py-6 sm:py-8 md:py-10 flex-1">
         {!orderConfirmed && (
           <button 
             onClick={() => router.push('/cart')}
@@ -135,7 +135,7 @@ export default function CheckoutPage() {
           </button>
         )}
 
-        <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-[#4F534C]/15">
+        <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#4F534C]/15">
           {/* Header */}
           <div className="bg-[#4D583F] px-8 py-6 text-[#FAFAF5] flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -189,7 +189,7 @@ export default function CheckoutPage() {
             </div>
           ) : (
             /* Checkout Form */
-            <div className="p-8 md:p-10 flex flex-col md:flex-row gap-10">
+          <div className="p-5 sm:p-6 md:p-8 flex flex-col md:flex-row gap-6 lg:gap-8">
               <form onSubmit={handleSubmitOrder} className="flex-1 space-y-6">
                 <div>
                   <h3 className="text-lg font-bold text-[#1E201D] mb-4">Contact & Delivery Info</h3>

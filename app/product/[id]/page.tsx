@@ -106,7 +106,7 @@ export default function ProductPage() {
     <div className="min-h-screen bg-[#E8EEE0] text-[#1E201D] flex flex-col font-sans">
       <Navbar />
 
-      <main className="w-full max-w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12 flex-1">
+      <main className="site-shell py-6 sm:py-8 md:py-10 flex-1">
         {/* Breadcrumb / Back button */}
         <button 
           onClick={() => router.back()}
@@ -115,14 +115,14 @@ export default function ProductPage() {
           <ArrowLeft className="w-4 h-4" /> Back to Catalog
         </button>
 
-        <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-[#4F534C]/15 flex flex-col md:flex-row">
+        <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#4F534C]/15 flex flex-col md:flex-row">
           {/* Image Side */}
-          <div className="w-full md:w-1/2 relative bg-[#EAF0E5] flex items-center justify-center p-6 md:p-12 min-h-[300px]">
+          <div className="w-full md:w-1/2 relative bg-[#EAF0E5] flex items-center justify-center p-5 md:p-8 min-h-[280px]">
             <img
               src={product.image}
               alt={product.name}
               onError={handleImageError}
-              className="w-full h-full max-h-[500px] object-cover rounded-3xl shadow-lg border border-[#4F534C]/15"
+              className="w-full aspect-square max-h-[480px] object-cover rounded-xl shadow-sm border border-[#4F534C]/15"
             />
             <span className="absolute top-6 left-6 bg-[#4D583F] text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-md">
               {currentWeight.label}

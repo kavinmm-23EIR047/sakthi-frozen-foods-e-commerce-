@@ -18,7 +18,7 @@ export default function CartPage() {
     <div className="min-h-screen bg-[#E8EEE0] text-[#1E201D] flex flex-col font-sans">
       <Navbar />
 
-      <main className="w-full max-w-full px-4 sm:px-6 lg:px-8 py-8 md:py-12 flex-1">
+      <main className="site-shell py-6 sm:py-8 md:py-10 flex-1">
         {/* Breadcrumb / Back button */}
         <button 
           onClick={() => router.push('/shop')}
@@ -27,7 +27,7 @@ export default function CartPage() {
           <ArrowLeft className="w-4 h-4" /> Continue Shopping
         </button>
 
-        <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-[#4F534C]/15 flex flex-col md:flex-row">
+        <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#4F534C]/15 flex flex-col md:flex-row">
           {/* Cart Items List */}
           <div className="w-full md:w-2/3 p-6 md:p-10 border-b md:border-b-0 md:border-r border-[#4F534C]/15 flex flex-col">
             <div className="flex items-center gap-3 mb-8">

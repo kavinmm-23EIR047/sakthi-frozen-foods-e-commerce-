@@ -95,7 +95,7 @@ export default function OrdersPage() {
     <div className="min-h-screen bg-[#FAFAF5] text-[#1E201D] flex flex-col font-sans">
       <Navbar />
 
-      <main className="w-full max-w-full px-4 sm:px-6 lg:px-8 py-10 flex-1">
+      <main className="site-shell py-6 sm:py-8 md:py-10 flex-1">
         <div className="mb-8">
           <h1 className="text-3xl font-black text-[#1E201D] font-poppins">My Orders</h1>
           <p className="text-sm text-[#61665D] mt-1">Track and manage your past and current orders.</p>

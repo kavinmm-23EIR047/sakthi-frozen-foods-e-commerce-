@@ -58,7 +58,7 @@ export default function ProductDetailModal() {
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-[#1E201D]/70 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-[#FAFAF5] rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-[#4F534C]/20 relative my-auto">
+      <div className="bg-[#FAFAF5] rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl border border-[#4F534C]/20 relative my-auto">
         <button
           onClick={() => {
             setSelectedProductForModal(null);
@@ -71,11 +71,11 @@ export default function ProductDetailModal() {
 
         <div className="grid grid-cols-1 md:grid-cols-2">
           {/* Image Side */}
-            <div className="relative h-64 md:h-full bg-[#EAF0E5] flex items-center justify-center p-6">
+            <div className="relative aspect-[4/3] md:aspect-auto md:min-h-[380px] bg-[#EAF0E5] flex items-center justify-center p-5">
               <img
                 src={product.image}
                 alt={product.name}
-                className="w-full h-full object-cover rounded-2xl shadow-md border border-[#4F534C]/15"
+                className="w-full h-full object-cover rounded-xl shadow-sm border border-[#4F534C]/15"
               />
               <span className="absolute top-4 left-4 bg-[#4D583F] text-white text-xs font-bold px-3 py-1 rounded-full shadow">
                 {currentWeight.label}
@@ -83,7 +83,7 @@ export default function ProductDetailModal() {
             </div>
 
           {/* Product Content Side */}
-          <div className="p-6 md:p-8 flex flex-col justify-between space-y-6">
+          <div className="p-5 sm:p-6 md:p-7 flex flex-col justify-between space-y-5">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-bold text-[#4D583F] bg-[#EAF0E5] px-2.5 py-1 rounded-md uppercase tracking-wider">
@@ -167,7 +167,7 @@ export default function ProductDetailModal() {
 
               <button
                 onClick={handleAdd}
-                className="w-full py-3.5 px-6 rounded-xl bg-[#4D583F] text-white font-bold text-sm hover:bg-[#414b35] transition-all shadow-lg flex items-center justify-center gap-2 group whitespace-nowrap flex-wrap sm:flex-nowrap"
+                className="w-full min-h-11 py-3 px-4 rounded-lg bg-[#4D583F] text-white font-bold text-sm hover:bg-[#414b35] transition-all shadow-sm flex items-center justify-center gap-2 group whitespace-nowrap"
               >
                 <ShoppingBag className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span>Add {quantity} to Cart • ₹{dynamicPrice * quantity}</span>

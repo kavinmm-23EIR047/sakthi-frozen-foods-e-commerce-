@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Phone, Mail, MapPin, ShieldCheck, Heart, FileText, RefreshCw, Lock, X } from 'lucide-react';
+import { Phone, Mail, MapPin, ShieldCheck, FileText, RefreshCw, Lock, MessageCircle, X } from 'lucide-react';
 import { fetchApi } from '@/lib/apiConfig';
 import logo from '../logo.png';
 
@@ -26,14 +26,12 @@ export default function Footer() {
   }, []);
 
   return (
-    <footer className="relative z-20 overflow-hidden bg-[#182117] text-[#FAFAF5] pt-12 pb-24 md:pb-10">
-      <div className="absolute -top-24 right-0 h-72 w-72 rounded-full bg-[#8E9D64]/15 blur-3xl pointer-events-none" />
-      <div className="relative mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-10">
-        {/* Main 4-Column Content Grid */}
-        <div className="grid grid-cols-1 gap-10 border-b border-white/10 pb-12 sm:grid-cols-2 lg:grid-cols-[1.35fr_.8fr_.9fr_1.15fr]">
+    <footer className="relative z-20 bg-[#656b4f] text-[#FAFAF5] pt-12 pb-24 md:pb-8">
+      <div className="site-shell relative">
+        <div className="grid grid-cols-1 gap-9 border-b border-white/15 pb-10 sm:grid-cols-2 lg:grid-cols-[1.2fr_.8fr_.95fr_1.15fr]">
           
           {/* Column 1: Brand Info */}
-          <div className="space-y-5">
+          <div className="space-y-4">
             <Link href="/" className="flex items-center gap-3 group">
               <div className="relative w-16 h-10 sm:w-20 sm:h-12 flex items-center justify-center">
                 <Image src={logo} alt="Sakthi Frozen Foods" fill className="object-contain object-left" />
@@ -42,33 +40,33 @@ export default function Footer() {
                 <span className="text-lg font-extrabold tracking-tight text-white block leading-none font-display">
                   MOCK MEAT & FROZEN FOODS
                 </span>
-                <span className="text-xs font-semibold tracking-widest text-[#E8EEE0] uppercase block mt-1">
+                <span className="text-[11px] font-bold tracking-wide text-[#F2F4E9] uppercase block mt-1">
                   SAKTHI FROZEN FOODS TRADERS
                 </span>
               </div>
             </Link>
 
-            <p className="text-[15px] text-[#CFD7C7] leading-7">
-              India's premier manufacturer of 100% plant-based, cruelty-free vegan meats. Authentic juicy texture, deep spice absorption, and zero compromise on taste.
+            <p className="max-w-sm text-sm leading-6 text-[#F1F3EA]">
+              Premium plant-based frozen foods made for everyday cooking and authentic flavour.
             </p>
 
-            <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-300/15 bg-emerald-300/10 px-3 py-2 text-sm text-[#D6E9C5] font-bold">
-              <ShieldCheck className="w-5 h-5 text-emerald-400" />
+            <div className="inline-flex items-center gap-2 rounded-lg border border-[#D8F4C7]/45 bg-[#42644A]/45 px-3 py-2 text-sm text-[#F4F9ED] font-bold">
+              <ShieldCheck className="w-5 h-5 text-[#A9F2B7]" />
               <span>FSSAI Certified • ISO 22000 Certified</span>
             </div>
           </div>
 
           {/* Column 2: Product Categories (Dynamic Backend Only) */}
           <div>
-            <h4 className="text-sm font-black text-[#BDCAA9] uppercase tracking-[0.14em] mb-5">
+            <h4 className="text-xs font-black text-[#EEF1D5] uppercase tracking-[0.14em] mb-4">
               Product Categories
             </h4>
-            <ul className="space-y-3 text-[15px] text-[#D9E0D2]">
+            <ul className="space-y-3 text-sm text-[#F4F6EF]">
               {categories.length > 0 ? (
                 categories.map((cat) => (
                   <li key={cat.id || cat.name}>
                     <Link href={`/shop?category=${encodeURIComponent(cat.name)}`} className="hover:text-white transition-colors flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#BDCAA9]" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#E9F2D3]" />
                       <span>{cat.name}</span>
                     </Link>
                   </li>
@@ -81,10 +79,10 @@ export default function Footer() {
 
           {/* Column 3: Quick Links & Legal Policies */}
           <div>
-            <h4 className="text-sm font-black text-[#BDCAA9] uppercase tracking-[0.14em] mb-5">
-              Legal & Support Policies
+            <h4 className="text-xs font-black text-[#EEF1D5] uppercase tracking-[0.14em] mb-4">
+              Store & Policies
             </h4>
-            <ul className="space-y-3 text-[15px] text-[#D9E0D2]">
+            <ul className="space-y-3 text-sm text-[#F4F6EF]">
               <li>
                 <Link href="/" className="hover:text-white transition-colors">
                   Storefront Home
@@ -98,7 +96,7 @@ export default function Footer() {
               <li>
                 <button
                   onClick={() => setActivePolicyModal('refund')}
-                  className="hover:text-white text-left transition-colors flex items-center gap-1.5 text-emerald-400 font-semibold"
+                  className="hover:text-white text-left transition-colors flex items-center gap-1.5 text-[#91F0B1] font-semibold"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   <span>Refund & Return Policy</span>
@@ -109,7 +107,7 @@ export default function Footer() {
                   onClick={() => setActivePolicyModal('terms')}
                   className="hover:text-white text-left transition-colors flex items-center gap-1.5"
                 >
-                  <FileText className="w-3.5 h-3.5 text-[#8E9D64]" />
+                  <FileText className="w-3.5 h-3.5 text-[#E8F1D2]" />
                   <span>Terms & Conditions</span>
                 </button>
               </li>
@@ -118,7 +116,7 @@ export default function Footer() {
                   onClick={() => setActivePolicyModal('privacy')}
                   className="hover:text-white text-left transition-colors flex items-center gap-1.5"
                 >
-                  <Lock className="w-3.5 h-3.5 text-[#8E9D64]" />
+                  <Lock className="w-3.5 h-3.5 text-[#E8F1D2]" />
                   <span>Privacy Policy</span>
                 </button>
               </li>
@@ -127,45 +125,46 @@ export default function Footer() {
 
           {/* Column 4: Contact & WhatsApp Support */}
           <div>
-            <h4 className="text-sm font-black text-[#BDCAA9] uppercase tracking-[0.14em] mb-5">
+            <h4 className="text-xs font-black text-[#EEF1D5] uppercase tracking-[0.14em] mb-4">
               Contact & Support
             </h4>
-            <ul className="space-y-3.5 text-[15px] leading-6 text-[#D9E0D2]">
+            <ul className="space-y-3.5 text-sm leading-6 text-[#F4F6EF]">
               <li className="flex items-start gap-2.5">
-                <MapPin className="w-4 h-4 text-[#8E9D64] shrink-0 mt-0.5" />
+                <MapPin className="w-4 h-4 text-[#E8F1D2] shrink-0 mt-0.5" />
                 <span>Sakthi Frozen Foods Industrial Park, Guindy, Chennai - 600032</span>
               </li>
-              <li className="flex items-center gap-2.5">
-                <Phone className="w-4 h-4 text-[#8E9D64] shrink-0" />
-                <span>+91 98765 43210 / 044-24567890</span>
+              <li>
+                <a href="tel:+919876543210" className="inline-flex items-center gap-2.5 transition-colors hover:text-white">
+                  <Phone className="w-4 h-4 shrink-0 text-[#E8F1D2]" />
+                  <span>+91 98765 43210 / 044-24567890</span>
+                </a>
               </li>
-              <li className="flex items-center gap-2.5">
-                <Mail className="w-4 h-4 text-[#8E9D64] shrink-0" />
-                <span>orders@sakthifrozenfoods.com</span>
+              <li>
+                <a href="mailto:orders@sakthifrozenfoods.com" className="inline-flex items-center gap-2.5 transition-colors hover:text-white">
+                  <Mail className="w-4 h-4 shrink-0 text-[#E8F1D2]" />
+                  <span>orders@sakthifrozenfoods.com</span>
+                </a>
               </li>
             </ul>
 
-            <div className="mt-4 pt-3 border-t border-[#4F534C]/20">
+            <div className="mt-5 border-t border-white/15 pt-4">
               <a
                 href="https://wa.me/919876543210"
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366]/20 border border-[#25D366]/50 text-[#25D366] font-bold text-sm hover:bg-[#25D366] hover:text-white transition-all shadow-sm"
+                aria-label="Chat with Sakthi Frozen Foods on WhatsApp"
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#244a38] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#1b3b2b] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
-                <Phone className="w-3.5 h-3.5" />
-                <span>Chat on WhatsApp Support</span>
+                <MessageCircle className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+                <span>Chat on WhatsApp</span>
               </a>
             </div>
           </div>
 
         </div>
 
-        {/* Bottom Copyright & Legal Links Bar */}
-        <div className="pt-7 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-[#BFC9B7] font-medium">
-          <p>
-            &copy; {new Date().getFullYear()} Sakthi Frozen Foods Traders. All rights reserved. 
-            <span className="block sm:inline sm:ml-1 mt-1 sm:mt-0 text-white font-bold">100% Plant-Based Meat & Vegan Options</span>
-          </p>
+        <div className="pt-6 text-center text-xs font-medium text-[#F0F3E9] sm:text-left">
+          <p>© 2026 Sakthi Frozen Foods Traders. All rights reserved.</p>
 
           <div className="hidden">
             <button onClick={() => setActivePolicyModal('refund')} className="hover:text-white transition-colors">
@@ -181,9 +180,6 @@ export default function Footer() {
             </button>
           </div>
 
-          <p className="flex items-center gap-1 text-sm">
-            Crafted with <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" /> for healthy plant-based living.
-          </p>
         </div>
 
       </div>
@@ -191,7 +187,7 @@ export default function Footer() {
       {/* POPUP MODALS FOR LEGAL POLICIES */}
       {activePolicyModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white text-[#1E201D] rounded-3xl max-w-xl w-full my-auto shadow-2xl border border-[#4F534C]/20 max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="bg-white text-[#1E201D] rounded-xl max-w-xl w-full my-auto shadow-xl border border-[#4F534C]/20 max-h-[90vh] flex flex-col overflow-hidden">
             
             {/* Modal Header */}
             <div className="bg-[#1E201D] px-6 py-4 text-white flex items-center justify-between shrink-0">

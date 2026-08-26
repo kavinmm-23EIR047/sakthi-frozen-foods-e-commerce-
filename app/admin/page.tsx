@@ -384,7 +384,7 @@ export default function AdminPortalPage() {
       </header>
 
       {/* Main Admin Content */}
-      <div className="w-full max-w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <div className="site-shell py-6 sm:py-8 space-y-6">
         {/* Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <div className="p-5 rounded-2xl bg-white border border-[#4F534C]/15 shadow-sm flex items-center gap-4">

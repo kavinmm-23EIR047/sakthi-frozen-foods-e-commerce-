@@ -353,7 +353,7 @@ export default function StorefrontHomePage() {
       <Navbar />
 
       {/* NEW HERO SECTION: Organic Gourmet Interactive Split Hero */}
-      <section className="relative overflow-hidden bg-[#FBFDF2] py-10 md:py-14 border-b border-[#676662]/15">
+      <section className="relative overflow-hidden bg-[#FBFDF2] py-7 sm:py-10 md:py-12 border-b border-[#676662]/15">
         {/* Subtle Ambient Decorative Gradient Glows */}
         <div className="absolute top-10 right-10 w-[550px] h-[550px] bg-[#4D583F]/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-10 w-[450px] h-[450px] bg-[#8E9D64]/15 rounded-full blur-3xl pointer-events-none" />
@@ -374,7 +374,7 @@ export default function StorefrontHomePage() {
               </div>
 
               {/* Main Headline */}
-              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08] text-[#1E201D] font-display">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08] text-[#1E201D] font-display">
                 Authentic Taste. <br />
                 <span className="bg-gradient-to-r from-[#4D583F] via-[#363E2C] to-[#687654] bg-clip-text text-transparent">
                   100% Plant-Based.
@@ -559,8 +559,8 @@ export default function StorefrontHomePage() {
       <div className="relative">
 
         {/* Feature Highlights Bar - Zapeo Inspired Strategic Cards */}
-        <section className="bg-transparent py-10 md:py-14 w-full relative z-10">
-          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="bg-transparent py-8 md:py-10 w-full relative z-10">
+          <div className="site-shell">
             
             <div className="text-center max-w-2xl mx-auto mb-12">
               <h2 className="text-3xl font-extrabold text-[#1E201D] tracking-tight">Built for a Better Lifestyle</h2>
@@ -668,8 +668,8 @@ export default function StorefrontHomePage() {
         )}
 
         {/* Top Best Sellers Section with Category Filter Tabs */}
-        <section className="py-10 md:py-14 w-full relative z-10">
-          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="py-8 md:py-10 w-full relative z-10">
+          <div className="site-shell">
             
             {/* Header & Filter Pills */}
             <div className="flex flex-col mb-10 gap-6">
@@ -815,7 +815,7 @@ export default function StorefrontHomePage() {
         </section>
 
         {/* Why Switch to Sakthi Plant-Based Meats Comparison Section */}
-        <section id="why-switch" className="site-shell py-12 md:py-16 relative z-10 bg-transparent">
+        <section id="why-switch" className="site-shell py-8 md:py-12 relative z-10 bg-transparent">
           <div className="max-w-7xl mx-auto space-y-16">
             <div className="text-center space-y-4 max-w-3xl mx-auto">
               <span className="px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold tracking-widest inline-block border border-emerald-100 uppercase">
@@ -929,8 +929,8 @@ export default function StorefrontHomePage() {
         </section>
 
         {/* How to Cook - Zapeo Style Floating Workflow */}
-        <section className="bg-transparent border-y border-[#4F534C]/10 py-12 md:py-16 w-full relative z-10">
-          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="bg-transparent border-y border-[#4F534C]/10 py-8 md:py-12 w-full relative z-10">
+          <div className="site-shell">
             <div className="text-center max-w-2xl mx-auto mb-20 space-y-4">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-gray-200 text-[#1E201D] text-xs font-bold uppercase tracking-widest shadow-sm">
                 <Clock className="w-4 h-4 text-emerald-500" />

@@ -94,7 +94,7 @@ function ShopContent() {
         onSelectCategory={setSelectedCategory}
       />
 
-      <main className="site-shell py-10 sm:py-14 flex-1">
+      <main className="site-shell w-full max-w-[1180px] py-6 sm:py-8 md:py-10 flex-1">
         <div className="mb-10 max-w-2xl">
           <p className="text-sm font-bold tracking-[0.14em] text-[#656B4F] uppercase mb-2">Shop Sakthi</p>
           <h1 className="text-4xl sm:text-5xl font-black text-[#2F2F2F] tracking-tight font-poppins">
@@ -147,10 +147,10 @@ function ShopContent() {
 
         {/* Product Cards Grid */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6 py-12">
+          <div className="grid grid-cols-2 gap-3 py-8 sm:gap-4 sm:py-10 md:grid-cols-3 lg:grid-cols-4">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-              <div key={n} className="bg-white rounded-2xl p-4 h-80 border border-[#676662]/10 flex flex-col justify-between">
-                <div className="loading-shimmer h-40 rounded-xl w-full" />
+              <div key={n} className="flex min-h-[290px] flex-col justify-between rounded-xl border border-[#676662]/10 bg-white p-3 sm:min-h-[330px] sm:rounded-2xl sm:p-4">
+                <div className="loading-shimmer aspect-[4/3] w-full rounded-lg sm:rounded-xl" />
                 <div className="space-y-2 mt-4">
                   <div className="bg-[#EAF0E5] h-4 rounded w-3/4" />
                   <div className="bg-[#EAF0E5] h-3 rounded w-1/2" />
@@ -177,14 +177,14 @@ function ShopContent() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
             {sortedProducts.map((product) => (
               <div
                 key={product.id}
-                className="bg-[#FBFDF2] rounded-2xl overflow-hidden border border-[#676662]/15 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1"
+                className="group flex min-w-0 flex-col justify-between overflow-hidden rounded-xl border border-[#676662]/15 bg-[#FBFDF2] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl sm:rounded-2xl"
               >
                 {/* Image Container */}
-                <div className="relative h-48 bg-[#EAF0E5] overflow-hidden">
+                <div className="relative aspect-[4/3] bg-[#EAF0E5] overflow-hidden">
                   <img
                     src={product.image}
                     alt={product.name}
@@ -192,12 +192,12 @@ function ShopContent() {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   {/* Badges */}
-                  <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                    <span className="bg-[#4D583F] text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-xs">
+                  <div className="absolute left-2 top-2 flex items-center gap-1 sm:left-3 sm:top-3 sm:gap-1.5">
+                    <span className="rounded-md bg-[#4D583F] px-1.5 py-0.5 text-[9px] font-bold text-white shadow-xs sm:px-2.5 sm:py-1 sm:text-[10px]">
                       {product.weight}
                     </span>
                     {product.isPopular && (
-                      <span className="bg-amber-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-xs">
+                      <span className="rounded-md bg-amber-600 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-xs sm:px-2 sm:py-1 sm:text-[10px]">
                         Best Seller
                       </span>
                     )}
@@ -215,21 +215,21 @@ function ShopContent() {
                 </div>
 
                 {/* Content */}
-                <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                <div className="flex flex-1 flex-col justify-between space-y-3 p-3 sm:space-y-4 sm:p-5">
                   <div>
                     <div className="text-[11px] font-semibold text-[#4D583F] uppercase tracking-wider mb-1">
                       {product.category}
                     </div>
-                    <h3 className="text-xl font-extrabold text-[#2F2F2F] leading-snug group-hover:text-[#656B4F] transition-colors font-poppins">
+                    <h3 className="text-base font-extrabold leading-snug text-[#2F2F2F] transition-colors group-hover:text-[#656B4F] sm:text-xl font-poppins">
                       {product.name}
                     </h3>
-                    <p className="text-sm text-[#676662] mt-1.5 line-clamp-2 leading-relaxed">
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[#676662] sm:mt-1.5 sm:text-sm">
                       {product.description}
                     </p>
                   </div>
 
                   {/* Price & Action */}
-                  <div className="pt-3 border-t border-[#4F534C]/15 flex items-center justify-between gap-2">
+                  <div className="flex items-center justify-between gap-2 border-t border-[#4F534C]/15 pt-2 sm:pt-3">
                     <div>
                       <span className="text-[10px] text-[#61665D] block uppercase font-medium">From</span>
                       <span className="text-xl font-black text-[#656B4F]">₹{product.price}</span>
@@ -237,7 +237,7 @@ function ShopContent() {
 
                     <button
                       onClick={() => window.location.href = `/product/${product.id}`}
-                      className="py-2 px-3 sm:px-3.5 bg-[#4D583F] text-white hover:bg-[#414b35] rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1 sm:gap-1.5 active:scale-95 whitespace-nowrap min-h-[40px] sm:min-h-[44px]"
+                      className="flex min-h-9 items-center gap-1 whitespace-nowrap rounded-lg bg-[#4D583F] px-2 py-2 text-[11px] font-bold text-white shadow-md transition-all hover:bg-[#414b35] active:scale-95 sm:min-h-11 sm:gap-1.5 sm:rounded-xl sm:px-3.5 sm:text-xs"
                     >
                       <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       <span className="hidden sm:inline">Select Options</span>

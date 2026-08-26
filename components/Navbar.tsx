@@ -40,15 +40,15 @@ export default function Navbar({
   
   return (
     <>
-    <header className="sticky top-0 z-40 bg-[#FBFDF2]/95 backdrop-blur-md border-b border-[#676662]/15 shadow-sm transition-all">
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#676662]/15 transition-all">
       {/* Top Banner Notice */}
-      <div className="bg-[#656B4F] text-[#FBFDF2] text-sm py-2 px-4 text-center font-semibold tracking-wide flex items-center justify-center gap-2">
+      <div className="bg-[#656B4F] text-[#FBFDF2] px-4 py-2 text-center text-xs font-semibold tracking-wide flex items-center justify-center gap-2 sm:text-sm">
         <ShieldCheck className="w-4 h-4 text-green-300 hidden sm:block" />
         <span className="truncate">Plant-based frozen foods, delivered with care. Free delivery on orders over ₹999.</span>
       </div>
 
       <div className="site-shell">
-        <div className="flex items-center justify-between h-[4.5rem] sm:h-[5rem] gap-4">
+        <div className="flex h-16 items-center justify-between gap-2 sm:h-[4.5rem] sm:gap-4">
           
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 sm:gap-3 group shrink-0">
@@ -56,7 +56,7 @@ export default function Navbar({
               <Image src={logo} alt="Sakthi Frozen Foods" fill className="object-contain" priority />
             </div>
             <div className="hidden sm:block">
-              <span className="text-lg sm:text-xl font-extrabold tracking-tight text-[#1E201D] block leading-none">
+              <span className="text-base sm:text-lg font-extrabold tracking-tight text-[#1E201D] block leading-none">
                 SAKTHI FROZEN FOODS
               </span>
               <span className="text-[10px] font-semibold tracking-widest text-[#676662] uppercase block mt-1">
@@ -74,7 +74,7 @@ export default function Navbar({
           <div className="flex items-center justify-end gap-1 sm:gap-3 shrink-0">
             
             {/* Desktop Navigation Links */}
-            <nav className="hidden md:flex items-center gap-2 mr-2">
+            <nav className="hidden lg:flex items-center gap-1 mr-2">
               <Link href="/" className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-[#61665D] hover:text-[#1E201D] hover:bg-[#E8EEE0] transition-all">
                 <Home className="w-4 h-4" />
                 <span>Home</span>
@@ -151,14 +151,14 @@ export default function Navbar({
         </div>
 
         {/* Mobile Search */}
-        <div className="md:hidden pb-3 px-4">
+        <div className="md:hidden pb-3">
           <SearchOverlay />
         </div>
       </div>
     </header>
     
     {/* Mobile Bottom App Bar */}
-    <div className={`md:hidden fixed bottom-0 left-0 right-0 bg-[#FAFAF5]/95 backdrop-blur-md border-t border-[#4F534C]/15 z-50 flex items-center justify-around py-3 px-2 safe-area-pb shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] transition-transform duration-300 ${isFooterVisible ? 'translate-y-full' : 'translate-y-0'}`}>
+    <div className={`md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-[#4F534C]/15 z-50 flex items-center justify-around py-2 px-2 safe-area-pb shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] transition-transform duration-300 ${isFooterVisible ? 'translate-y-full' : 'translate-y-0'}`}>
       <Link href="/" className="flex flex-col items-center gap-1 text-[#61665D] hover:text-[#4D583F] transition-colors">
         <Home className="w-5 h-5" />
         <span className="text-[10px] font-bold">Home</span>
