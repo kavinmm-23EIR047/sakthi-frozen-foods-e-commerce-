@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { ProductType, OrderItemType } from '@/lib/seedData';
+import { ProductType, OrderItemType } from '@/lib/types';
 import { useToast } from './ToastContext';
 
 interface CartContextType {
