@@ -34,7 +34,7 @@ export default function Footer() {
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-3 group">
               <div className="relative w-16 h-10 sm:w-20 sm:h-12 flex items-center justify-center">
-                <Image src={logo} alt="Sakthi Frozen Foods" fill className="object-contain object-left" />
+                <Image src={logo} alt="Sakthi Frozen Foods" fill sizes="(max-width: 768px) 100vw, 200px" className="object-contain object-left" />
               </div>
               <div>
                 <span className="text-lg font-extrabold tracking-tight text-white block leading-none font-display">
