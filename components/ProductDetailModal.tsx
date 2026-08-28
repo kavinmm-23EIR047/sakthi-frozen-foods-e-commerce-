@@ -30,7 +30,7 @@ export default function ProductDetailModal() {
   
   const optionsMap = new Map<string, { label: string; price: number }>();
   optionsMap.set(baseOpt.label.trim().toUpperCase(), baseOpt);
-  customOpts.forEach((opt) => optionsMap.set(opt.label.trim().toUpperCase(), opt));
+  customOpts.forEach((opt: { label: string; price: number }) => optionsMap.set(opt.label.trim().toUpperCase(), opt));
 
   const weightOptions = Array.from(optionsMap.values());
 
