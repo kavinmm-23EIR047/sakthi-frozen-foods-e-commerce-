@@ -2,8 +2,13 @@ import { NextResponse } from 'next/server';
 import { connectToDatabase, getStoreCategories, saveStoreCategory, deleteStoreCategory } from '@/lib/db';
 import Category from '@/models/Category';
 
+import { requireAdmin } from '@/lib/auth';
+
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
+    const authError = requireAdmin();
+    if (authError) return NextResponse.json({ success: false, error: authError.error }, { status: authError.status });
+
     const body = await request.json();
     const db = await connectToDatabase();
 
@@ -39,6 +44,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
+    const authError = requireAdmin();
+    if (authError) return NextResponse.json({ success: false, error: authError.error }, { status: authError.status });
+
     const db = await connectToDatabase();
 
     if (db) {

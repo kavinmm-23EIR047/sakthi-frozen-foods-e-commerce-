@@ -43,8 +43,13 @@ export async function GET(request: Request) {
   }
 }
 
+import { requireAdmin } from '@/lib/auth';
+
 export async function POST(request: Request) {
   try {
+    const authError = requireAdmin();
+    if (authError) return NextResponse.json({ success: false, error: authError.error }, { status: authError.status });
+
     const body = await request.json();
     const db = await connectToDatabase();
 

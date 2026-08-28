@@ -31,23 +31,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { showToast } = useToast();
 
   useEffect(() => {
-    // Check local storage for user token on load
-    const storedUser = localStorage.getItem('sakthi_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    // Check session via Next.js proxy route which reads the HttpOnly cookie
+    const checkSession = async () => {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.data) {
+            setUser(data.data);
+          }
+        }
+      } catch (error) {
+        console.error('Session check failed:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    checkSession();
   }, []);
 
   const login = (userData: UserType) => {
     setUser(userData);
-    localStorage.setItem('sakthi_user', JSON.stringify(userData));
     showToast(`Welcome back, ${userData.name}!`, 'success');
   };
 
-  const logout = () => {
+  const logout = async () => {
     setUser(null);
-    localStorage.removeItem('sakthi_user');
+    try {
+      // Clear the HttpOnly cookie
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (e) {
+      console.error(e);
+    }
     showToast('Logged out successfully', 'info');
     window.location.href = '/login';
   };

@@ -36,8 +36,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 }
 
+import { requireAdmin } from '@/lib/auth';
+
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
+    const authError = requireAdmin();
+    if (authError) return NextResponse.json({ success: false, error: authError.error }, { status: authError.status });
+
     const db = await connectToDatabase();
     if (!db) {
       return NextResponse.json({ success: false, error: 'MongoDB is not connected. Product was not updated.' }, { status: 503 });
@@ -57,6 +62,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
+    const authError = requireAdmin();
+    if (authError) return NextResponse.json({ success: false, error: authError.error }, { status: authError.status });
+
     const db = await connectToDatabase();
     if (!db) {
       return NextResponse.json({ success: false, error: 'MongoDB is not connected. Product was not deleted.' }, { status: 503 });
