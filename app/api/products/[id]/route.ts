@@ -26,7 +26,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         category: p.category,
         description: p.description,
         stock: p.stock,
-        image: p.image === 'none' ? '' : p.image,
+        image: p.image === 'none' ? '' : (p.image?.includes('via.placeholder.com') ? p.image.replace('via.placeholder.com', 'placehold.co').replace('?text=', '/png?text=') : p.image),
         rating: p.rating,
         isPopular: p.isPopular,
       };
