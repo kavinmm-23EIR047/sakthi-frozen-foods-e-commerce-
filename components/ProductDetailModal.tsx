@@ -26,7 +26,7 @@ export default function ProductDetailModal() {
 
   // Combine Base Weight + Custom Variants so BOTH appear together for customer selection
   const baseOpt = { label: product.weight || '1 KG', price: product.price };
-  const customOpts = product.variants ? product.variants.map((v) => ({ label: v.weight, price: v.price })) : [];
+  const customOpts = product.variants ? product.variants.map((v: { weight: string; price: number }) => ({ label: v.weight, price: v.price })) : [];
   
   const optionsMap = new Map<string, { label: string; price: number }>();
   optionsMap.set(baseOpt.label.trim().toUpperCase(), baseOpt);

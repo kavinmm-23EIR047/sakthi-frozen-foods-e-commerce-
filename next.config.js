@@ -4,7 +4,6 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['mongoose', 'mongodb'],
   },
-  serverExternalPackages: ['mongoose', 'mongodb'],
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
