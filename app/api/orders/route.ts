@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase, getStoreOrders, saveStoreOrder } from '@/lib/db';
 import Order from '@/models/Order';
-import { OrderType } from '@/lib/seedData';
+import { OrderType } from '@/lib/types';
 
 export async function GET(request: Request) {
   try {

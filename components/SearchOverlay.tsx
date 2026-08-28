@@ -6,8 +6,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Search, X, Clock, ArrowRight, Flame } from 'lucide-react';
 import { fetchApi } from '@/lib/apiConfig';
-import { ProductType } from '@/lib/seedData';
+import { ProductType } from '@/lib/types';
 import { handleImageError } from '@/lib/imageCompressor';
+import OptimizedImage from '@/components/OptimizedImage';
 
 // Simple fuzzy match function that tolerates minor typos
 function fuzzyMatch(pattern: string, text: string): boolean {
@@ -167,12 +168,15 @@ export default function SearchOverlay() {
                       onClick={() => handleProductClick(product)}
                       className="flex items-center gap-4 p-3 bg-white rounded-xl border border-[#4F534C]/10 cursor-pointer hover:shadow-md transition-all active:scale-[0.98]"
                     >
-                      <img src={product.image} alt={product.name} onError={handleImageError} className="w-14 h-14 object-cover rounded-lg bg-[#EAF0E5]" />
+                      <OptimizedImage src={product.image} alt={product.name} width={160} className="h-14 w-14 rounded-lg object-cover" />
                       <div className="flex-1">
                         <h4 className="font-bold text-[#1E201D] text-sm">{product.name}</h4>
                         <p className="text-xs text-[#61665D] mt-0.5">{product.category}</p>
                       </div>
-                      <div className="font-bold text-[#4D583F] text-sm whitespace-nowrap">₹{product.price}</div>
+                      <div className="text-right whitespace-nowrap">
+                        <div className="text-[10px] text-[#61665D] line-through">MRP ₹{product.mrp ?? product.price}</div>
+                        <div className="font-bold text-[#4D583F] text-sm">₹{product.price}</div>
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -226,11 +230,14 @@ export default function SearchOverlay() {
                           className="bg-white rounded-xl overflow-hidden border border-[#4F534C]/15 cursor-pointer hover:shadow-md transition-all active:scale-95 group"
                         >
                           <div className="aspect-[4/3] relative overflow-hidden bg-[#EAF0E5]">
-                            <img src={product.image} alt={product.name} onError={handleImageError} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                            <OptimizedImage src={product.image} alt={product.name} width={360} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                           </div>
                           <div className="p-2.5">
                             <h4 className="font-bold text-[#1E201D] text-xs truncate">{product.name}</h4>
-                            <p className="text-[10px] text-[#61665D] mt-0.5">₹{product.price}</p>
+                            <p className="text-[10px] text-[#61665D] mt-0.5">
+                              <span className="line-through">MRP ₹{product.mrp ?? product.price}</span>{' '}
+                              <span className="font-bold text-[#4D583F]">₹{product.price}</span>
+                            </p>
                           </div>
                         </div>
                       ))}

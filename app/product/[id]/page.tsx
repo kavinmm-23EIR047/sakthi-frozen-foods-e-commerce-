@@ -5,10 +5,11 @@ import { useParams, useRouter } from 'next/navigation';
 import { Star, ShoppingBag, Plus, Minus, ShieldCheck, Flame, Sparkles, ArrowLeft } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { fetchApi } from '@/lib/apiConfig';
-import { ProductType } from '@/lib/seedData';
+import { ProductType } from '@/lib/types';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { handleImageError } from '@/lib/imageCompressor';
+import OptimizedImage from '@/components/OptimizedImage';
 
 export default function ProductPage() {
   const params = useParams();
@@ -118,10 +119,11 @@ export default function ProductPage() {
         <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-[#4F534C]/15 flex flex-col md:flex-row">
           {/* Image Side */}
           <div className="w-full md:w-1/2 relative bg-[#EAF0E5] flex items-center justify-center p-5 md:p-8 min-h-[280px]">
-            <img
+            <OptimizedImage
               src={product.image}
               alt={product.name}
-              onError={handleImageError}
+              width={900}
+              priority
               className="w-full aspect-square max-h-[480px] object-cover rounded-xl shadow-sm border border-[#4F534C]/15"
             />
             <span className="absolute top-6 left-6 bg-[#4D583F] text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-md">
@@ -194,6 +196,7 @@ export default function ProductPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-sm text-[#61665D] block font-medium">Calculated Price</span>
+                  <span className="text-sm text-[#61665D] line-through block">MRP ₹{product.mrp ?? dynamicPrice}</span>
                   <span className="text-3xl font-black text-[#4D583F]">₹{dynamicPrice}</span>
                 </div>
 

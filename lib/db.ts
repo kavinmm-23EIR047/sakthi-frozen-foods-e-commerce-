@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { INITIAL_PRODUCTS, INITIAL_ORDERS, INITIAL_USERS, INITIAL_CATEGORIES, ProductType, OrderType, UserType, CategoryType } from './seedData';
+import { ProductType, OrderType, UserType, CategoryType } from './types';
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -46,17 +46,18 @@ export async function connectToDatabase() {
     cached!.conn = await cached!.promise;
   } catch (e) {
     cached!.promise = null;
-    console.error('MongoDB Connection Error, falling back to local DB:', e);
+    console.error('MongoDB Connection Error:', e);
     return null;
   }
 
   return cached!.conn;
 }
 
-// Memory Store Helpers (Fallback mode)
+// Empty in-memory collections are used only when MongoDB is unavailable.
+// No sample data is ever injected into the storefront.
 export function getStoreProducts(): ProductType[] {
   if (!global.mockDbProducts) {
-    global.mockDbProducts = [...INITIAL_PRODUCTS];
+    global.mockDbProducts = [];
   }
   return global.mockDbProducts;
 }
@@ -81,7 +82,7 @@ export function deleteStoreProduct(id: string): boolean {
 
 export function getStoreOrders(): OrderType[] {
   if (!global.mockDbOrders) {
-    global.mockDbOrders = [...INITIAL_ORDERS];
+    global.mockDbOrders = [];
   }
   return global.mockDbOrders;
 }
@@ -100,14 +101,14 @@ export function saveStoreOrder(order: OrderType): OrderType {
 
 export function getStoreUsers(): UserType[] {
   if (!global.mockDbUsers) {
-    global.mockDbUsers = [...INITIAL_USERS];
+    global.mockDbUsers = [];
   }
   return global.mockDbUsers;
 }
 
 export function getStoreCategories(): CategoryType[] {
   if (!global.mockDbCategories) {
-    global.mockDbCategories = [...INITIAL_CATEGORIES];
+    global.mockDbCategories = [];
   }
   return global.mockDbCategories;
 }

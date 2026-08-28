@@ -6,7 +6,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/context/ToastContext';
-import { ProductType } from '@/lib/seedData';
+import { ProductType } from '@/lib/types';
 import { fetchApi } from '@/lib/apiConfig';
 import {
   Plus,
@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { handleImageError } from '@/lib/imageCompressor';
+import OptimizedImage from '@/components/OptimizedImage';
 
 interface ReviewType {
   _id?: string;
@@ -140,28 +141,6 @@ const FAQS = [
   },
 ];
 
-// Hero Dishes Data for Showcase Frame
-const HERO_DISHES = [
-  {
-    name: 'Sakthi Veg Mutton Biryani Cut',
-    category: 'Mutton Alternatives',
-    image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1000&q=80',
-    tag: '#1 Plant Mutton',
-  },
-  {
-    name: 'Sakthi Crispy Veg Fish Finger',
-    category: 'Seafood Alternatives',
-    image: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&w=1000&q=80',
-    tag: 'Seafood Favorite',
-  },
-  {
-    name: 'Sakthi Tender Chicken Strips',
-    category: 'Poultry Alternatives',
-    image: 'https://images.unsplash.com/photo-1562967914-608f82629710?auto=format&fit=crop&w=1000&q=80',
-    tag: 'High Protein',
-  },
-];
-
 export default function StorefrontHomePage() {
   const router = useRouter();
   const { addToCart } = useCart();
@@ -174,14 +153,16 @@ export default function StorefrontHomePage() {
   const [loading, setLoading] = useState(true);
   const [reviewSlideIndex, setReviewSlideIndex] = useState(0);
   const [cardsPerPage, setCardsPerPage] = useState(3);
+  const heroDishes = topProducts.slice(0, 3);
 
   // Auto-rotating Hero Image Slider
   useEffect(() => {
+    if (heroDishes.length <= 1) return;
     const heroInterval = setInterval(() => {
-      setHeroDishIndex((prev) => (prev + 1) % HERO_DISHES.length);
+      setHeroDishIndex((prev) => (prev + 1) % heroDishes.length);
     }, 5000); // 5 seconds per slide
     return () => clearInterval(heroInterval);
-  }, []);
+  }, [heroDishes.length]);
 
   // Responsive cards per view state (Wider cards on Desktop)
   useEffect(() => {
@@ -260,13 +241,14 @@ export default function StorefrontHomePage() {
 
         if (prodRes.success && Array.isArray(prodRes.data)) {
           const popular = prodRes.data.filter((p: ProductType) => p.isPopular);
-          setTopProducts(popular);
+          setTopProducts(popular.length > 0 ? popular : prodRes.data);
+          setHeroDishIndex(0);
         }
 
         if (catRes.success && Array.isArray(catRes.data)) {
           const cats = catRes.data.map((c: any) => ({
             name: c.name,
-            img: c.image || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=400&q=80',
+            img: c.image || '',
           }));
           setFeaturedCategories(cats);
         }
@@ -496,7 +478,7 @@ export default function StorefrontHomePage() {
 
               {/* Clean Framed Hero Showcase Image (Auto-Sliding Crossfade) */}
               <div className="relative rounded-3xl overflow-hidden shadow-[0_20px_50px_rgb(0,0,0,0.12)] border-4 border-white bg-white group aspect-[4/3]">
-                {HERO_DISHES.map((dish, idx) => (
+                {heroDishes.map((dish, idx) => (
                   <div
                     key={idx}
                     className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
@@ -504,21 +486,22 @@ export default function StorefrontHomePage() {
                     }`}
                   >
                     <div className="w-full h-full relative overflow-hidden bg-[#EAF0E5]">
-                      <img
+                      {dish.image && <OptimizedImage
                         src={dish.image}
                         alt={dish.name}
-                        onError={handleImageError}
+                        width={900}
+                        priority={idx === 0}
                         className={`w-full h-full object-cover transition-transform duration-[5000ms] ease-out ${
                            heroDishIndex === idx ? 'scale-110' : 'scale-100'
                         }`}
-                      />
+                      />}
                       <div className="absolute inset-0 bg-gradient-to-t from-[#1E201D]/90 via-[#1E201D]/20 to-transparent opacity-90" />
                       
                       {/* Top Floating Badge */}
                       <div className={`absolute top-4 left-4 flex items-center gap-2 transition-all duration-700 delay-100 ${heroDishIndex === idx ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'}`}>
                         <span className="px-3 py-1.5 rounded-full bg-[#4D583F]/90 backdrop-blur-md text-white font-black text-xs shadow-lg flex items-center gap-1.5 border border-white/20">
                           <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                          <span>{dish.tag}</span>
+                          <span>{dish.isPopular ? 'Best Seller' : 'Featured Product'}</span>
                         </span>
                       </div>
 
@@ -634,10 +617,10 @@ export default function StorefrontHomePage() {
                   href={`/shop?category=${encodeURIComponent(cat.name)}`}
                   className="group block relative rounded-3xl overflow-hidden aspect-[4/3] shadow-md hover:shadow-2xl transition-all border border-[#4F534C]/15 min-w-[80vw] sm:min-w-0 snap-center shrink-0 hover:-translate-y-1 bg-white"
                 >
-                  <img
+                  <OptimizedImage
                     src={cat.img}
                     alt={cat.name}
-                    onError={handleImageError}
+                    width={500}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#1E201D]/90 via-[#1E201D]/30 to-transparent flex flex-col justify-end p-6">
@@ -730,10 +713,10 @@ export default function StorefrontHomePage() {
                   >
                     {/* Image */}
                     <div className="relative aspect-[4/3] overflow-hidden">
-                      <img
+                      <OptimizedImage
                         src={product.image}
                         alt={product.name}
-                        onError={handleImageError}
+                        width={520}
                         className="w-full h-full object-cover"
                       />
                       
@@ -776,7 +759,10 @@ export default function StorefrontHomePage() {
 
                       {/* Price & Weight */}
                       <div className="flex items-center justify-between pt-2">
-                        <span className="text-base font-extrabold text-[#1E201D]">₹{product.price}</span>
+                        <div>
+                          <span className="block text-[10px] text-[#61665D] line-through">MRP ₹{product.mrp ?? product.price}</span>
+                          <span className="text-base font-extrabold text-[#1E201D]">₹{product.price}</span>
+                        </div>
                         <span className="text-[11px] text-[#61665D] font-bold">{product.weight}</span>
                       </div>
 

@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { UploadCloud, Link as LinkIcon, Image as ImageIcon, Sparkles, CheckCircle2, RefreshCw, X, FileImage, ShieldCheck } from 'lucide-react';
 import { compressImageToWebP, formatBytes, CompressionResult, optimizeImageUrl, handleImageError } from '@/lib/imageCompressor';
+import OptimizedImage from '@/components/OptimizedImage';
 
 interface ImageUploaderProps {
   value: string;
@@ -154,7 +155,7 @@ export default function ImageUploader({ value, onChange, label = 'Product Image'
               <div className="flex flex-col sm:flex-row items-center gap-4 w-full text-left" onClick={(e) => e.stopPropagation()}>
                 {/* Preview Thumbnail */}
                 <div className="w-24 h-24 rounded-xl bg-white border border-[#4F534C]/20 overflow-hidden shrink-0 shadow-md flex items-center justify-center relative group">
-                  <img src={value} alt="Preview" className="w-full h-full object-cover" />
+                  <OptimizedImage src={value} alt="Preview" width={240} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <button
                       type="button"
@@ -242,7 +243,7 @@ export default function ImageUploader({ value, onChange, label = 'Product Image'
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
               onBlur={handleUrlSubmit}
-              placeholder="https://images.unsplash.com/photo-... or Cloudinary URL"
+              placeholder="https://res.cloudinary.com/..."
               className="flex-1 px-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F]"
             />
             <button
@@ -257,7 +258,7 @@ export default function ImageUploader({ value, onChange, label = 'Product Image'
           {value && (
             <div className="flex items-center gap-3 p-3 bg-[#FAFAF5] rounded-xl border border-[#4F534C]/15">
               <div className="w-14 h-14 rounded-lg bg-white overflow-hidden border border-[#4F534C]/20 shrink-0">
-                <img src={value} alt="Preview" className="w-full h-full object-cover" onError={handleImageError} />
+                <OptimizedImage src={value} alt="Preview" width={180} className="w-full h-full object-cover" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-[#1E201D] truncate">{value}</p>

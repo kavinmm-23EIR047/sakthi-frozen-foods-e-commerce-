@@ -21,10 +21,15 @@ import {
   Star,
   Flame
 } from 'lucide-react';
-import { ProductType, OrderType, UserType, CategoryType } from '@/lib/seedData';
+import { ProductType, OrderType, UserType, CategoryType } from '@/lib/types';
 import { fetchApi } from '@/lib/apiConfig';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import ImageUploader from '@/components/ImageUploader';
+import OptimizedImage from '@/components/OptimizedImage';
+
+function isRetailCategory(category: string) {
+  return category.toUpperCase().includes('RETAIL PACK');
+}
 
 export default function AdminPortalPage() {
   const [activeTab, setActiveTab] = useState<'analytics' | 'products' | 'categories' | 'orders' | 'users' | 'reviews'>('analytics');
@@ -59,11 +64,12 @@ export default function AdminPortalPage() {
     code: '',
     name: '',
     weight: '1 KG',
+    mrp: 900,
     price: 500,
     category: 'Mutton Alternatives',
     description: '',
     stock: 50,
-    image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80',
+    image: '',
     isPopular: false,
     variants: [] as { weight: string; price: number }[],
   });
@@ -262,6 +268,7 @@ export default function AdminPortalPage() {
       code: prod.code,
       name: prod.name,
       weight: prod.weight,
+      mrp: prod.mrp ?? prod.price,
       price: prod.price,
       category: prod.category,
       description: prod.description,
@@ -280,11 +287,12 @@ export default function AdminPortalPage() {
       code: String(products.length + 1),
       name: '',
       weight: '1 KG',
+      mrp: 900,
       price: 600,
       category: categories[0]?.name || 'Mutton Alternatives',
       description: '',
       stock: 50,
-      image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80',
+      image: '',
       isPopular: false,
       variants: [],
     });
@@ -310,7 +318,7 @@ export default function AdminPortalPage() {
     setCategoryFormData({
       name: '',
       description: '',
-      image: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80',
+      image: '',
       icon: 'List',
     });
     setImageType('url');
@@ -347,7 +355,7 @@ export default function AdminPortalPage() {
     <div className="min-h-screen bg-[#E8EEE0] text-[#1E201D] font-sans">
       {/* Top Navbar */}
       <header className="bg-[#1E201D] text-white sticky top-0 z-30 shadow-md">
-        <div className="mx-auto flex min-h-16 w-full max-w-7xl items-center justify-between gap-2 px-3 py-2 sm:min-h-20 sm:px-6 lg:px-8">
+        <div className="mx-auto flex min-h-16 w-full max-w-[1600px] items-center justify-between gap-2 px-3 py-2 sm:min-h-20 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#4D583F] text-white shadow-md sm:h-10 sm:w-10 sm:rounded-xl">
               <LayoutDashboard className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -385,7 +393,7 @@ export default function AdminPortalPage() {
       </header>
 
       {/* Main Admin Content */}
-      <div className="site-shell grid gap-6 py-6 sm:py-8 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-8">
+      <div className="mx-auto grid w-full max-w-[1600px] gap-5 px-3 py-5 sm:gap-6 sm:px-6 sm:py-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-7 lg:px-8">
         <aside className="rounded-2xl border border-[#4F534C]/15 bg-white p-3 shadow-sm lg:sticky lg:top-24 lg:h-fit">
           <p className="px-3 pb-2 pt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#61665D]">Workspace</p>
           <nav className="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:flex lg:flex-col">
@@ -418,7 +426,7 @@ export default function AdminPortalPage() {
 
         <div className="min-w-0 space-y-6">
         {/* Metric Cards */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:gap-5">
           <div className="flex items-center gap-3 rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm sm:p-5">
             <div className="w-12 h-12 rounded-xl bg-[#4D583F] text-white flex items-center justify-center shrink-0">
               <DollarSign className="w-6 h-6" />
@@ -581,7 +589,7 @@ export default function AdminPortalPage() {
             </div>
 
             {/* Products Table */}
-            <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm lg:block">
+            <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm xl:block">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-[#1E201D]">
                   <thead className="bg-[#EAF0E5] text-[#4D583F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
@@ -590,21 +598,39 @@ export default function AdminPortalPage() {
                       <th className="py-3.5 px-4">Product Name</th>
                       <th className="py-3.5 px-4">Category</th>
                       <th className="py-3.5 px-4">Weight</th>
-                      <th className="py-3.5 px-4">Price (₹)</th>
+                      <th className="py-3.5 px-4">MRP (₹)</th>
+                      <th className="py-3.5 px-4">Selling Price (₹)</th>
                       <th className="py-3.5 px-4">Stock</th>
                       <th className="py-3.5 px-4">Homepage Best Seller</th>
                       <th className="py-3.5 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#4F534C]/10">
-                    {filteredProducts.map((p) => (
-                      <tr key={p.id} className="hover:bg-[#EAF0E5]/30 transition-colors">
+                    {filteredProducts.map((p, index) => (
+                      <React.Fragment key={p.id}>
+                        {(index === 0 || filteredProducts[index - 1].category !== p.category) && (
+                          <tr className="bg-[#F3FBEE]">
+                            <td colSpan={9} className="px-4 py-3">
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#656B4F]">
+                                    {isRetailCategory(p.category) ? 'Retail Packs' : 'Regular Packs'}
+                                  </p>
+                                  <h3 className="mt-0.5 text-sm font-black text-[#2F2F2F]">{p.category}</h3>
+                                </div>
+                                <span className="text-[11px] font-bold text-[#61665D]">Category section</span>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      <tr className="hover:bg-[#EAF0E5]/30 transition-colors">
                         <td className="py-3 px-4 font-bold text-[#4D583F]">#{p.code}</td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
-                            <img
+                            <OptimizedImage
                               src={p.image}
                               alt={p.name}
+                              width={96}
                               className="w-10 h-10 rounded-lg object-cover border border-[#4F534C]/15 shrink-0"
                             />
                             <div>
@@ -625,6 +651,9 @@ export default function AdminPortalPage() {
                               </span>
                             ))}
                           </div>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-[#61665D] line-through">
+                          ₹{p.mrp ?? p.price}
                         </td>
                         <td className="py-3 px-4 font-black text-sm text-[#4D583F]">
                           ₹{p.price}
@@ -686,16 +715,26 @@ export default function AdminPortalPage() {
                           </div>
                         </td>
                       </tr>
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>
               </div>
             </div>
-            <div className="grid gap-3 lg:hidden">
-              {filteredProducts.map((p) => (
-                <article key={p.id} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
+            <div className="grid gap-3 xl:hidden">
+              {filteredProducts.map((p, index) => (
+                <React.Fragment key={p.id}>
+                  {(index === 0 || filteredProducts[index - 1].category !== p.category) && (
+                    <div className="border-b border-[#4F534C]/15 pb-3 pt-2">
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#656B4F]">
+                        {isRetailCategory(p.category) ? 'Retail Packs' : 'Regular Packs'}
+                      </p>
+                      <h3 className="mt-1 text-lg font-black text-[#2F2F2F]">{p.category}</h3>
+                    </div>
+                  )}
+                <article className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
                   <div className="flex gap-3">
-                    <img src={p.image} alt={p.name} className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+                    <OptimizedImage src={p.image} alt={p.name} width={160} className="h-16 w-16 shrink-0 rounded-xl object-cover" />
                     <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-[#4D583F]">#{p.code} · {p.category}</p>
                       <h3 className="truncate text-sm font-black text-[#1E201D]">{p.name}</h3>
@@ -704,6 +743,7 @@ export default function AdminPortalPage() {
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#4F534C]/10 pt-3 text-xs">
                     <span className="rounded bg-[#EAF0E5] px-2 py-1 font-bold text-[#4D583F]">{p.weight}</span>
+                    <span className="text-[#61665D] line-through">MRP ₹{p.mrp ?? p.price}</span>
                     <span className="font-black text-[#4D583F]">₹{p.price}</span>
                     <span className="rounded bg-amber-100 px-2 py-1 font-bold text-amber-800">{p.stock} in stock</span>
                     <div className="ml-auto flex items-center gap-1">
@@ -712,6 +752,7 @@ export default function AdminPortalPage() {
                     </div>
                   </div>
                 </article>
+                </React.Fragment>
               ))}
             </div>
           </div>
@@ -731,7 +772,7 @@ export default function AdminPortalPage() {
               </button>
             </div>
             
-            <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm lg:block">
+            <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm xl:block">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-[#1E201D]">
                   <thead className="bg-[#EAF0E5] text-[#4D583F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
@@ -746,9 +787,10 @@ export default function AdminPortalPage() {
                       <tr key={cat.id} className="hover:bg-[#EAF0E5]/30 transition-colors">
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
-                            <img
+                            <OptimizedImage
                               src={cat.image}
                               alt={cat.name}
+                              width={96}
                               className="w-10 h-10 rounded-lg object-cover border border-[#4F534C]/15 shrink-0"
                             />
                             <span className="font-bold block text-sm">{cat.name}</span>
@@ -777,10 +819,10 @@ export default function AdminPortalPage() {
                 </table>
               </div>
             </div>
-            <div className="grid gap-3 lg:hidden">
+            <div className="grid gap-3 xl:hidden">
               {categories.map((cat) => (
                 <article key={cat.id} className="flex items-center gap-3 rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
-                  <img src={cat.image} alt={cat.name} className="h-14 w-14 shrink-0 rounded-xl object-cover" />
+                  <OptimizedImage src={cat.image} alt={cat.name} width={112} className="h-14 w-14 shrink-0 rounded-xl object-cover" />
                   <div className="min-w-0 flex-1">
                     <h3 className="truncate text-sm font-black">{cat.name}</h3>
                     <p className="mt-1 line-clamp-2 text-xs text-[#61665D]">{cat.description}</p>
@@ -798,7 +840,7 @@ export default function AdminPortalPage() {
         {/* TAB 2: ORDERS MANAGEMENT */}
         {activeTab === 'orders' && (
           <div className="space-y-3">
-            <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm lg:block">
+            <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm xl:block">
               <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-[#1E201D]">
                 <thead className="bg-[#EAF0E5] text-[#4D583F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
@@ -866,7 +908,7 @@ export default function AdminPortalPage() {
               </table>
               </div>
             </div>
-            <div className="grid gap-3 lg:hidden">
+            <div className="grid gap-3 xl:hidden">
               {orders.map((ord) => (
                 <article key={ord.id} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
@@ -905,7 +947,7 @@ export default function AdminPortalPage() {
               </div>
             </div>
             
-            <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm lg:block">
+            <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm xl:block">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-[#1E201D]">
                   <thead className="bg-[#EAF0E5] text-[#4D583F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
@@ -945,7 +987,7 @@ export default function AdminPortalPage() {
                 </table>
               </div>
             </div>
-            <div className="grid gap-3 lg:hidden">
+            <div className="grid gap-3 xl:hidden">
               {filteredUsers.map((usr) => (
                 <article key={usr.id} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
                   <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-sm font-black">{usr.name}</h3><p className="truncate text-xs text-[#61665D]">{usr.email}</p></div><span className="rounded-full bg-[#EAF0E5] px-2 py-1 text-[10px] font-bold text-[#4D583F]">{usr.role}</span></div>
@@ -966,7 +1008,7 @@ export default function AdminPortalPage() {
               </div>
             </div>
 
-            <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm lg:block">
+            <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm xl:block">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-[#1E201D]">
                   <thead className="bg-[#EAF0E5] text-[#4D583F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
@@ -1013,7 +1055,7 @@ export default function AdminPortalPage() {
                 </table>
               </div>
             </div>
-            <div className="grid gap-3 lg:hidden">
+            <div className="grid gap-3 xl:hidden">
               {reviews.map((rev) => (
                 <article key={rev._id || rev.id} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
                   <div className="flex items-start justify-between gap-3"><div className="flex min-w-0 items-center gap-2"><div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4D583F] text-xs font-black text-white">{rev.authorName.slice(0, 1)}</div><div className="min-w-0"><h3 className="truncate text-sm font-black">{rev.authorName}</h3><p className="text-xs text-[#61665D]">{rev.location || 'India'} · {rev.dateText || 'Recently'}</p></div></div><button onClick={async () => { if (!confirm(`Delete review from "${rev.authorName}"?`)) return; await fetchApi(`/reviews/${rev._id || rev.id}`, { method: 'DELETE' }); fetchData(); }} className="rounded-lg p-2 text-red-600 hover:bg-red-50" aria-label={`Delete review from ${rev.authorName}`}><Trash2 className="h-4 w-4" /></button></div>
@@ -1071,12 +1113,25 @@ export default function AdminPortalPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div>
-                  <label className="block font-bold text-[#2C3E50] mb-1">Base Price per 1KG (₹)</label>
+                  <label className="block font-bold text-[#2C3E50] mb-1">MRP per 1KG (₹)</label>
                   <input
                     type="number"
                     required
+                    min="0"
+                    value={formData.mrp}
+                    onChange={(e) => setFormData({ ...formData, mrp: Number(e.target.value) })}
+                    className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#4D583F] outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-[#2C3E50] mb-1">Selling Price per 1KG (₹)</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
                     className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#4D583F] outline-none"

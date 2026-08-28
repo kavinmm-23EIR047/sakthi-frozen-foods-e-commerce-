@@ -21,16 +21,14 @@ export interface CompressionResult {
   height: number;
 }
 
-export const DEFAULT_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80';
+export const DEFAULT_FALLBACK_IMAGE = '';
 
 /**
  * Image onError helper to prevent broken image icons anywhere in the app
  */
 export function handleImageError(e: React.SyntheticEvent<HTMLImageElement, Event>) {
   const target = e.currentTarget;
-  if (target.src !== DEFAULT_FALLBACK_IMAGE) {
-    target.src = DEFAULT_FALLBACK_IMAGE;
-  }
+  target.style.display = 'none';
 }
 
 /**
@@ -160,12 +158,18 @@ export async function compressImageToWebP(
  * to prevent high bandwidth consumption when using remote CDN URLs.
  */
 export function optimizeImageUrl(url: string, width: number = 800): string {
-  if (!url) return DEFAULT_FALLBACK_IMAGE;
+  if (!url) return '';
 
   // Cloudinary Optimization
   if (url.includes('res.cloudinary.com')) {
-    if (!url.includes('f_auto') && url.includes('/upload/')) {
-      return url.replace('/upload/', `/upload/f_auto,q_auto,w_${width}/`);
+    if (url.includes('/upload/')) {
+      const transformations = url.split('/upload/')[1]?.split('/')[0] || '';
+      if (!transformations.includes('w_')) {
+        const prefix = transformations.includes('f_auto') ? `w_${width}/` : `f_auto,q_auto,w_${width}/`;
+        return transformations
+          ? url.replace(`/upload/${transformations}/`, `/upload/${prefix}${transformations}/`)
+          : url.replace('/upload/', `/upload/${prefix}`);
+      }
     }
   }
 

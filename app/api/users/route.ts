@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase, getStoreUsers } from '@/lib/db';
 import User from '@/models/User';
-import { UserType } from '@/lib/seedData';
+import { UserType } from '@/lib/types';
 
 export async function GET() {
   try {

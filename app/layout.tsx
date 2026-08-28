@@ -18,13 +18,6 @@ export const metadata: Metadata = {
     description: 'Premium plant-based vegan mutton, fish, chicken, prawns, cutlets and snacks.',
     url: 'https://tnmockmeat.com',
     siteName: 'Sakthi Frozen Foods',
-    images: [
-      {
-        url: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=80',
-        width: 1200,
-        height: 630,
-      },
-    ],
     locale: 'en_IN',
     type: 'website',
   },
