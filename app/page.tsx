@@ -820,7 +820,7 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
             </div>
 
             {/* Quick Filter Tabs */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 no-scrollbar">
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-4 sm:mb-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {[
                 { key: 'All', label: 'All Varieties' },
                 { key: 'Both', label: '🌿 Regular & Retail Packs' },
@@ -832,7 +832,7 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
                 <button
                   key={tab.key}
                   onClick={() => setSelectedFilter(tab.key as any)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
+                  className={`px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border shrink-0 ${
                     selectedFilter === tab.key
                       ? 'bg-[#4D583F] text-white border-[#4D583F] shadow-sm'
                       : 'bg-white text-[#61665D] border-[#4F534C]/20 hover:border-[#4D583F] hover:text-[#1E201D]'
@@ -843,22 +843,22 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
               ))}
             </div>
 
-            {/* Product Grid - Clean Minimal Style */}
+            {/* Product Grid - 2x2 on Mobile, 4 columns on Desktop */}
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                {[1, 2, 3, 4].map((n) => (
-                  <div key={n} className="animate-pulse space-y-3 bg-white p-4 rounded-3xl border border-[#4F534C]/10">
-                    <div className="bg-[#4F534C]/10 aspect-[4/3] rounded-2xl w-full" />
-                    <div className="space-y-2">
-                      <div className="bg-[#4F534C]/10 h-3 rounded w-1/3" />
-                      <div className="bg-[#4F534C]/10 h-4 rounded w-3/4" />
-                      <div className="bg-[#4F534C]/10 h-4 rounded w-1/2" />
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                  <div key={n} className="animate-pulse space-y-2.5 bg-white p-3 sm:p-4 rounded-2xl sm:rounded-3xl border border-[#4F534C]/10">
+                    <div className="bg-[#4F534C]/10 aspect-square sm:aspect-[4/3] rounded-xl sm:rounded-2xl w-full" />
+                    <div className="space-y-1.5">
+                      <div className="bg-[#4F534C]/10 h-2.5 rounded w-1/3" />
+                      <div className="bg-[#4F534C]/10 h-3.5 rounded w-3/4" />
+                      <div className="bg-[#4F534C]/10 h-3 rounded w-1/2" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : filteredProducts.length === 0 ? (
-              <div className="text-center py-20 rounded-3xl border border-dashed border-[#4F534C]/20 bg-white p-8">
+              <div className="text-center py-16 sm:py-20 rounded-2xl sm:rounded-3xl border border-dashed border-[#4F534C]/20 bg-white p-6 sm:p-8">
                 <p className="text-sm font-bold text-[#61665D]">No items found under this filter.</p>
                 <button
                   onClick={() => setSelectedFilter('All')}
@@ -868,15 +868,15 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6">
                 {filteredProducts.slice(0, 8).map((product) => (
                   <div
                     key={product.id || product.baseKey}
                     onClick={() => router.push(`/product/${product.id}`)}
-                    className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-md border border-[#4F534C]/10 transition-all duration-300 hover:shadow-xl sm:rounded-3xl hover:-translate-y-1 cursor-pointer"
+                    className="group relative flex flex-col justify-between overflow-hidden rounded-2xl sm:rounded-3xl bg-white shadow-sm border border-[#4F534C]/15 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer"
                   >
                     {/* Image & Overlay */}
-                    <div className="relative aspect-[4/3] bg-[#EAF0E5] overflow-hidden">
+                    <div className="relative aspect-square sm:aspect-[4/3] bg-[#EAF0E5] overflow-hidden">
                       <OptimizedImage
                         src={product.image}
                         alt={product.name}
@@ -885,34 +885,48 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
                       />
                       
                       {/* Badges */}
-                      <div className="absolute left-2.5 top-2.5 flex flex-wrap items-center gap-1.5 max-w-[85%] z-10">
+                      <div className="absolute left-1.5 top-1.5 sm:left-2.5 sm:top-2.5 flex flex-wrap items-center gap-1 sm:gap-1.5 max-w-[90%] z-10">
                         {product.hasBothPacks ? (
-                          <span className="rounded-md bg-[#2D3E2E] px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold text-white shadow-xs backdrop-blur-xs flex items-center gap-1">
-                            🌿 Regular & Retail
+                          <span className="rounded-md bg-[#2D3E2E]/95 px-1.5 py-0.5 text-[8px] sm:text-[10px] font-extrabold text-white shadow-xs backdrop-blur-xs flex items-center gap-0.5 sm:gap-1">
+                            <span>🌿</span>
+                            <span className="hidden sm:inline">Regular & Retail</span>
+                            <span className="sm:hidden">2 Packs</span>
                           </span>
                         ) : product.hasRetailPack ? (
-                          <span className="rounded-md bg-[#0284C7] px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold text-white shadow-xs backdrop-blur-xs flex items-center gap-1">
-                            🛒 Retail Pack
+                          <span className="rounded-md bg-[#0284C7]/95 px-1.5 py-0.5 text-[8px] sm:text-[10px] font-extrabold text-white shadow-xs backdrop-blur-xs flex items-center gap-0.5 sm:gap-1">
+                            <span>🛒</span>
+                            <span className="hidden sm:inline">Retail Pack</span>
+                            <span className="sm:hidden">Retail</span>
                           </span>
                         ) : (
-                          <span className="rounded-md bg-[#4D583F] px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold text-white shadow-xs backdrop-blur-xs flex items-center gap-1">
-                            📦 Regular Pack
+                          <span className="rounded-md bg-[#4D583F]/95 px-1.5 py-0.5 text-[8px] sm:text-[10px] font-extrabold text-white shadow-xs backdrop-blur-xs flex items-center gap-0.5 sm:gap-1">
+                            <span>📦</span>
+                            <span className="hidden sm:inline">Regular Pack</span>
+                            <span className="sm:hidden">Regular</span>
                           </span>
                         )}
 
-                        <span className="rounded-md bg-black/60 backdrop-blur-xs px-1.5 py-0.5 text-[9px] font-bold text-white shadow-xs sm:text-[10px]">
-                          {product.hasBothPacks ? '400g & 1 KG' : product.weight}
+                        <span className="rounded-md bg-black/65 backdrop-blur-xs px-1.5 py-0.5 text-[8px] sm:text-[10px] font-bold text-white shadow-xs">
+                          {product.hasBothPacks ? (
+                            <>
+                              <span className="hidden sm:inline">400g & 1 KG</span>
+                              <span className="sm:hidden">400g/1kg</span>
+                            </>
+                          ) : (
+                            product.weight
+                          )}
                         </span>
 
                         {product.isPopular && (
-                          <span className="rounded-md bg-amber-600 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-xs sm:text-[10px]">
-                            Best Seller
+                          <span className="rounded-md bg-amber-600 px-1.5 py-0.5 text-[8px] sm:text-[10px] font-bold text-white shadow-xs">
+                            <span className="hidden sm:inline">Best Seller</span>
+                            <span className="sm:hidden">🔥 Hot</span>
                           </span>
                         )}
                       </div>
 
                       {/* Quick View Overlay Button */}
-                      <div className="absolute inset-0 bg-[#1E201D]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-xs gap-2">
+                      <div className="absolute inset-0 bg-[#1E201D]/40 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex items-center justify-center text-white font-bold text-xs gap-2">
                         <span className="bg-[#4D583F] px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-lg min-h-[44px]">
                           <Eye className="w-4 h-4" /> View Details
                         </span>
@@ -920,10 +934,10 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
                     </div>
 
                     {/* Content */}
-                    <div className="flex flex-1 flex-col justify-between space-y-3 p-3.5 sm:space-y-4 sm:p-5">
+                    <div className="flex flex-1 flex-col justify-between p-2.5 sm:p-4 md:p-5 space-y-2 sm:space-y-3">
                       <div>
                         {/* Category & Pack Tag Line */}
-                        <div className="flex items-center gap-1.5 mb-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-[#4D583F]">
+                        <div className="flex items-center gap-1 mb-1 text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wide text-[#343F27]">
                           <span className="truncate">{product.category.replace(' Alternatives', '').replace(' Retail Pack', '')}</span>
                           <span className="text-[#4F534C]/30">•</span>
                           {product.hasBothPacks ? (
@@ -931,21 +945,27 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
                           ) : product.hasRetailPack ? (
                             <span className="text-sky-700 font-extrabold">Retail</span>
                           ) : (
-                            <span className="text-[#4D583F] font-extrabold">Regular Bulk</span>
+                            <span className="text-[#4D583F] font-extrabold">Regular</span>
                           )}
                         </div>
 
-                        <h3 className="line-clamp-1 text-sm font-black leading-snug text-[#1E201D] transition-colors group-hover:text-[#4D583F] sm:text-lg font-poppins">
+                        <h3 className="line-clamp-2 text-xs sm:text-base md:text-lg font-black leading-snug text-[#1A1E16] transition-colors group-hover:text-[#435232] font-poppins">
                           {product.name}
                         </h3>
                         
-                        <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[#676662] sm:text-xs">
+                        <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[#3E4536] font-medium hidden sm:block">
                           {product.description}
                         </p>
 
-                        {/* Pack Availability Comparison Mini-Box */}
+                        {/* Mobile Compact Pack Badge */}
+                        <div className="mt-1.5 flex items-center justify-between rounded-lg bg-[#F4F7F0] px-2 py-1 text-[9px] font-bold text-[#2A3123] sm:hidden">
+                          <span>{product.hasBothPacks ? '400g & 1kg' : product.weight}</span>
+                          <span className="text-[#4D583F] font-black">Available</span>
+                        </div>
+
+                        {/* Desktop Pack Comparison Box */}
                         {product.hasBothPacks ? (
-                          <div className="mt-3 grid grid-cols-2 gap-1.5 p-2 rounded-xl bg-[#F6F8F3] border border-[#4F534C]/10 text-[10px] sm:text-[11px]">
+                          <div className="mt-3 hidden sm:grid grid-cols-2 gap-1.5 p-2 rounded-xl bg-[#F6F8F3] border border-[#4F534C]/10 text-[10px] sm:text-[11px]">
                             <div className="flex flex-col p-1.5 rounded-lg bg-white shadow-2xs border border-[#4F534C]/5">
                               <span className="font-extrabold text-[#0284C7] text-[9px] uppercase tracking-wider">
                                 🛒 Retail Pack
@@ -962,7 +982,7 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
                             </div>
                           </div>
                         ) : (
-                          <div className="mt-3 p-2 rounded-xl bg-[#F6F8F3] border border-[#4F534C]/10 text-[10px] sm:text-[11px]">
+                          <div className="mt-3 hidden sm:block p-2 rounded-xl bg-[#F6F8F3] border border-[#4F534C]/10 text-[10px] sm:text-[11px]">
                             <div className="flex items-center justify-between p-1.5 rounded-lg bg-white shadow-2xs border border-[#4F534C]/5">
                               <span className="font-extrabold text-[#4D583F] text-[9px] uppercase tracking-wider">
                                 {product.hasRetailPack ? '🛒 Everyday Retail Pack' : '📦 Foodservice Regular Pack'}
@@ -973,36 +993,38 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
                         )}
                       </div>
 
-                      {/* Price & Action */}
-                      <div className="flex items-end justify-between gap-1 border-t border-[#4F534C]/15 pt-2.5 sm:gap-2 sm:pt-3">
+                      {/* Price & Action Row */}
+                      <div className="flex items-end justify-between gap-1 border-t border-[#4F534C]/15 pt-2 sm:gap-2 sm:pt-3">
                         <div>
-                          <span className="text-[9px] sm:text-[10px] text-[#61665D] block uppercase font-medium">
-                            {product.hasBothPacks ? 'Starting From' : 'MRP / Price'}
+                          <span className="text-[8px] sm:text-[10px] text-[#4F5547] block uppercase font-bold">
+                            {product.hasBothPacks ? 'From' : 'MRP'}
                           </span>
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="text-base sm:text-xl font-black text-[#4D583F]">
+                          <span className="block text-[9px] sm:text-xs text-[#555C4D] line-through font-semibold">
+                            ₹{product.minMrp}
+                          </span>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-sm sm:text-lg md:text-xl font-black text-[#283618]">
                               ₹{product.minPrice}
                             </span>
                             {product.hasBothPacks && product.minPrice !== product.maxPrice && (
-                              <span className="text-xs sm:text-sm text-[#61665D] font-bold">
+                              <span className="text-[10px] sm:text-xs text-[#555C4D] font-bold hidden sm:inline">
                                 – ₹{product.maxPrice}
                               </span>
                             )}
                           </div>
-                          <span className="block text-[9px] text-[#61665D] line-through">
-                            MRP ₹{product.minMrp}{product.hasBothPacks && product.minMrp !== product.maxMrp ? ` – ₹${product.maxMrp}` : ''}
-                          </span>
                         </div>
 
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             router.push(`/product/${product.id}`);
                           }}
-                          className="flex min-h-9 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg bg-[#4D583F] px-2.5 py-2 text-[10px] font-bold text-white shadow-md transition-all hover:bg-[#414b35] active:scale-95 sm:min-h-10 sm:gap-1.5 sm:rounded-xl sm:px-3 sm:text-xs z-10"
+                          className="flex h-8 sm:h-10 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg sm:rounded-xl bg-[#4D583F] px-2 sm:px-3.5 text-[10px] sm:text-xs font-bold text-white shadow-sm transition-all hover:bg-[#3D4732] active:scale-95 z-10"
                         >
-                          <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                          <span>{product.hasBothPacks ? 'Select Size' : 'Select Options'}</span>
+                          <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <span className="sm:hidden">Select</span>
+                          <span className="hidden sm:inline">{product.hasBothPacks ? 'Select Size' : 'Select Options'}</span>
                         </button>
                       </div>
                     </div>

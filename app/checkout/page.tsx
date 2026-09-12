@@ -52,12 +52,21 @@ export default function CheckoutPage() {
   // Handle location selected from Map
   const handleLocationSelect = (loc: LocationData) => {
     setCoordinates({ lat: loc.lat, lng: loc.lng });
-    if (loc.road && !streetArea) {
-      setStreetArea(loc.road);
+    
+    // Auto-fill Street/Area
+    const streetParts = [loc.road, loc.suburb].filter(Boolean);
+    if (streetParts.length > 0) {
+      setStreetArea(streetParts.join(', '));
+    } else if (loc.displayName) {
+      setStreetArea(loc.displayName.split(',').slice(0, 2).join(', ').trim());
     }
-    if (loc.suburb || loc.neighbourhood || loc.landmark) {
-      setLandmark(loc.landmark || loc.suburb || loc.neighbourhood || '');
+
+    // Auto-fill Landmark / Suburb
+    if (loc.landmark || loc.neighbourhood || loc.suburb) {
+      setLandmark(loc.landmark || loc.neighbourhood || loc.suburb || '');
     }
+
+    // Auto-fill City, State, Pincode
     if (loc.city) {
       setCity(loc.city);
     }
@@ -65,7 +74,7 @@ export default function CheckoutPage() {
       setState(loc.state);
     }
     if (loc.pincode) {
-      setPincode(loc.pincode);
+      setPincode(loc.pincode.replace(/\D/g, '').slice(0, 6));
     }
   };
 
