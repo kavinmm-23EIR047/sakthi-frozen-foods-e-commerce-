@@ -5,39 +5,64 @@
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || '';
 
+async function safeParseResponse(res: Response) {
+  const text = await res.text();
+  if (!text || !text.trim()) {
+    return res.ok ? { success: true } : { success: false, error: `HTTP ${res.status}: ${res.statusText || 'Error'}` };
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      success: false,
+      status: res.status,
+      error: res.ok ? 'Invalid JSON response received' : `HTTP ${res.status}: ${res.statusText || 'Server Error'}`,
+    };
+  }
+}
+
 export async function fetchApi(endpoint: string, options: RequestInit = {}) {
-  const timeout = new AbortController();
   const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const timeoutMs = normalizedEndpoint === '/upload' ? 60000 : 10000;
-  const timeoutId = setTimeout(() => timeout.abort(), timeoutMs);
+  const timeoutMs = normalizedEndpoint === '/upload' ? 60000 : 15000;
+  const requestController = options.signal ? null : new AbortController();
+  const timeoutId = requestController ? setTimeout(() => requestController.abort(), timeoutMs) : null;
+  const isFormData = options.body instanceof FormData;
+  const headers = new Headers(options.headers);
+  if (!headers.has('Authorization') && typeof window !== 'undefined') {
+    const token = sessionStorage.getItem('auth_token');
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+  }
+  if (!isFormData && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
   try {
     const url = API_BASE_URL ? `${API_BASE_URL}${normalizedEndpoint}` : `/api${normalizedEndpoint}`;
-    const isFormData = options.body instanceof FormData;
-    const headers = new Headers(options.headers);
-    if (!isFormData && !headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/json');
-    }
-
     const res = await fetch(url, {
       ...options,
       headers,
-      signal: options.signal || timeout.signal,
+      signal: options.signal || requestController?.signal,
     });
-    return await res.json();
+    return await safeParseResponse(res);
   } catch (error: any) {
-    console.error(`API Fetch Error [${endpoint}]:`, error);
     // Fallback to the internal route if an explicitly configured standalone server is unavailable.
     try {
       if (!API_BASE_URL) {
         throw error;
       }
       const fallbackUrl = `/api${normalizedEndpoint}`;
-      const res = await fetch(fallbackUrl, { ...options, signal: options.signal || timeout.signal });
-      return await res.json();
+      const fallbackController = options.signal ? null : new AbortController();
+      const fallbackTimeoutId = fallbackController ? setTimeout(() => fallbackController.abort(), timeoutMs) : null;
+      try {
+        const res = await fetch(fallbackUrl, { ...options, headers, signal: options.signal || fallbackController?.signal });
+        return await safeParseResponse(res);
+      } finally {
+        if (fallbackTimeoutId) clearTimeout(fallbackTimeoutId);
+      }
     } catch (fbErr: any) {
-      return { success: false, error: fbErr.message };
+      console.warn(`API Fetch fallback failed [${endpoint}]:`, fbErr?.message || fbErr);
+      return { success: false, error: fbErr?.message || 'Network error' };
     }
   } finally {
-    clearTimeout(timeoutId);
+    if (timeoutId) clearTimeout(timeoutId);
   }
 }

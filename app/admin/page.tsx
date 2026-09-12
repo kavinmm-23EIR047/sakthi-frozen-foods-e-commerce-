@@ -20,6 +20,7 @@ import {
   BarChart2,
   Star,
   Flame
+  ,Bell
 } from 'lucide-react';
 import { ProductType, OrderType, UserType, CategoryType } from '@/lib/types';
 import { fetchApi } from '@/lib/apiConfig';
@@ -130,12 +131,12 @@ export default function AdminPortalPage() {
         if (uploadRes.success) {
           finalImageUrl = uploadRes.data;
         } else {
-          alert('Failed to upload image: ' + uploadRes.error);
+          alert('Failed to upload image: ' + (uploadRes.error || uploadRes.message || 'Authentication error. Please re-login.'));
           return;
         }
       }
 
-      const finalFormData = { ...formData, image: finalImageUrl, weight: '1 KG' };
+      const finalFormData = { ...formData, image: finalImageUrl, weight: formData.weight || '1 KG' };
 
       if (editingProduct) {
         // PUT edit
@@ -202,7 +203,7 @@ export default function AdminPortalPage() {
         if (uploadRes.success) {
           finalImageUrl = uploadRes.data;
         } else {
-          alert('Failed to upload image: ' + uploadRes.error);
+          alert('Failed to upload image: ' + (uploadRes.error || uploadRes.message || 'Authentication error. Please re-login.'));
           return;
         }
       }
@@ -260,6 +261,13 @@ export default function AdminPortalPage() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleRefundOrder = async (orderId: string) => {
+    if (!confirm('Issue a full refund for this Razorpay order?')) return;
+    const data = await fetchApi(`/orders/${orderId}/refund`, { method: 'POST' });
+    if (data.success) fetchData();
+    else alert(data.error || 'Refund failed');
   };
 
   const openEditModal = (prod: ProductType) => {
@@ -422,6 +430,10 @@ export default function AdminPortalPage() {
               );
             })}
           </nav>
+          <Link href="/admin/notifications" className="mt-3 flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold text-[#52574E] hover:bg-[#EAF0E5] hover:text-[#1E201D]">
+            <Bell className="h-4 w-4" />
+            Notifications
+          </Link>
         </aside>
 
         <div className="min-w-0 space-y-6">
@@ -894,6 +906,7 @@ export default function AdminPortalPage() {
                         </select>
                       </td>
                       <td className="py-3.5 px-4 text-right">
+                        {ord.paymentStatus === 'Paid' && ord.paymentMethod === 'Razorpay (Online)' && <button onClick={() => handleRefundOrder(ord.id)} className="mr-2 rounded-lg bg-red-50 px-3 py-1 font-bold text-red-700 hover:bg-red-100">Refund</button>}
                         <button
                           onClick={() => setSelectedOrderModal(ord)}
                           className="px-3 py-1 bg-[#EAF0E5] text-[#4D583F] rounded-lg font-bold hover:bg-[#4D583F] hover:text-white transition-all inline-flex items-center gap-1"
@@ -964,7 +977,7 @@ export default function AdminPortalPage() {
                   <tbody className="divide-y divide-[#4F534C]/10">
                     {filteredUsers.map((usr) => (
                       <tr key={usr.id} className="hover:bg-[#FFF3E0]/30 transition-colors">
-                        <td className="py-3.5 px-4 font-bold text-[#2C3E50]">{usr.name}</td>
+                        <td className="py-3.5 px-4 font-bold text-[#1E201D]">{usr.name}</td>
                         <td className="py-3.5 px-4 text-[#61665D]">{usr.email}</td>
                         <td className="py-3.5 px-4 font-medium">{usr.phone}</td>
                         <td className="py-3.5 px-4">
@@ -1091,7 +1104,7 @@ export default function AdminPortalPage() {
               {/* Product form fields remain mostly the same, just changed classes */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-[#2C3E50] mb-1">Product Code #</label>
+                  <label className="block font-bold text-[#1E201D] mb-1">Product Code #</label>
                   <input
                     type="text"
                     required
@@ -1102,7 +1115,7 @@ export default function AdminPortalPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-[#2C3E50] mb-1">Product Name</label>
+                  <label className="block font-bold text-[#1E201D] mb-1">Product Name</label>
                   <input
                     type="text"
                     required
@@ -1115,7 +1128,7 @@ export default function AdminPortalPage() {
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div>
-                  <label className="block font-bold text-[#2C3E50] mb-1">MRP per 1KG (₹)</label>
+                  <label className="block font-bold text-[#1E201D] mb-1">MRP per 1KG (₹)</label>
                   <input
                     type="number"
                     required
@@ -1127,7 +1140,7 @@ export default function AdminPortalPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-[#2C3E50] mb-1">Selling Price per 1KG (₹)</label>
+                  <label className="block font-bold text-[#1E201D] mb-1">Selling Price per 1KG (₹)</label>
                   <input
                     type="number"
                     required
@@ -1139,7 +1152,7 @@ export default function AdminPortalPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-[#2C3E50] mb-1">Base Weight</label>
+                  <label className="block font-bold text-[#1E201D] mb-1">Base Weight</label>
                   <select
                     value={formData.weight || '1 KG'}
                     onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
@@ -1153,7 +1166,7 @@ export default function AdminPortalPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-[#2C3E50] mb-1">Category</label>
+                  <label className="block font-bold text-[#1E201D] mb-1">Category</label>
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
@@ -1166,7 +1179,7 @@ export default function AdminPortalPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-[#2C3E50] mb-1">Stock Units</label>
+                  <label className="block font-bold text-[#1E201D] mb-1">Stock Units</label>
                   <input
                     type="number"
                     required
@@ -1189,7 +1202,7 @@ export default function AdminPortalPage() {
               />
 
               <div>
-                <label className="block font-bold text-[#2C3E50] mb-1">Description</label>
+                <label className="block font-bold text-[#1E201D] mb-1">Description</label>
                 <textarea
                   rows={2}
                   value={formData.description}
@@ -1205,7 +1218,7 @@ export default function AdminPortalPage() {
                     <Flame className="w-4 h-4 text-amber-600 fill-amber-500" />
                     <span>Feature as Best Seller (Show on Homepage)</span>
                   </label>
-                  <p className="text-[10px] text-[#61665D] mt-0.5">Enables this product in the "Customer Favorites / Best Sellers" section on the storefront homepage.</p>
+                  <p className="text-[10px] text-[#61665D] mt-0.5">Enables this product in the &quot;Customer Favorites / Best Sellers&quot; section on the storefront homepage.</p>
                 </div>
                 <input
                   type="checkbox"
@@ -1280,7 +1293,7 @@ export default function AdminPortalPage() {
                     setIsAddModalOpen(false);
                     setEditingProduct(null);
                   }}
-                  className="px-4 py-2 rounded-xl bg-gray-200 text-[#2C3E50] font-bold"
+                  className="px-4 py-2 rounded-xl bg-gray-200 text-[#1E201D] font-bold"
                 >
                   Cancel
                 </button>
@@ -1317,7 +1330,7 @@ export default function AdminPortalPage() {
 
             <form onSubmit={handleSaveCategory} className="p-6 space-y-4 text-xs overflow-y-auto flex-1">
               <div>
-                <label className="block font-bold text-[#2C3E50] mb-1">Category Name</label>
+                <label className="block font-bold text-[#1E201D] mb-1">Category Name</label>
                 <input
                   type="text"
                   required
@@ -1339,7 +1352,7 @@ export default function AdminPortalPage() {
               />
 
               <div>
-                <label className="block font-bold text-[#2C3E50] mb-1">Description</label>
+                <label className="block font-bold text-[#1E201D] mb-1">Description</label>
                 <textarea
                   rows={2}
                   value={categoryFormData.description}
@@ -1355,7 +1368,7 @@ export default function AdminPortalPage() {
                     setIsCategoryModalOpen(false);
                     setEditingCategory(null);
                   }}
-                  className="px-4 py-2 rounded-xl bg-gray-200 text-[#2C3E50] font-bold"
+                  className="px-4 py-2 rounded-xl bg-gray-200 text-[#1E201D] font-bold"
                 >
                   Cancel
                 </button>
@@ -1384,20 +1397,20 @@ export default function AdminPortalPage() {
 
             <div className="p-6 space-y-4 text-xs overflow-y-auto flex-1">
               <div className="space-y-1 text-[#61665D]">
-                <div><strong className="text-[#2C3E50]">Customer:</strong> {selectedOrderModal.customerName}</div>
-                <div><strong className="text-[#2C3E50]">Phone:</strong> {selectedOrderModal.customerPhone}</div>
-                <div><strong className="text-[#2C3E50]">Address:</strong> {selectedOrderModal.shippingAddress}</div>
+                <div><strong className="text-[#1E201D]">Customer:</strong> {selectedOrderModal.customerName}</div>
+                <div><strong className="text-[#1E201D]">Phone:</strong> {selectedOrderModal.customerPhone}</div>
+                <div><strong className="text-[#1E201D]">Address:</strong> {selectedOrderModal.shippingAddress}</div>
               </div>
 
-              <h4 className="font-bold text-sm text-[#2C3E50] pt-2 border-t border-[#4F534C]/15">Purchased Items:</h4>
+              <h4 className="font-bold text-sm text-[#1E201D] pt-2 border-t border-[#4F534C]/15">Purchased Items:</h4>
               <div className="space-y-2">
                 {selectedOrderModal.items?.map((item, idx) => (
                   <div key={idx} className="p-2.5 rounded-lg bg-[#E8EEE0] flex justify-between items-center border border-[#4F534C]/10">
                     <div>
-                      <span className="font-bold block text-[#2C3E50]">{item.name}</span>
+                      <span className="font-bold block text-[#1E201D]">{item.name}</span>
                       <span className="text-[11px] text-[#4D583F] font-semibold">{item.weight}</span>
                     </div>
-                    <div className="font-bold text-[#2C3E50]">
+                    <div className="font-bold text-[#1E201D]">
                       ₹{item.price} × {item.quantity} = ₹{item.price * item.quantity}
                     </div>
                   </div>
@@ -1405,7 +1418,7 @@ export default function AdminPortalPage() {
               </div>
 
               <div className="pt-3 border-t border-[#4F534C]/15 flex justify-between items-center font-bold text-sm">
-                <span className="text-[#2C3E50]">Total Amount:</span>
+                <span className="text-[#1E201D]">Total Amount:</span>
                 <span className="text-[#4D583F]">₹{selectedOrderModal.totalAmount}</span>
               </div>
             </div>

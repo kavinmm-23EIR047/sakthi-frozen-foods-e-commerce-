@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
   try {
-    const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:5000/api';
+    const backendUrl = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
     const body = await request.text();
     const response = await fetch(`${backendUrl}/auth/register`, {
       method: 'POST',
@@ -20,19 +20,18 @@ export async function POST(request: Request) {
        return NextResponse.json({ success: false, error: 'Invalid response from backend' }, { status: response.status });
     }
     
+    const token = data.success && data.data ? data.data.token : undefined;
+    if (token) delete data.data.token;
     const res = NextResponse.json(data, { status: response.status });
-    
-    // If successful and token is present, store it in an HttpOnly cookie
-    if (data.success && data.data && data.data.token) {
-      res.cookies.set('auth_token', data.data.token, {
+
+    if (token) {
+      res.cookies.set('auth_token', token, {
         httpOnly: true,
         path: '/',
         secure: process.env.NODE_ENV === 'production',
         maxAge: 30 * 24 * 60 * 60, // 30 days
         sameSite: 'lax',
       });
-      // Do not send the token back in the JSON payload
-      delete data.data.token;
     }
     
     return res;

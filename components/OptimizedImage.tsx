@@ -41,7 +41,7 @@ export default function OptimizedImage({
   };
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[#EAF0E5]">
+    <div className={`relative overflow-hidden bg-[#EAF0E5] ${className || 'h-full w-full'}`}>
       {isLoading && <div className="loading-shimmer absolute inset-0 z-10" aria-hidden="true" />}
       {optimizedSrc && !hasError ? (
         <img
@@ -53,7 +53,7 @@ export default function OptimizedImage({
           fetchPriority={priority ? 'high' : 'low'}
           onLoad={handleLoad}
           onError={handleError}
-          className={`${className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+          className={`${className} w-full h-full object-cover ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center text-[#8E9D64]" aria-label={alt || 'Image unavailable'}>

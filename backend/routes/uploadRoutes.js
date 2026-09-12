@@ -3,6 +3,7 @@ const multer = require('multer');
 const { v2: cloudinary } = require('cloudinary');
 
 const router = express.Router();
+const { protect, admin } = require('../middleware/authMiddleware');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -39,7 +40,7 @@ function uploadToCloudinary(buffer) {
 }
 
 // POST /api/upload
-router.post('/', (req, res) => {
+router.post('/', protect, admin, (req, res) => {
   upload.single('image')(req, res, async (uploadError) => {
     if (uploadError) {
       const error = uploadError.code === 'LIMIT_FILE_SIZE'

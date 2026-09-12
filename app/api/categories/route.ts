@@ -30,7 +30,7 @@ import { requireAdmin } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
-    const authError = requireAdmin();
+    const authError = await requireAdmin();
     if (authError) return NextResponse.json({ success: false, error: authError.error }, { status: authError.status });
 
     const body = await request.json();
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       });
     } else {
       const newCat = {
-        id: `cat-${Date.now()}`,
+        id: `cat-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         name: body.name,
         description: body.description || '',
         image: body.image || '',

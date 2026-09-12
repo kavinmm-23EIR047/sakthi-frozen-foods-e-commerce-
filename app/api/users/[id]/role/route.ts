@@ -4,23 +4,24 @@ import User from '@/backend/models/User';
 
 import { requireAdmin } from '@/lib/auth';
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const authError = requireAdmin();
+    const { id } = await params;
+    const authError = await requireAdmin();
     if (authError) return NextResponse.json({ success: false, error: authError.error }, { status: authError.status });
 
     const body = await request.json();
     const db = await connectToDatabase();
 
     if (db) {
-      const updated = await User.findByIdAndUpdate(params.id, { role: body.role }, { new: true });
+      const updated = await User.findByIdAndUpdate(id, { role: body.role }, { new: true });
       if (!updated) {
         return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
       }
       return NextResponse.json({ success: true, message: 'Role updated successfully', role: updated.role });
     } else {
       const users = getStoreUsers();
-      const user = users.find((u) => u.id === params.id);
+      const user = users.find((u) => u.id === id);
       if (!user) {
         return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
       }

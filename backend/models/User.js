@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true },
     phone: { type: String, required: true },
     role: { type: String, enum: ['Customer', 'Admin'], default: 'Customer' },
@@ -13,6 +13,9 @@ const userSchema = new mongoose.Schema(
     totalSpent: { type: Number, default: 0 },
     joinedDate: { type: String, default: () => new Date().toISOString().split('T')[0] },
     address: { type: String, default: '' },
+    sessionVersion: { type: Number, default: 0 },
+    passwordResetTokenHash: { type: String, select: false },
+    passwordResetExpiresAt: { type: Date, select: false },
   },
   { timestamps: true }
 );
@@ -20,7 +23,7 @@ const userSchema = new mongoose.Schema(
 // Hash password before saving
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
-    next();
+    return next();
   }
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);

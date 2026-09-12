@@ -4,16 +4,17 @@ import Category from '@/models/Category';
 
 import { requireAdmin } from '@/lib/auth';
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const authError = requireAdmin();
+    const { id } = await params;
+    const authError = await requireAdmin();
     if (authError) return NextResponse.json({ success: false, error: authError.error }, { status: authError.status });
 
     const body = await request.json();
     const db = await connectToDatabase();
 
     if (db) {
-      const updated = await Category.findByIdAndUpdate(params.id, body, { new: true });
+      const updated = await Category.findByIdAndUpdate(id, body, { new: true });
       if (!updated) {
         return NextResponse.json({ success: false, error: 'Category not found' }, { status: 404 });
       }
@@ -29,7 +30,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       });
     } else {
       const categories = getStoreCategories();
-      const index = categories.findIndex((c) => c.id === params.id);
+      const index = categories.findIndex((c) => c.id === id);
       if (index === -1) {
         return NextResponse.json({ success: false, error: 'Category not found' }, { status: 404 });
       }
@@ -42,21 +43,22 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const authError = requireAdmin();
+    const { id } = await params;
+    const authError = await requireAdmin();
     if (authError) return NextResponse.json({ success: false, error: authError.error }, { status: authError.status });
 
     const db = await connectToDatabase();
 
     if (db) {
-      const deleted = await Category.findByIdAndDelete(params.id);
+      const deleted = await Category.findByIdAndDelete(id);
       if (!deleted) {
         return NextResponse.json({ success: false, error: 'Category not found' }, { status: 404 });
       }
       return NextResponse.json({ success: true, message: 'Category deleted successfully' });
     } else {
-      deleteStoreCategory(params.id);
+      deleteStoreCategory(id);
       return NextResponse.json({ success: true, message: 'Category deleted successfully' });
     }
   } catch (error: any) {

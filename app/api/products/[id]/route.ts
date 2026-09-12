@@ -3,8 +3,8 @@ import { connectToDatabase } from '@/lib/db';
 import Product from '@/models/Product';
 import { ProductType } from '@/lib/types';
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
 
   try {
     const db = await connectToDatabase();
@@ -38,9 +38,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
 import { requireAdmin } from '@/lib/auth';
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const authError = requireAdmin();
+    const { id } = await params;
+    const authError = await requireAdmin();
     if (authError) return NextResponse.json({ success: false, error: authError.error }, { status: authError.status });
 
     const db = await connectToDatabase();
@@ -48,7 +49,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ success: false, error: 'MongoDB is not connected. Product was not updated.' }, { status: 503 });
     }
 
-    const updated = await Product.findByIdAndUpdate(params.id, await request.json(), { new: true, runValidators: true });
+    const updated = await Product.findByIdAndUpdate(id, await request.json(), { new: true, runValidators: true });
     if (!updated) {
       return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 });
     }
@@ -60,9 +61,10 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const authError = requireAdmin();
+    const { id } = await params;
+    const authError = await requireAdmin();
     if (authError) return NextResponse.json({ success: false, error: authError.error }, { status: authError.status });
 
     const db = await connectToDatabase();
@@ -70,7 +72,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       return NextResponse.json({ success: false, error: 'MongoDB is not connected. Product was not deleted.' }, { status: 503 });
     }
 
-    const deleted = await Product.findByIdAndDelete(params.id);
+    const deleted = await Product.findByIdAndDelete(id);
     if (!deleted) {
       return NextResponse.json({ success: false, error: 'Product not found' }, { status: 404 });
     }

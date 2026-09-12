@@ -17,17 +17,34 @@ export default function ProductPage() {
   const { addToCart } = useCart();
   
   const [product, setProduct] = useState<ProductType | null>(null);
+  const [allProducts, setAllProducts] = useState<ProductType[]>([]);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [selectedWeightIdx, setSelectedWeightIdx] = useState(0);
+
+  function cleanBaseName(name: string): string {
+    if (!name) return '';
+    return name
+      .toUpperCase()
+      .replace(/\b(RETAIL PACK|RETAIL|REGULAR PACK|REGULAR|BULK PACK|BULK|CONSUMER PACK|CONSUMER|FOODSERVICE|ALTERNATIVE|ALTERNATIVES)\b/g, '')
+      .replace(/\s*\([^)]*\)/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
 
   useEffect(() => {
     const fetchProduct = async () => {
       setLoading(true);
       try {
-        const data = await fetchApi(`/products/${params.id}`);
-        if (data.success) {
-          setProduct(data.data);
+        const [singleRes, listRes] = await Promise.all([
+          fetchApi(`/products/${params.id}`),
+          fetchApi('/products'),
+        ]);
+        if (singleRes.success) {
+          setProduct(singleRes.data);
+        }
+        if (listRes.success && Array.isArray(listRes.data)) {
+          setAllProducts(listRes.data);
         }
       } catch (err) {
         console.error('Error fetching product:', err);
@@ -42,12 +59,8 @@ export default function ProductPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#E8EEE0] flex flex-col">
-        <Navbar />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4D583F]"></div>
-        </div>
-        <Footer />
+      <div className="min-h-screen bg-[#F3FBEE] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#4D583F]/20 border-t-[#4D583F]"></div>
       </div>
     );
   }
@@ -67,35 +80,77 @@ export default function ProductPage() {
     );
   }
 
-  // Dynamic weight calculation based on product's actual base weight and price
-  const parseWeightToGrams = (weightStr: string) => {
-    if (!weightStr) return 1000;
-    const match = weightStr.toUpperCase().match(/([\d.]+)\s*(KG|G)/);
-    if (!match) return 1000;
-    const value = parseFloat(match[1]);
-    const unit = match[2];
-    return unit === 'KG' ? value * 1000 : value;
+  // Combine Base Weight + Custom Variants + Companion Packs (Regular vs Retail)
+  const baseKey = cleanBaseName(product.name);
+  const companionProducts = allProducts.filter((p) => p.id !== product.id && cleanBaseName(p.name) === baseKey);
+
+  const optionsMap = new Map<string, { label: string; weight: string; price: number; type: 'regular' | 'retail' | 'variant'; targetProduct: ProductType }>();
+
+  // Helper to format pack label
+  const formatPackLabel = (w: string, isRetail: boolean) => {
+    const upper = (w || '').toUpperCase();
+    if (isRetail || upper.includes('400') || upper.includes('250') || upper.includes('200')) {
+      return `🛒 Retail Pack (${w})`;
+    }
+    return `📦 Regular Pack (${w})`;
   };
 
-  // Combine Base Weight + Custom Variants so BOTH appear together for customer selection
-  const baseOpt = { label: product.weight || '1 KG', price: product.price };
-  const customOpts = product.variants ? product.variants.map((v) => ({ label: v.weight, price: v.price })) : [];
-  
-  const optionsMap = new Map<string, { label: string; price: number }>();
-  optionsMap.set(baseOpt.label.trim().toUpperCase(), baseOpt);
-  customOpts.forEach((opt) => optionsMap.set(opt.label.trim().toUpperCase(), opt));
+  const isCurrentRetail = (product.category || '').toUpperCase().includes('RETAIL') || (product.weight || '').includes('400');
+  optionsMap.set(product.weight.trim().toUpperCase(), {
+    label: formatPackLabel(product.weight || '1 KG', isCurrentRetail),
+    weight: product.weight || '1 KG',
+    price: product.price,
+    type: isCurrentRetail ? 'retail' : 'regular',
+    targetProduct: product,
+  });
 
-  const weightOptions = Array.from(optionsMap.values());
+  // Add companion products
+  for (const comp of companionProducts) {
+    const isCompRetail = (comp.category || '').toUpperCase().includes('RETAIL') || (comp.weight || '').includes('400');
+    const key = comp.weight.trim().toUpperCase();
+    if (!optionsMap.has(key)) {
+      optionsMap.set(key, {
+        label: formatPackLabel(comp.weight, isCompRetail),
+        weight: comp.weight,
+        price: comp.price,
+        type: isCompRetail ? 'retail' : 'regular',
+        targetProduct: comp,
+      });
+    }
+  }
+
+  // Add variants if present
+  if (product.variants && Array.isArray(product.variants)) {
+    for (const v of product.variants) {
+      const key = v.weight.trim().toUpperCase();
+      if (!optionsMap.has(key)) {
+        optionsMap.set(key, {
+          label: formatPackLabel(v.weight, v.weight.includes('400') || v.weight.includes('250')),
+          weight: v.weight,
+          price: v.price,
+          type: 'variant',
+          targetProduct: { ...product, weight: v.weight, price: v.price },
+        });
+      }
+    }
+  }
+
+  const weightOptions = Array.from(optionsMap.values()).sort((a, b) => {
+    // Sort Retail first (smaller pack), then Regular (larger pack)
+    if (a.type === 'retail' && b.type !== 'retail') return -1;
+    if (a.type !== 'retail' && b.type === 'retail') return 1;
+    return a.price - b.price;
+  });
 
   const safeIdx = selectedWeightIdx >= 0 && selectedWeightIdx < weightOptions.length ? selectedWeightIdx : 0;
   const currentOption = weightOptions[safeIdx];
-  const currentWeight = currentOption;
   const dynamicPrice = currentOption.price;
 
   const handleAdd = () => {
+    const target = currentOption.targetProduct || product;
     const customizedProduct = {
-      ...product,
-      weight: currentOption.label,
+      ...target,
+      weight: currentOption.weight,
       price: dynamicPrice,
     };
     addToCart(customizedProduct, quantity);
@@ -127,7 +182,7 @@ export default function ProductPage() {
               className="w-full aspect-square max-h-[480px] object-cover rounded-xl shadow-sm border border-[#4F534C]/15"
             />
             <span className="absolute top-6 left-6 bg-[#4D583F] text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-md">
-              {currentWeight.label}
+              {currentOption.label}
             </span>
             {product.isPopular && (
               <span className="absolute top-6 right-6 bg-amber-600 text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-md">

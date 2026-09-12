@@ -14,7 +14,15 @@ export interface IOrder extends Document {
   customerEmail: string;
   customerPhone: string;
   shippingAddress: string;
+  landmark?: string;
+  pincode?: string;
+  city?: string;
+  state?: string;
+  coordinates?: { lat: number; lng: number };
   items: IOrderItem[];
+  subtotal?: number;
+  deliveryFee?: number;
+  convenienceFee?: number;
   totalAmount: number;
   paymentMethod: string;
   status: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
@@ -27,6 +35,14 @@ const OrderSchema: Schema = new Schema(
     customerEmail: { type: String, required: true },
     customerPhone: { type: String, required: true },
     shippingAddress: { type: String, required: true },
+    landmark: { type: String },
+    pincode: { type: String },
+    city: { type: String },
+    state: { type: String },
+    coordinates: {
+      lat: { type: Number },
+      lng: { type: Number },
+    },
     items: [
       {
         productId: { type: String, required: true },
@@ -36,6 +52,9 @@ const OrderSchema: Schema = new Schema(
         quantity: { type: Number, required: true },
       },
     ],
+    subtotal: { type: Number },
+    deliveryFee: { type: Number },
+    convenienceFee: { type: Number, default: 0 },
     totalAmount: { type: Number, required: true },
     paymentMethod: { type: String, default: 'UPI / Online' },
     status: {

@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 
 // Note: This requires process.env.JWT_SECRET to be set in the Next.js environment.
 // It should match the JWT_SECRET used in the Render backend.
-const JWT_SECRET = process.env.JWT_SECRET || 'secret123';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export interface TokenPayload {
   id: string;
@@ -12,9 +12,10 @@ export interface TokenPayload {
   exp: number;
 }
 
-export function getSession(): TokenPayload | null {
+export async function getSession(): Promise<TokenPayload | null> {
   try {
-    const token = cookies().get('auth_token')?.value;
+    if (!JWT_SECRET) return null;
+    const token = (await cookies()).get('auth_token')?.value;
     if (!token) return null;
     
     // Verify the token
@@ -26,8 +27,8 @@ export function getSession(): TokenPayload | null {
   }
 }
 
-export function requireAdmin() {
-  const session = getSession();
+export async function requireAdmin() {
+  const session = await getSession();
   if (!session) {
     return { error: 'Not authenticated', status: 401 };
   }

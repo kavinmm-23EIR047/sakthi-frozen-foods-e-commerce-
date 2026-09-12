@@ -120,11 +120,14 @@ export default function LoginPage() {
           </form>
 
           <p className="text-center text-xs text-[#61665D] mt-8 font-medium">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/register" className="text-[#4D583F] font-bold hover:underline">
               Create Account
             </Link>
           </p>
+          <Link href="/forgot-password" className="mt-3 block text-center text-xs font-bold text-[#4D583F] hover:underline">
+            Forgot password?
+          </Link>
           <div className="mt-4 pt-4 border-t border-[#4F534C]/10 text-center">
             <Link href="/" className="text-[11px] text-[#A7ADA9] hover:text-[#4D583F] font-bold">
               &larr; Back to Store

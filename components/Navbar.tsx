@@ -75,11 +75,11 @@ export default function Navbar({
             
             {/* Desktop Navigation Links */}
             <nav className="hidden lg:flex items-center gap-1 mr-2">
-              <Link href="/" className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-[#61665D] hover:text-[#1E201D] hover:bg-[#E8EEE0] transition-all">
+              <Link href="/" className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-extrabold text-[#2F352A] hover:text-[#1E201D] hover:bg-[#E8EEE0] transition-all">
                 <Home className="w-4 h-4" />
                 <span>Home</span>
               </Link>
-              <Link href="/shop" className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-[#61665D] hover:text-[#1E201D] hover:bg-[#E8EEE0] transition-all">
+              <Link href="/shop" className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-extrabold text-[#2F352A] hover:text-[#1E201D] hover:bg-[#E8EEE0] transition-all">
                 <Store className="w-4 h-4" />
                 <span>Shop</span>
               </Link>
@@ -142,7 +142,7 @@ export default function Navbar({
               <ShoppingBag className="w-5 h-5 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
               <span className="font-bold text-xs hidden sm:inline">Cart</span>
               {totalItems > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-[#D84315] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow">
+                <span className="absolute -top-1.5 -right-1.5 bg-[#1E201D] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow">
                   {totalItems}
                 </span>
               )}

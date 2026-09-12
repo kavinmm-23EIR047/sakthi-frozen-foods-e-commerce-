@@ -14,6 +14,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -23,7 +24,7 @@ export default function OrdersPage() {
 
     const fetchOrders = async () => {
       try {
-        const data = await fetchApi(`/orders?email=${encodeURIComponent(user.email)}`);
+        const data = await fetchApi('/orders/mine');
         if (data.success) {
           setOrders(data.data);
         } else {
@@ -38,6 +39,15 @@ export default function OrdersPage() {
 
     fetchOrders();
   }, [user]);
+
+  const cancelOrder = async (orderId: string) => {
+    if (!window.confirm('Cancel this order?')) return;
+    setCancellingId(orderId);
+    const data = await fetchApi(`/orders/${orderId}/cancel`, { method: 'POST' });
+    if (data.success) setOrders((current) => current.map((order) => order.id === orderId ? data.data : order));
+    else setError(data.error || 'Unable to cancel order.');
+    setCancellingId(null);
+  };
 
   if (!user && !loading) {
     return (
@@ -92,46 +102,47 @@ export default function OrdersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAF5] text-[#1E201D] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#F3FBEE] text-[#1E201D] flex flex-col font-sans">
       <Navbar />
 
-      <main className="site-shell py-6 sm:py-8 md:py-10 flex-1">
-        <div className="mb-8">
-          <h1 className="text-3xl font-black text-[#1E201D] font-poppins">My Orders</h1>
-          <p className="text-sm text-[#61665D] mt-1">Track and manage your past and current orders.</p>
+      <main className="mx-auto w-full max-w-[1180px] px-3 py-5 sm:px-4 sm:py-8 md:py-10 flex-1">
+        <div className="mb-6 sm:mb-8 max-w-2xl">
+          <p className="text-xs font-black tracking-[0.16em] text-[#3D4533] uppercase mb-1.5">Purchase History</p>
+          <h1 className="text-3xl sm:text-4xl font-black text-[#1A1E16] font-poppins">My Orders</h1>
+          <p className="text-sm font-semibold text-[#3C4136] mt-1.5">Track and manage your past and current orders.</p>
         </div>
 
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((n) => (
-              <div key={n} className="bg-white rounded-2xl h-40 animate-pulse border border-[#4F534C]/10" />
+              <div key={n} className="bg-white rounded-2xl h-40 animate-pulse border border-[#4F534C]/15 shadow-sm" />
             ))}
           </div>
         ) : error ? (
-          <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-200 font-medium">
+          <div className="p-4 bg-red-50 text-red-800 rounded-xl border border-red-200 font-bold text-sm">
             {error}
           </div>
         ) : orders.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-3xl border border-[#4F534C]/10 shadow-sm">
+          <div className="text-center py-20 bg-white rounded-3xl border border-[#4F534C]/15 shadow-sm max-w-md mx-auto">
             <div className="w-20 h-20 rounded-full bg-[#EAF0E5] flex items-center justify-center mx-auto mb-4 text-[#4D583F]">
               <Package className="w-10 h-10" />
             </div>
-            <h3 className="text-xl font-bold text-[#1E201D] font-poppins">No Orders Found</h3>
-            <p className="text-sm text-[#61665D] mt-2 mb-6">Looks like you haven't placed any orders yet.</p>
-            <Link href="/" className="inline-block px-6 py-3 bg-[#4D583F] text-white font-bold rounded-xl hover:bg-[#414b35] transition-all">
+            <h3 className="text-xl font-black text-[#1A1E16] font-poppins">No Orders Found</h3>
+            <p className="text-sm font-semibold text-[#3C4136] mt-2 mb-6">Looks like you haven&apos;t placed any orders yet.</p>
+            <Link href="/shop" className="inline-block px-6 py-3 bg-[#4D583F] text-white font-extrabold rounded-xl hover:bg-[#414b35] transition-all shadow-md">
               Start Shopping
             </Link>
           </div>
         ) : (
           <div className="space-y-6">
             {orders.map((order) => (
-              <div key={order.id} className="bg-white rounded-2xl border border-[#4F534C]/15 shadow-sm overflow-hidden">
-                <div className="bg-[#EAF0E5] px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#4D583F]/10">
+              <div key={order.id} className="bg-white rounded-2xl border border-[#4F534C]/20 shadow-sm overflow-hidden transition-shadow hover:shadow-md">
+                <div className="bg-[#EAF0E5] px-5 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#4D583F]/20">
                   <div>
-                    <span className="text-xs font-bold text-[#4D583F] uppercase tracking-wider block mb-1">
+                    <span className="text-xs font-black text-[#262E1F] uppercase tracking-wider block mb-1 font-mono">
                       Order {order.orderNumber}
                     </span>
-                    <span className="text-[11px] text-[#61665D] block">
+                    <span className="text-xs font-bold text-[#3E4536] block">
                       Placed on {new Date(order.createdAt).toLocaleDateString('en-IN', {
                         year: 'numeric',
                         month: 'short',
@@ -141,23 +152,28 @@ export default function OrdersPage() {
                       })}
                     </span>
                   </div>
-                  <div className="flex flex-col items-start sm:items-end gap-1">
-                    <span className="text-sm text-[#61665D]">Total Amount</span>
-                    <span className="text-lg font-black text-[#1E201D]">₹{order.totalAmount}</span>
+                  <div className="flex flex-col items-start sm:items-end gap-0.5">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-[#3E4536]">Total Amount</span>
+                    <span className="text-xl font-black text-[#1A1E16]">₹{order.totalAmount}</span>
+                    {order.convenienceFee ? (
+                      <span className="text-[10px] font-bold text-[#4D583F]">
+                        (Incl. ₹{order.convenienceFee} fee)
+                      </span>
+                    ) : null}
                   </div>
                 </div>
 
-                <div className="p-6">
-                  <div className="flex flex-col md:flex-row gap-8 justify-between">
+                <div className="p-5 sm:p-6">
+                  <div className="flex flex-col md:flex-row gap-6 md:gap-8 justify-between">
                     <div className="flex-1 space-y-4">
                       {order.items.map((item, idx) => (
-                        <div key={idx} className="flex items-start gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-[#E8EEE0] flex items-center justify-center text-[#4D583F] font-bold shadow-inner flex-shrink-0">
+                        <div key={idx} className="flex items-start gap-3.5 sm:gap-4">
+                          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-[#4D583F] text-white flex items-center justify-center font-black text-sm shadow-xs flex-shrink-0">
                             {item.quantity}x
                           </div>
                           <div>
-                            <h4 className="text-sm font-bold text-[#1E201D]">{item.name}</h4>
-                            <div className="text-[11px] text-[#61665D] mt-0.5">
+                            <h4 className="text-sm sm:text-base font-extrabold text-[#1A1E16] leading-snug">{item.name}</h4>
+                            <div className="text-xs font-bold text-[#3E4536] mt-1">
                               {item.weight} • ₹{item.price} each
                             </div>
                           </div>
@@ -165,24 +181,34 @@ export default function OrdersPage() {
                       ))}
                     </div>
 
-                    <div className="w-full md:w-64 space-y-4 border-t md:border-t-0 md:border-l border-[#4F534C]/10 pt-4 md:pt-0 md:pl-6">
+                    <div className="w-full md:w-64 space-y-4 border-t md:border-t-0 md:border-l border-[#4F534C]/15 pt-4 md:pt-0 md:pl-6">
                       <div>
-                        <span className="block text-xs font-semibold text-[#61665D] mb-1">Order Status</span>
-                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold ${getStatusColor(order.status)}`}>
+                        <span className="block text-xs font-black uppercase tracking-wider text-[#3E4536] mb-1.5">Order Status</span>
+                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-black ${getStatusColor(order.status)}`}>
                           {getStatusIcon(order.status)}
-                          {order.status}
+                          <span>{order.status}</span>
                         </div>
                       </div>
                       
                       <div>
-                        <span className="block text-xs font-semibold text-[#61665D] mb-1">Shipping Details</span>
-                        <p className="text-sm font-medium text-[#1E201D]">{order.shippingAddress}</p>
+                        <span className="block text-xs font-black uppercase tracking-wider text-[#3E4536] mb-1">Shipping Details</span>
+                        <p className="text-sm font-bold text-[#1A1E16] leading-snug">{order.shippingAddress}</p>
                       </div>
 
                       <div>
-                        <span className="block text-xs font-semibold text-[#61665D] mb-1">Payment Method</span>
-                        <p className="text-sm font-medium text-[#1E201D]">{order.paymentMethod}</p>
+                        <span className="block text-xs font-black uppercase tracking-wider text-[#3E4536] mb-1">Payment Method</span>
+                        <p className="text-sm font-bold text-[#1A1E16]">{order.paymentMethod}</p>
                       </div>
+
+                      {order.status === 'Pending' && (
+                        <button
+                          onClick={() => cancelOrder(order.id)}
+                          disabled={cancellingId === order.id}
+                          className="rounded-xl border border-red-300 bg-red-50 hover:bg-red-100 px-3.5 py-2 text-xs font-black text-red-800 transition-colors disabled:opacity-50 shadow-xs"
+                        >
+                          {cancellingId === order.id ? 'Cancelling...' : 'Cancel Order'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -1,9 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  experimental: {
-    serverComponentsExternalPackages: ['mongoose', 'mongodb'],
-  },
+  serverExternalPackages: ['mongoose', 'mongodb'],
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,

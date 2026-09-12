@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Review = require('../models/Review');
+const { protect, admin } = require('../middleware/authMiddleware');
 
 const INITIAL_REVIEWS = [
   {
@@ -73,7 +74,7 @@ router.post('/', async (req, res) => {
 });
 
 // DELETE review
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', protect, admin, async (req, res) => {
   try {
     await Review.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'Review deleted successfully' });

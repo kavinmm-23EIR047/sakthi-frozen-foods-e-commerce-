@@ -1,8 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { ProductType, OrderItemType } from '@/lib/types';
 import { useToast } from './ToastContext';
+import { useAuth } from './AuthContext';
+import { fetchApi } from '@/lib/apiConfig';
 
 interface CartContextType {
   cart: OrderItemType[];
@@ -29,16 +31,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [selectedProductForModal, setSelectedProductForModal] = useState<ProductType | null>(null);
   
   const { showToast } = useToast();
+  const { user } = useAuth();
+  const [cartLoaded, setCartLoaded] = useState(false);
+  const serverCartReady = useRef(false);
 
   // Load cart from localStorage on mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem('sakthi_cart');
       if (saved) {
-        setCart(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setCart(parsed);
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setCartLoaded(true);
     }
   }, []);
 
@@ -50,6 +58,38 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       console.error(e);
     }
   }, [cart]);
+
+  useEffect(() => {
+    if (!user || !cartLoaded || serverCartReady.current) return;
+    let cancelled = false;
+    const mergeServerCart = async () => {
+      const response = await fetchApi('/cart');
+      if (cancelled || !response.success) return;
+      const localItems = cart.map(({ productId, weight, quantity }) => ({ productId, weight, quantity }));
+      const merged = new Map<string, { productId: string; weight: string; quantity: number }>();
+      for (const item of [...(response.data || []), ...localItems]) {
+        const key = `${item.productId}:${item.weight}`;
+        merged.set(key, { ...item, quantity: Math.min(50, (merged.get(key)?.quantity || 0) + item.quantity) });
+      }
+      const mergedItems = Array.from(merged.values());
+      const saved = await fetchApi('/cart', { method: 'PUT', body: JSON.stringify({ items: mergedItems }) });
+      if (cancelled) return;
+      if (saved.success) setCart(saved.data || []);
+      serverCartReady.current = true;
+    };
+    mergeServerCart().catch((error) => console.error('Server cart sync failed:', error));
+    return () => { cancelled = true; };
+  }, [user, cartLoaded]);
+
+  useEffect(() => {
+    if (!user) {
+      serverCartReady.current = false;
+      return;
+    }
+    if (!serverCartReady.current || !cartLoaded) return;
+    const items = cart.map(({ productId, weight, quantity }) => ({ productId, weight, quantity }));
+    fetchApi('/cart', { method: 'PUT', body: JSON.stringify({ items }) }).catch((error) => console.error('Server cart update failed:', error));
+  }, [cart, user, cartLoaded]);
 
   const addToCart = (product: ProductType, quantity: number = 1) => {
     setCart((prev) => {
@@ -91,6 +131,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => {
     setCart([]);
+    if (user && serverCartReady.current) fetchApi('/cart', { method: 'DELETE' }).catch((error) => console.error('Server cart clear failed:', error));
   };
 
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);

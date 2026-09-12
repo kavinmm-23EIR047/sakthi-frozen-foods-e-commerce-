@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useCart } from '@/context/CartContext';
 import { ProductType } from '@/lib/types';
 import { fetchApi } from '@/lib/apiConfig';
-import { Plus, Eye, Filter, RefreshCw, SlidersHorizontal, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Eye, Filter, RefreshCw, SlidersHorizontal, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { handleImageError } from '@/lib/imageCompressor';
 import OptimizedImage from '@/components/OptimizedImage';
 
@@ -38,6 +39,13 @@ function ShopContent() {
   const [maxPrice, setMaxPrice] = useState('');
   const [inStockOnly, setInStockOnly] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
+  
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [pageSize, setPageSize] = useState(12);
+  
   const productRequestId = useRef(0);
 
   // Fetch categories dynamically from backend API
@@ -70,11 +78,12 @@ function ShopContent() {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (targetPage = page, targetLimit = pageSize) => {
     const requestId = ++productRequestId.current;
     setLoading(true);
+    
     try {
-      let endpoint = '/products?';
+      let endpoint = `/products?page=${targetPage}&limit=${targetLimit}&`;
       if (selectedCategory !== 'All') {
         endpoint += `category=${encodeURIComponent(selectedCategory)}&`;
       }
@@ -85,17 +94,67 @@ function ShopContent() {
       if (requestId !== productRequestId.current) return;
       if (data.success) {
         setProducts(data.data);
+        setPage(targetPage);
+        setTotalPages(data.totalPages || 1);
+        setTotalCount(data.total ?? data.data.length);
       }
     } catch (err) {
       console.error('Error fetching products:', err);
     } finally {
-      if (requestId === productRequestId.current) setLoading(false);
+      if (requestId === productRequestId.current) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchProducts();
-  }, [selectedCategory, debouncedSearchTerm]);
+    setPage(1);
+    fetchProducts(1, pageSize);
+  }, [selectedCategory, debouncedSearchTerm, pageSize]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages || newPage === page || loading) return;
+    setPage(newPage);
+    fetchProducts(newPage, pageSize);
+    const element = document.getElementById('shop-products-top');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const getPaginationItems = () => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    
+    const items: (number | string)[] = [];
+    
+    if (page <= 4) {
+      for (let i = 1; i <= 5; i++) {
+        items.push(i);
+      }
+      items.push('...');
+      items.push(totalPages);
+    } else if (page >= totalPages - 3) {
+      items.push(1);
+      items.push('...');
+      for (let i = totalPages - 4; i <= totalPages; i++) {
+        items.push(i);
+      }
+    } else {
+      items.push(1);
+      items.push('...');
+      items.push(page - 1);
+      items.push(page);
+      items.push(page + 1);
+      items.push('...');
+      items.push(totalPages);
+    }
+    
+    return items;
+  };
 
   const filteredByPriceAndStock = products.filter((product) => {
     const meetsMin = !minPrice || product.price >= Number(minPrice);
@@ -146,7 +205,7 @@ function ShopContent() {
         </div>
 
         {/* Category Pills & Filter Controls */}
-          <div className="space-y-4 mb-6 sm:space-y-6 sm:mb-10">
+        <div id="shop-products-top" className="scroll-mt-28 space-y-4 mb-6 sm:space-y-6 sm:mb-10">
           <div className="surface-card rounded-2xl p-3 sm:p-5 flex items-center justify-between flex-wrap gap-3 sm:gap-4">
             {/* Sort Selector */}
             <div className="flex items-center gap-2">
@@ -347,26 +406,26 @@ function ShopContent() {
                   </div>
 
                   {/* Quick View Overlay Button */}
-                  <button
-                    onClick={() => window.location.href = `/product/${product.id}`}
+                  <Link
+                    href={`/product/${product.id}`}
                     className="absolute inset-0 bg-[#1E201D]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-xs gap-2"
                   >
                     <span className="bg-[#4D583F] px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-lg min-h-[44px]">
                       <Eye className="w-4 h-4" /> Quick View
                     </span>
-                  </button>
+                  </Link>
                 </div>
 
                 {/* Content */}
                 <div className="flex flex-1 flex-col justify-between space-y-2 p-2.5 sm:space-y-4 sm:p-5">
                   <div>
-                    <div className="mb-1 truncate text-[9px] font-semibold uppercase tracking-wide text-[#4D583F] sm:text-[11px] sm:tracking-wider">
+                    <div className="mb-1 truncate text-[9px] font-extrabold uppercase tracking-wide text-[#343F27] sm:text-[11px] sm:tracking-wider">
                       {product.category}
                     </div>
-                    <h3 className="line-clamp-2 text-xs font-extrabold leading-snug text-[#2F2F2F] transition-colors group-hover:text-[#656B4F] sm:text-xl font-poppins">
+                    <h3 className="line-clamp-2 text-xs font-black leading-snug text-[#1A1E16] transition-colors group-hover:text-[#435232] sm:text-xl font-poppins">
                       {product.name}
                     </h3>
-                    <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[#676662] sm:mt-1.5 sm:text-sm">
+                    <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[#3E4536] font-medium sm:mt-1.5 sm:text-sm">
                       {product.description}
                     </p>
                   </div>
@@ -374,19 +433,19 @@ function ShopContent() {
                   {/* Price & Action */}
                   <div className="flex items-end justify-between gap-1 border-t border-[#4F534C]/15 pt-2 sm:gap-2 sm:pt-3">
                     <div>
-                      <span className="text-[10px] text-[#61665D] block uppercase font-medium">MRP</span>
-                      <span className="block text-[10px] text-[#61665D] line-through sm:text-sm">₹{product.mrp ?? product.price}</span>
-                      <span className="text-base font-black text-[#656B4F] block sm:text-xl">₹{product.price}</span>
+                      <span className="text-[10px] text-[#4F5547] block uppercase font-bold">MRP</span>
+                      <span className="block text-[10px] text-[#555C4D] line-through font-semibold sm:text-sm">₹{product.mrp ?? product.price}</span>
+                      <span className="text-base font-black text-[#283618] block sm:text-xl">₹{product.price}</span>
                     </div>
 
-                    <button
-                      onClick={() => window.location.href = `/product/${product.id}`}
+                    <Link
+                      href={`/product/${product.id}`}
                       className="flex min-h-9 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg bg-[#4D583F] px-2 py-2 text-[10px] font-bold text-white shadow-md transition-all hover:bg-[#414b35] active:scale-95 sm:min-h-11 sm:gap-1.5 sm:rounded-xl sm:px-3.5 sm:text-xs"
                     >
                       <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       <span className="hidden sm:inline">Select Options</span>
                       <span className="sm:hidden">Add</span>
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -394,6 +453,129 @@ function ShopContent() {
                 </div>}
               </section>
             ))}
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="mt-8 sm:mt-12 pt-6 border-t border-[#4F534C]/15 flex flex-col sm:flex-row items-center justify-between gap-4">
+                {/* Product Range Summary */}
+                <div className="text-xs font-medium text-[#61665D] text-center sm:text-left order-2 sm:order-1">
+                  Showing <span className="font-bold text-[#1E201D]">{Math.min((page - 1) * pageSize + 1, totalCount)}</span>–
+                  <span className="font-bold text-[#1E201D]">{Math.min(page * pageSize, totalCount)}</span> of{' '}
+                  <span className="font-bold text-[#1E201D]">{totalCount}</span> products
+                </div>
+
+                {/* Pagination Nav */}
+                <nav className="flex items-center gap-1 sm:gap-1.5 order-1 sm:order-2" aria-label="Products pagination">
+                  {/* First Page */}
+                  {totalPages > 5 && (
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(1)}
+                      disabled={page === 1 || loading}
+                      className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-[#4F534C]/20 bg-white text-[#1E201D] shadow-xs transition-all hover:bg-[#EAF0E5] hover:text-[#4D583F] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[#1E201D]"
+                      aria-label="First page"
+                      title="First page"
+                    >
+                      <ChevronsLeft className="h-4 w-4" />
+                    </button>
+                  )}
+
+                  {/* Previous Page */}
+                  <button
+                    type="button"
+                    onClick={() => handlePageChange(page - 1)}
+                    disabled={page === 1 || loading}
+                    className="flex h-9 min-w-[36px] sm:h-10 sm:min-w-[40px] items-center justify-center gap-1 rounded-xl border border-[#4F534C]/20 bg-white px-2.5 sm:px-3 text-xs font-bold text-[#1E201D] shadow-xs transition-all hover:bg-[#EAF0E5] hover:text-[#4D583F] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[#1E201D]"
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    <span className="hidden sm:inline">Prev</span>
+                  </button>
+
+                  {/* Page Numbers */}
+                  <div className="flex items-center gap-1 sm:gap-1.5">
+                    {getPaginationItems().map((item, idx) => {
+                      if (item === '...') {
+                        return (
+                          <span
+                            key={`ellipsis-${idx}`}
+                            className="flex h-9 w-6 sm:h-10 sm:w-8 items-center justify-center text-xs font-bold text-[#61665D]"
+                          >
+                            •••
+                          </span>
+                        );
+                      }
+
+                      const pageNum = Number(item);
+                      const isActive = pageNum === page;
+
+                      return (
+                        <button
+                          key={`page-btn-${pageNum}`}
+                          type="button"
+                          onClick={() => handlePageChange(pageNum)}
+                          disabled={loading}
+                          className={`flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl text-xs font-bold transition-all shadow-xs ${
+                            isActive
+                              ? 'bg-[#4D583F] text-white shadow-md scale-105 pointer-events-none ring-2 ring-[#4D583F]/30'
+                              : 'border border-[#4F534C]/20 bg-white text-[#1E201D] hover:border-[#4D583F]/40 hover:bg-[#EAF0E5] hover:text-[#4D583F]'
+                          }`}
+                          aria-current={isActive ? 'page' : undefined}
+                          aria-label={`Page ${pageNum}`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Next Page */}
+                  <button
+                    type="button"
+                    onClick={() => handlePageChange(page + 1)}
+                    disabled={page === totalPages || loading}
+                    className="flex h-9 min-w-[36px] sm:h-10 sm:min-w-[40px] items-center justify-center gap-1 rounded-xl border border-[#4F534C]/20 bg-white px-2.5 sm:px-3 text-xs font-bold text-[#1E201D] shadow-xs transition-all hover:bg-[#EAF0E5] hover:text-[#4D583F] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[#1E201D]"
+                    aria-label="Next page"
+                  >
+                    <span className="hidden sm:inline">Next</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+
+                  {/* Last Page */}
+                  {totalPages > 5 && (
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(totalPages)}
+                      disabled={page === totalPages || loading}
+                      className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-[#4F534C]/20 bg-white text-[#1E201D] shadow-xs transition-all hover:bg-[#EAF0E5] hover:text-[#4D583F] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[#1E201D]"
+                      aria-label="Last page"
+                      title="Last page"
+                    >
+                      <ChevronsRight className="h-4 w-4" />
+                    </button>
+                  )}
+                </nav>
+
+                {/* Per Page Selector */}
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#61665D] order-3">
+                  <label htmlFor="per-page-select" className="hidden sm:inline">Per page:</label>
+                  <select
+                    id="per-page-select"
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(Number(e.target.value));
+                    }}
+                    className="rounded-xl border border-[#4F534C]/20 bg-white px-2.5 py-1.5 text-xs font-bold text-[#1E201D] shadow-xs outline-none focus:border-[#4D583F] focus:ring-1 focus:ring-[#4D583F]"
+                  >
+                    <option value={8}>8</option>
+                    <option value={12}>12</option>
+                    <option value={24}>24</option>
+                    <option value={48}>48</option>
+                  </select>
+                </div>
+              </div>
+            )}
+            
           </div>
         )}
       </main>
@@ -404,9 +586,51 @@ function ShopContent() {
   );
 }
 
+function ShopSkeleton() {
+  return (
+    <div className="min-h-screen bg-[#F3FBEE] text-[#2F2F2F] flex flex-col font-sans">
+      <Navbar activeCategory="All" onSelectCategory={() => {}} />
+      <main className="mx-auto w-full max-w-[1180px] px-3 py-5 sm:px-4 sm:py-8 md:py-10 flex-1">
+        <div className="mb-6 max-w-2xl sm:mb-10 space-y-4">
+          <div className="h-4 w-32 bg-[#EAF0E5] rounded animate-pulse" />
+          <div className="h-10 sm:h-14 w-3/4 bg-[#EAF0E5] rounded-xl animate-pulse" />
+          <div className="h-6 w-1/2 bg-[#EAF0E5] rounded animate-pulse" />
+        </div>
+        
+        <div className="flex gap-2 mb-8 sm:mb-10 overflow-hidden">
+          <div className="h-11 w-32 bg-[#EAF0E5] rounded-xl animate-pulse shrink-0" />
+          <div className="h-11 w-24 bg-[#EAF0E5] rounded-xl animate-pulse shrink-0" />
+          <div className="h-11 w-28 bg-[#EAF0E5] rounded-xl animate-pulse shrink-0" />
+          <div className="h-11 w-24 bg-[#EAF0E5] rounded-xl animate-pulse shrink-0" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+            <div key={n} className="flex min-h-[290px] flex-col justify-between rounded-xl border border-[#676662]/10 bg-white p-3 sm:min-h-[330px] sm:rounded-2xl sm:p-4 animate-pulse shadow-sm">
+              <div className="aspect-[4/3] w-full rounded-lg sm:rounded-xl bg-[#EAF0E5]" />
+              <div className="space-y-2 mt-4">
+                <div className="bg-[#EAF0E5] h-4 rounded w-3/4" />
+                <div className="bg-[#EAF0E5] h-3 rounded w-1/2" />
+              </div>
+              <div className="flex items-end justify-between mt-4">
+                <div className="space-y-1">
+                  <div className="bg-[#EAF0E5] h-2 rounded w-8" />
+                  <div className="bg-[#EAF0E5] h-5 rounded w-12" />
+                </div>
+                <div className="bg-[#EAF0E5] h-9 sm:h-11 rounded-lg sm:rounded-xl w-24" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
 export default function ShopPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#F3FBEE] flex flex-col gap-4 items-center justify-center"><div className="page-spinner" aria-label="Loading products" /><p className="text-[#676662] font-semibold">Loading the shop…</p></div>}>
+    <Suspense fallback={<ShopSkeleton />}>
       <ShopContent />
     </Suspense>
   );

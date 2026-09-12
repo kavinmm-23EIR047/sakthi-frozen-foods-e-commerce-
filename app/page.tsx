@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useCart } from '@/context/CartContext';
@@ -38,7 +39,6 @@ import {
   Clock,
   Users
 } from 'lucide-react';
-import Link from 'next/link';
 import { handleImageError } from '@/lib/imageCompressor';
 import OptimizedImage from '@/components/OptimizedImage';
 
@@ -147,7 +147,162 @@ export default function StorefrontHomePage() {
   const { showToast } = useToast();
 
   const [heroDishIndex, setHeroDishIndex] = useState(0);
-  const [topProducts, setTopProducts] = useState<ProductType[]>([]);
+interface PackDetail {
+  type: 'regular' | 'retail';
+  label: string;
+  weight: string;
+  price: number;
+  mrp: number;
+  id: string;
+}
+
+interface UnifiedProduct extends ProductType {
+  baseKey: string;
+  hasBothPacks: boolean;
+  hasRegularPack: boolean;
+  hasRetailPack: boolean;
+  regularPack?: PackDetail;
+  retailPack?: PackDetail;
+  allPacks: PackDetail[];
+  minPrice: number;
+  maxPrice: number;
+  minMrp: number;
+  maxMrp: number;
+}
+
+function cleanBaseProductName(name: string): string {
+  if (!name) return '';
+  return name
+    .toUpperCase()
+    .replace(/\b(RETAIL PACK|RETAIL|REGULAR PACK|REGULAR|BULK PACK|BULK|CONSUMER PACK|CONSUMER|FOODSERVICE|ALTERNATIVE|ALTERNATIVES)\b/g, '')
+    .replace(/\s*\([^)]*\)/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isRetailItem(product: ProductType): boolean {
+  const cat = (product.category || '').toUpperCase();
+  const name = (product.name || '').toUpperCase();
+  const desc = (product.description || '').toUpperCase();
+  const weight = (product.weight || '').toUpperCase();
+  return (
+    cat.includes('RETAIL') ||
+    name.includes('RETAIL') ||
+    desc.includes('RETAIL') ||
+    desc.includes('CONSUMER') ||
+    weight.includes('400') ||
+    weight.includes('250') ||
+    weight.includes('200')
+  );
+}
+
+function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
+  const groups = new Map<string, ProductType[]>();
+
+  for (const prod of rawProducts) {
+    const key = cleanBaseProductName(prod.name) || prod.name.toUpperCase();
+    if (!groups.has(key)) {
+      groups.set(key, []);
+    }
+    groups.get(key)!.push(prod);
+  }
+
+  const uniqueList: UnifiedProduct[] = [];
+
+  for (const [baseKey, items] of Array.from(groups.entries())) {
+    const retailItems = items.filter(isRetailItem);
+    const regularItems = items.filter((item: ProductType) => !isRetailItem(item));
+
+    const retailCandidate = retailItems[0];
+    const regularCandidate = regularItems[0] || items[0];
+
+    const primaryItem = items.find((i: ProductType) => i.image && i.image !== 'none') || regularCandidate || items[0];
+
+    const allPacks: PackDetail[] = [];
+
+    let regularPack: PackDetail | undefined;
+    if (regularCandidate) {
+      regularPack = {
+        type: 'regular',
+        label: `Regular (${regularCandidate.weight || '1 KG'})`,
+        weight: regularCandidate.weight || '1 KG',
+        price: regularCandidate.price,
+        mrp: regularCandidate.mrp ?? regularCandidate.price,
+        id: regularCandidate.id,
+      };
+      allPacks.push(regularPack);
+    }
+
+    let retailPack: PackDetail | undefined;
+    if (retailCandidate && (retailCandidate.id !== regularCandidate?.id || isRetailItem(retailCandidate))) {
+      retailPack = {
+        type: 'retail',
+        label: `Retail (${retailCandidate.weight || '400 GRM'})`,
+        weight: retailCandidate.weight || '400 GRM',
+        price: retailCandidate.price,
+        mrp: retailCandidate.mrp ?? retailCandidate.price,
+        id: retailCandidate.id,
+      };
+      allPacks.push(retailPack);
+    }
+
+    if (primaryItem.variants && primaryItem.variants.length > 0) {
+      for (const v of primaryItem.variants) {
+        if (!allPacks.some((p) => p.weight.toUpperCase() === v.weight.toUpperCase())) {
+          allPacks.push({
+            type: v.weight.includes('400') || v.weight.includes('250') || v.weight.includes('200') ? 'retail' : 'regular',
+            label: v.weight,
+            weight: v.weight,
+            price: v.price,
+            mrp: v.price,
+            id: primaryItem.id,
+          });
+        }
+      }
+    }
+
+    const hasRegularPack = Boolean(regularPack);
+    const hasRetailPack = Boolean(retailPack);
+    const hasBothPacks = hasRegularPack && hasRetailPack;
+
+    const prices = allPacks.map((p) => p.price);
+    const mrps = allPacks.map((p) => p.mrp);
+
+    const minPrice = prices.length ? Math.min(...prices) : primaryItem.price;
+    const maxPrice = prices.length ? Math.max(...prices) : primaryItem.price;
+    const minMrp = mrps.length ? Math.min(...mrps) : (primaryItem.mrp ?? primaryItem.price);
+    const maxMrp = mrps.length ? Math.max(...mrps) : (primaryItem.mrp ?? primaryItem.price);
+
+    const isPopular = items.some((i: ProductType) => i.isPopular);
+
+    uniqueList.push({
+      ...primaryItem,
+      name: baseKey,
+      isPopular,
+      baseKey,
+      hasBothPacks,
+      hasRegularPack,
+      hasRetailPack,
+      regularPack,
+      retailPack,
+      allPacks,
+      minPrice,
+      maxPrice,
+      minMrp,
+      maxMrp,
+    });
+  }
+
+  return uniqueList.sort((a, b) => {
+    if (a.isPopular && !b.isPopular) return -1;
+    if (!a.isPopular && b.isPopular) return 1;
+    if (a.hasBothPacks && !b.hasBothPacks) return -1;
+    if (!a.hasBothPacks && b.hasBothPacks) return 1;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+  const [topProducts, setTopProducts] = useState<UnifiedProduct[]>([]);
   const [featuredCategories, setFeaturedCategories] = useState<{ name: string; img: string }[]>([]);
   const [reviews, setReviews] = useState<ReviewType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -205,7 +360,7 @@ export default function StorefrontHomePage() {
     return `calc(-${reviewSlideIndex} * (100% + 24px))`;
   };
   
-  const [selectedFilter, setSelectedFilter] = useState<'All' | 'Mutton' | 'Seafood' | 'Poultry' | 'Snacks'>('All');
+  const [selectedFilter, setSelectedFilter] = useState<'All' | 'Both' | 'Mutton' | 'Poultry' | 'Seafood' | 'Snacks'>('All');
   const [activeCatIndex, setActiveCatIndex] = useState(0);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [emailInput, setEmailInput] = useState('');
@@ -240,8 +395,8 @@ export default function StorefrontHomePage() {
         ]);
 
         if (prodRes.success && Array.isArray(prodRes.data)) {
-          const popular = prodRes.data.filter((p: ProductType) => p.isPopular);
-          setTopProducts(popular.length > 0 ? popular : prodRes.data);
+          const processed = processUniqueProducts(prodRes.data);
+          setTopProducts(processed);
           setHeroDishIndex(0);
         }
 
@@ -265,17 +420,18 @@ export default function StorefrontHomePage() {
     loadData();
   }, []);
 
-  // Filtered Products for Best Sellers section
+  // Filtered Products for Best Sellers section with clean deduplication
   const filteredProducts = topProducts.filter((p) => {
     if (selectedFilter === 'All') return true;
-    if (selectedFilter === 'Mutton') return p.category.toLowerCase().includes('mutton');
-    if (selectedFilter === 'Seafood') return p.category.toLowerCase().includes('sea') || p.category.toLowerCase().includes('fish');
-    if (selectedFilter === 'Poultry') return p.category.toLowerCase().includes('poultry') || p.category.toLowerCase().includes('chicken');
-    if (selectedFilter === 'Snacks') return p.category.toLowerCase().includes('snack') || p.name.toLowerCase().includes('nugget') || p.name.toLowerCase().includes('cutlet');
+    if (selectedFilter === 'Both') return p.hasBothPacks;
+    if (selectedFilter === 'Mutton') return p.category.toLowerCase().includes('mutton') || p.name.toLowerCase().includes('mutton');
+    if (selectedFilter === 'Seafood') return p.category.toLowerCase().includes('sea') || p.category.toLowerCase().includes('fish') || p.name.toLowerCase().includes('fish') || p.name.toLowerCase().includes('vanjaram');
+    if (selectedFilter === 'Poultry') return p.category.toLowerCase().includes('poultry') || p.category.toLowerCase().includes('chicken') || p.name.toLowerCase().includes('chicken');
+    if (selectedFilter === 'Snacks') return p.category.toLowerCase().includes('snack') || p.category.toLowerCase().includes('starter') || p.name.toLowerCase().includes('nugget') || p.name.toLowerCase().includes('cutlet') || p.name.toLowerCase().includes('lolipop');
     return true;
   });
 
-  const handleAddToCart = (product: ProductType, e: React.MouseEvent) => {
+  const handleAddToCart = (product: UnifiedProduct, e: React.MouseEvent) => {
     e.stopPropagation();
     addToCart(product, 1);
     showToast(`Added ${product.name} to cart!`, 'success');
@@ -350,9 +506,9 @@ export default function StorefrontHomePage() {
             <div className="lg:col-span-7 space-y-7 text-center lg:text-left flex flex-col items-center lg:items-start">
               
               {/* Highlight Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#4D583F] text-white text-sm font-extrabold shadow-md">
-                <Leaf className="w-4 h-4 text-emerald-300" />
-                <span>100% Plant-Based • Zero Cholesterol • High Protein</span>
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-[#4D583F] text-white text-[10px] sm:text-xs md:text-sm font-extrabold shadow-md max-w-[95vw] overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                <Leaf className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-300 shrink-0" />
+                <span className="whitespace-nowrap">100% Plant-Based • Zero Cholesterol • High Protein</span>
               </div>
 
               {/* Main Headline */}
@@ -416,18 +572,18 @@ export default function StorefrontHomePage() {
               </div>
 
               {/* Key Trust Metric Cards */}
-              <div className="grid grid-cols-3 gap-3 md:gap-6 pt-6 max-w-lg w-full border-t border-[#4F534C]/15">
-                <div className="p-3.5 rounded-2xl bg-white/80 border border-[#4F534C]/15 shadow-xs text-center lg:text-left">
-                  <span className="block text-2xl md:text-3xl font-black text-[#4D583F]">25,000+</span>
-                  <span className="text-xs md:text-sm text-[#4D583F] font-bold">Happy Foodies</span>
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-3 md:gap-6 pt-6 max-w-lg w-full border-t border-[#4F534C]/15">
+                <div className="p-2 sm:p-3.5 rounded-2xl bg-white/80 border border-[#4F534C]/15 shadow-xs text-center lg:text-left">
+                  <span className="block text-lg sm:text-2xl md:text-3xl font-black text-[#1E201D] truncate">25k+</span>
+                  <span className="text-[10px] sm:text-xs md:text-sm text-[#1E201D] font-bold block truncate">Happy Foodies</span>
                 </div>
-                <div className="p-3.5 rounded-2xl bg-white/80 border border-[#4F534C]/15 shadow-xs text-center lg:text-left">
-                  <span className="block text-2xl md:text-3xl font-black text-[#4D583F]">100%</span>
-                  <span className="text-xs md:text-sm text-[#4D583F] font-bold">Cholesterol Free</span>
+                <div className="p-2 sm:p-3.5 rounded-2xl bg-white/80 border border-[#4F534C]/15 shadow-xs text-center lg:text-left">
+                  <span className="block text-lg sm:text-2xl md:text-3xl font-black text-[#1E201D] truncate">100%</span>
+                  <span className="text-[10px] sm:text-xs md:text-sm text-[#1E201D] font-bold block truncate">Vegan</span>
                 </div>
-                <div className="p-3.5 rounded-2xl bg-white/80 border border-[#4F534C]/15 shadow-xs text-center lg:text-left">
-                  <span className="block text-2xl md:text-3xl font-black text-[#4D583F]">-18°C</span>
-                  <span className="text-xs md:text-sm text-[#4D583F] font-bold">Cold Express</span>
+                <div className="p-2 sm:p-3.5 rounded-2xl bg-white/80 border border-[#4F534C]/15 shadow-xs text-center lg:text-left">
+                  <span className="block text-lg sm:text-2xl md:text-3xl font-black text-[#1E201D] truncate">-18°C</span>
+                  <span className="text-[10px] sm:text-xs md:text-sm text-[#1E201D] font-bold block truncate">Express</span>
                 </div>
               </div>
 
@@ -443,38 +599,6 @@ export default function StorefrontHomePage() {
                   100% { width: 100%; opacity: 0; }
                 }
               `}</style>
-
-              {/* Image Showcase Selector Tabs */}
-              <div className="flex items-center justify-center gap-2 mb-4 overflow-x-auto pb-1 scrollbar-none">
-                {[
-                  { name: 'Veg Mutton', icon: Utensils },
-                  { name: 'Veg Fish', icon: Sparkles },
-                  { name: 'Chicken Strips', icon: Flame },
-                ].map((tab, idx) => {
-                  const IconComp = tab.icon;
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => setHeroDishIndex(idx)}
-                      className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-xs relative overflow-hidden ${
-                        heroDishIndex === idx
-                          ? 'bg-[#4D583F] text-white shadow-md scale-105'
-                          : 'bg-white text-[#61665D] hover:bg-[#EAF0E5] border border-[#4F534C]/15'
-                      }`}
-                    >
-                      {/* Auto-slide Progress Bar */}
-                      {heroDishIndex === idx && (
-                        <div 
-                          className="absolute bottom-0 left-0 h-full bg-white/20" 
-                          style={{ animation: 'sliderProgress 5s linear infinite' }}
-                        />
-                      )}
-                      <IconComp className={`w-3.5 h-3.5 shrink-0 relative z-10 ${heroDishIndex === idx ? 'text-white' : 'text-[#4D583F]'}`} />
-                      <span className="relative z-10 whitespace-nowrap">{tab.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
 
               {/* Clean Framed Hero Showcase Image (Auto-Sliding Crossfade) */}
               <div className="relative rounded-3xl overflow-hidden shadow-[0_20px_50px_rgb(0,0,0,0.12)] border-4 border-white bg-white group aspect-[4/3]">
@@ -518,6 +642,29 @@ export default function StorefrontHomePage() {
                       </div>
                     </div>
                   </div>
+                ))}
+              </div>
+              
+              {/* Modern Pagination Dots */}
+              <div className="flex items-center justify-center gap-2 mt-5">
+                {heroDishes.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setHeroDishIndex(idx)}
+                    className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 overflow-hidden relative ${
+                      heroDishIndex === idx
+                        ? 'w-8 sm:w-10 bg-[#4F534C]/20'
+                        : 'w-2 sm:w-2.5 bg-[#4F534C]/30 hover:bg-[#4F534C]/50'
+                    }`}
+                    aria-label={`Go to slide ${idx + 1}`}
+                  >
+                    {heroDishIndex === idx && (
+                      <div 
+                        className="absolute inset-y-0 left-0 bg-[#4D583F] rounded-full" 
+                        style={{ animation: 'sliderProgress 5s linear infinite' }}
+                      />
+                    )}
+                  </button>
                 ))}
               </div>
 
@@ -608,7 +755,7 @@ export default function StorefrontHomePage() {
             </div>
             
             <div 
-              className="flex overflow-x-auto gap-5 pb-4 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-6 sm:pb-0 snap-x snap-mandatory scrollbar-none"
+              className="flex overflow-x-auto gap-5 pb-4 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-6 sm:pb-0 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
               onScroll={(e) => setActiveCatIndex(Math.round(e.currentTarget.scrollLeft / (e.currentTarget.scrollWidth / (featuredCategories.length || 1))))}
             >
               {featuredCategories.map((cat, idx) => (
@@ -651,40 +798,57 @@ export default function StorefrontHomePage() {
         )}
 
         {/* Top Best Sellers Section with Category Filter Tabs */}
-        <section className="py-8 md:py-10 w-full relative z-10">
+        <section className="py-8 md:py-12 w-full relative z-10">
           <div className="site-shell">
             
-            {/* Header & Filter Pills */}
-            <div className="flex flex-col mb-10 gap-6">
-              <div className="text-center sm:text-left">
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1E201D] tracking-tight mb-2">Customer Favorites</h2>
-                <p className="text-sm text-[#61665D]">Discover our most loved plant-based essentials.</p>
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 sm:mb-8 gap-4">
+              <div className="text-left">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#EAF0E5] text-[#4D583F] text-xs font-black uppercase tracking-widest mb-2">
+                  <Sparkles className="w-3.5 h-3.5" /> Handcrafted Plant-Based Proteins
+                </div>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#1E201D] tracking-tight mb-1 sm:mb-2">Customer Favorites</h2>
+                <p className="text-xs sm:text-sm text-[#61665D]">
+                  Unique plant-based meats available in both <span className="font-bold text-[#4D583F]">Regular (Bulk 1kg)</span> and <span className="font-bold text-[#0284C7]">Retail (400g)</span> packs.
+                </p>
               </div>
+              <Link href="/shop" className="shrink-0 inline-flex items-center gap-1 sm:gap-2 text-[11px] sm:text-sm font-bold text-[#4D583F] hover:text-[#1E201D] transition-colors hover:translate-x-1 group bg-[#EAF0E5] sm:bg-transparent px-3.5 py-2 sm:px-0 sm:py-0 rounded-full sm:rounded-none self-start md:self-auto">
+                <span className="hidden sm:inline">View all products</span>
+                <span className="sm:hidden">View All</span>
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
 
-              {/* Minimalist Filter Pills */}
-              <div className="flex items-center sm:justify-start gap-2 overflow-x-auto pb-2 scrollbar-none">
-                {(['All', 'Mutton', 'Seafood', 'Poultry', 'Snacks'] as const).map((filter) => (
-                  <button
-                    key={filter}
-                    onClick={() => setSelectedFilter(filter)}
-                    className={`px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
-                      selectedFilter === filter
-                        ? 'bg-[#1E201D] text-white'
-                        : 'bg-transparent border border-[#4F534C]/25 text-[#3C403D] hover:border-[#4F534C]/50'
-                    }`}
-                  >
-                    {filter === 'All' ? 'All' : filter}
-                  </button>
-                ))}
-              </div>
+            {/* Quick Filter Tabs */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 no-scrollbar">
+              {[
+                { key: 'All', label: 'All Varieties' },
+                { key: 'Both', label: '🌿 Regular & Retail Packs' },
+                { key: 'Mutton', label: 'Mutton' },
+                { key: 'Poultry', label: 'Chicken & Poultry' },
+                { key: 'Seafood', label: 'Fish & Seafood' },
+                { key: 'Snacks', label: 'Snacks & Starters' },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setSelectedFilter(tab.key as any)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
+                    selectedFilter === tab.key
+                      ? 'bg-[#4D583F] text-white border-[#4D583F] shadow-sm'
+                      : 'bg-white text-[#61665D] border-[#4F534C]/20 hover:border-[#4D583F] hover:text-[#1E201D]'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
 
             {/* Product Grid - Clean Minimal Style */}
             {loading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-8 sm:gap-x-6 sm:gap-y-10">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {[1, 2, 3, 4].map((n) => (
-                  <div key={n} className="animate-pulse space-y-3">
-                    <div className="bg-[#4F534C]/10 h-56 sm:h-72 rounded-2xl w-full" />
+                  <div key={n} className="animate-pulse space-y-3 bg-white p-4 rounded-3xl border border-[#4F534C]/10">
+                    <div className="bg-[#4F534C]/10 aspect-[4/3] rounded-2xl w-full" />
                     <div className="space-y-2">
                       <div className="bg-[#4F534C]/10 h-3 rounded w-1/3" />
                       <div className="bg-[#4F534C]/10 h-4 rounded w-3/4" />
@@ -694,93 +858,151 @@ export default function StorefrontHomePage() {
                 ))}
               </div>
             ) : filteredProducts.length === 0 ? (
-              <div className="text-center py-24 rounded-3xl border border-dashed border-[#4F534C]/20">
-                <p className="text-sm font-bold text-[#61665D]">No items found under &quot;{selectedFilter}&quot;</p>
+              <div className="text-center py-20 rounded-3xl border border-dashed border-[#4F534C]/20 bg-white p-8">
+                <p className="text-sm font-bold text-[#61665D]">No items found under this filter.</p>
                 <button
                   onClick={() => setSelectedFilter('All')}
-                  className="mt-4 px-6 py-2.5 bg-[#1E201D] text-white text-xs font-bold rounded-full hover:bg-[#4D583F] transition-colors"
+                  className="mt-4 px-6 py-2.5 bg-[#4D583F] text-white text-xs font-bold rounded-full hover:bg-[#414b35] transition-colors"
                 >
-                  Clear Filters
+                  View All Varieties
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {filteredProducts.slice(0, 8).map((product) => (
                   <div
-                    key={product.id}
+                    key={product.id || product.baseKey}
                     onClick={() => router.push(`/product/${product.id}`)}
-                    className="cursor-pointer bg-white rounded-2xl overflow-hidden shadow-sm border border-[#4F534C]/8"
+                    className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-md border border-[#4F534C]/10 transition-all duration-300 hover:shadow-xl sm:rounded-3xl hover:-translate-y-1 cursor-pointer"
                   >
-                    {/* Image */}
-                    <div className="relative aspect-[4/3] overflow-hidden">
+                    {/* Image & Overlay */}
+                    <div className="relative aspect-[4/3] bg-[#EAF0E5] overflow-hidden">
                       <OptimizedImage
                         src={product.image}
                         alt={product.name}
                         width={520}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       
-                      {/* Best Seller Badge */}
-                      {product.isPopular && (
-                        <div className="absolute top-3 left-3">
-                          <span className="bg-[#4D583F] text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
-                            <Flame className="w-3 h-3" /> Best Seller
+                      {/* Badges */}
+                      <div className="absolute left-2.5 top-2.5 flex flex-wrap items-center gap-1.5 max-w-[85%] z-10">
+                        {product.hasBothPacks ? (
+                          <span className="rounded-md bg-[#2D3E2E] px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold text-white shadow-xs backdrop-blur-xs flex items-center gap-1">
+                            🌿 Regular & Retail
                           </span>
-                        </div>
-                      )}
+                        ) : product.hasRetailPack ? (
+                          <span className="rounded-md bg-[#0284C7] px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold text-white shadow-xs backdrop-blur-xs flex items-center gap-1">
+                            🛒 Retail Pack
+                          </span>
+                        ) : (
+                          <span className="rounded-md bg-[#4D583F] px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold text-white shadow-xs backdrop-blur-xs flex items-center gap-1">
+                            📦 Regular Pack
+                          </span>
+                        )}
 
-                      {/* Heart Button */}
-                      <button
-                        onClick={(e) => toggleSaveProduct(e, product.id)}
-                        className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white border border-[#4F534C]/15 flex items-center justify-center text-[#4D583F] active:scale-95 z-10"
-                        aria-label="Save to favorites"
-                      >
-                        <Heart className={`w-4 h-4 ${savedProducts[product.id] ? 'fill-rose-500 text-rose-500' : ''}`} />
-                      </button>
+                        <span className="rounded-md bg-black/60 backdrop-blur-xs px-1.5 py-0.5 text-[9px] font-bold text-white shadow-xs sm:text-[10px]">
+                          {product.hasBothPacks ? '400g & 1 KG' : product.weight}
+                        </span>
+
+                        {product.isPopular && (
+                          <span className="rounded-md bg-amber-600 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-xs sm:text-[10px]">
+                            Best Seller
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Quick View Overlay Button */}
+                      <div className="absolute inset-0 bg-[#1E201D]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-xs gap-2">
+                        <span className="bg-[#4D583F] px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-lg min-h-[44px]">
+                          <Eye className="w-4 h-4" /> View Details
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Product Info */}
-                    <div className="p-4 space-y-2">
-                      {/* Category */}
-                      <span className="text-[10px] uppercase tracking-widest font-bold text-[#4D583F]">
-                        {product.category.replace(' Alternatives', '')}
-                      </span>
-
-                      {/* Product Name */}
-                      <h3 className="text-sm font-semibold text-[#1E201D] leading-snug line-clamp-1">
-                        {product.name}
-                      </h3>
-
-                      {/* 100% Plant-Based Badge */}
-                      <div className="flex items-center gap-1.5 text-[11px] text-[#4D583F] font-medium">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-[#4D583F]" />
-                        <span>100% Plant-Based</span>
-                      </div>
-
-                      {/* Price & Weight */}
-                      <div className="flex items-center justify-between pt-2">
-                        <div>
-                          <span className="block text-[10px] text-[#61665D] line-through">MRP ₹{product.mrp ?? product.price}</span>
-                          <span className="text-base font-extrabold text-[#1E201D]">₹{product.price}</span>
+                    {/* Content */}
+                    <div className="flex flex-1 flex-col justify-between space-y-3 p-3.5 sm:space-y-4 sm:p-5">
+                      <div>
+                        {/* Category & Pack Tag Line */}
+                        <div className="flex items-center gap-1.5 mb-1.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-[#4D583F]">
+                          <span className="truncate">{product.category.replace(' Alternatives', '').replace(' Retail Pack', '')}</span>
+                          <span className="text-[#4F534C]/30">•</span>
+                          {product.hasBothPacks ? (
+                            <span className="text-emerald-700 font-extrabold">2 Pack Sizes</span>
+                          ) : product.hasRetailPack ? (
+                            <span className="text-sky-700 font-extrabold">Retail</span>
+                          ) : (
+                            <span className="text-[#4D583F] font-extrabold">Regular Bulk</span>
+                          )}
                         </div>
-                        <span className="text-[11px] text-[#61665D] font-bold">{product.weight}</span>
+
+                        <h3 className="line-clamp-1 text-sm font-black leading-snug text-[#1E201D] transition-colors group-hover:text-[#4D583F] sm:text-lg font-poppins">
+                          {product.name}
+                        </h3>
+                        
+                        <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[#676662] sm:text-xs">
+                          {product.description}
+                        </p>
+
+                        {/* Pack Availability Comparison Mini-Box */}
+                        {product.hasBothPacks ? (
+                          <div className="mt-3 grid grid-cols-2 gap-1.5 p-2 rounded-xl bg-[#F6F8F3] border border-[#4F534C]/10 text-[10px] sm:text-[11px]">
+                            <div className="flex flex-col p-1.5 rounded-lg bg-white shadow-2xs border border-[#4F534C]/5">
+                              <span className="font-extrabold text-[#0284C7] text-[9px] uppercase tracking-wider">
+                                🛒 Retail Pack
+                              </span>
+                              <span className="font-bold text-[#1E201D] text-xs mt-0.5">{product.retailPack?.weight || '400 GRM'}</span>
+                              <span className="font-black text-[#4D583F] text-xs">₹{product.retailPack?.price}</span>
+                            </div>
+                            <div className="flex flex-col p-1.5 rounded-lg bg-white shadow-2xs border border-[#4F534C]/5">
+                              <span className="font-extrabold text-[#2D3E2E] text-[9px] uppercase tracking-wider">
+                                📦 Regular Pack
+                              </span>
+                              <span className="font-bold text-[#1E201D] text-xs mt-0.5">{product.regularPack?.weight || '1 KG'}</span>
+                              <span className="font-black text-[#4D583F] text-xs">₹{product.regularPack?.price}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-3 p-2 rounded-xl bg-[#F6F8F3] border border-[#4F534C]/10 text-[10px] sm:text-[11px]">
+                            <div className="flex items-center justify-between p-1.5 rounded-lg bg-white shadow-2xs border border-[#4F534C]/5">
+                              <span className="font-extrabold text-[#4D583F] text-[9px] uppercase tracking-wider">
+                                {product.hasRetailPack ? '🛒 Everyday Retail Pack' : '📦 Foodservice Regular Pack'}
+                              </span>
+                              <span className="font-bold text-[#1E201D] text-xs">{product.weight}</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Quick Add Button + Plus Icon */}
-                      <div className="flex items-center gap-2 pt-1">
+                      {/* Price & Action */}
+                      <div className="flex items-end justify-between gap-1 border-t border-[#4F534C]/15 pt-2.5 sm:gap-2 sm:pt-3">
+                        <div>
+                          <span className="text-[9px] sm:text-[10px] text-[#61665D] block uppercase font-medium">
+                            {product.hasBothPacks ? 'Starting From' : 'MRP / Price'}
+                          </span>
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-base sm:text-xl font-black text-[#4D583F]">
+                              ₹{product.minPrice}
+                            </span>
+                            {product.hasBothPacks && product.minPrice !== product.maxPrice && (
+                              <span className="text-xs sm:text-sm text-[#61665D] font-bold">
+                                – ₹{product.maxPrice}
+                              </span>
+                            )}
+                          </div>
+                          <span className="block text-[9px] text-[#61665D] line-through">
+                            MRP ₹{product.minMrp}{product.hasBothPacks && product.minMrp !== product.maxMrp ? ` – ₹${product.maxMrp}` : ''}
+                          </span>
+                        </div>
+
                         <button
-                          onClick={(e) => handleAddToCart(product, e)}
-                          className="flex-1 py-2 sm:py-2.5 px-2 bg-[#4D583F] text-white font-bold text-[11px] sm:text-xs rounded-xl flex items-center justify-center gap-1 sm:gap-2 active:scale-95 whitespace-nowrap"
-                        >
-                          <ShoppingBag className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-                          <span className="hidden sm:inline">Quick Add</span>
-                          <span className="sm:hidden">Add</span>
-                        </button>
-                        <button
-                          onClick={(e) => handleAddToCart(product, e)}
-                          className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl border border-[#4F534C]/20 flex items-center justify-center text-[#1E201D] active:scale-95"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/product/${product.id}`);
+                          }}
+                          className="flex min-h-9 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg bg-[#4D583F] px-2.5 py-2 text-[10px] font-bold text-white shadow-md transition-all hover:bg-[#414b35] active:scale-95 sm:min-h-10 sm:gap-1.5 sm:rounded-xl sm:px-3 sm:text-xs z-10"
                         >
                           <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          <span>{product.hasBothPacks ? 'Select Size' : 'Select Options'}</span>
                         </button>
                       </div>
                     </div>
@@ -789,12 +1011,12 @@ export default function StorefrontHomePage() {
               </div>
             )}
 
-            <div className="mt-16 text-center">
+            <div className="mt-14 text-center">
               <Link
                 href="/shop"
-                className="inline-flex items-center justify-center px-10 py-4 rounded-full border border-[#4F534C]/25 text-[#1E201D] font-bold text-sm hover:border-[#1E201D] hover:bg-[#1E201D] hover:text-white transition-all"
+                className="inline-flex items-center justify-center px-10 py-3.5 rounded-full border border-[#4D583F]/30 text-[#1E201D] font-bold text-sm hover:border-[#4D583F] hover:bg-[#4D583F] hover:text-white transition-all shadow-xs"
               >
-                View All Products
+                View Complete Shop Catalog
               </Link>
             </div>
           </div>
@@ -1007,7 +1229,7 @@ export default function StorefrontHomePage() {
                 <Sparkles className="w-5 h-5" />
               </div>
               <div className="text-[13px] text-[#61665D] leading-relaxed">
-                <span className="font-extrabold text-[#1E201D] block sm:inline mr-1">Chef's Secret Tip:</span>
+                <span className="font-extrabold text-[#1E201D] block sm:inline mr-1">Chef&apos;s Secret Tip:</span>
                 For biryanis and gravies, add thawed Veg Mutton directly into the boiling masala so it absorbs authentic South Indian spices deeply.
               </div>
             </div>
@@ -1207,7 +1429,7 @@ export default function StorefrontHomePage() {
           <div className="max-w-4xl mx-auto px-4 sm:px-6">
             <div className="text-center max-w-xl mx-auto mb-12">
               <h2 className="text-3xl font-black text-[#1E201D] font-display">Frequently Asked Questions</h2>
-              <p className="text-xs text-[#61665D] mt-2">Got questions? We've got answers.</p>
+              <p className="text-xs text-[#61665D] mt-2">Got questions? We&apos;ve got answers.</p>
             </div>
 
             <div className="space-y-4">
@@ -1244,20 +1466,20 @@ export default function StorefrontHomePage() {
 
         {/* WhatsApp VIP Community Section */}
         <section className="site-shell py-10 md:py-14 relative z-10">
-          <div className="rounded-3xl bg-gradient-to-r from-[#1E201D] via-[#122A1E] to-[#1E201D] text-white p-8 md:p-14 shadow-2xl border border-[#25D366]/30 relative overflow-hidden">
+          <div className="rounded-3xl bg-gradient-to-r from-[#1E201D] via-[#122A1E] to-[#1E201D] text-white p-6 sm:p-8 md:p-14 shadow-2xl border border-[#25D366]/30 relative overflow-hidden">
             {/* Ambient Green Glow */}
             <div className="absolute top-0 right-10 w-72 h-72 bg-[#25D366]/20 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="max-w-2xl mx-auto text-center space-y-6 relative z-10">
-              <div className="w-14 h-14 rounded-2xl bg-[#25D366] text-white flex items-center justify-center mx-auto shadow-lg shadow-[#25D366]/30">
-                <WhatsAppIcon className="w-8 h-8 text-white" />
+            <div className="max-w-2xl mx-auto text-center space-y-4 md:space-y-6 relative z-10">
+              <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-[#25D366] text-white flex items-center justify-center mx-auto shadow-lg shadow-[#25D366]/30">
+                <WhatsAppIcon className="w-7 h-7 md:w-8 md:h-8 text-white" />
               </div>
 
               <div className="space-y-2">
-                <span className="px-3.5 py-1 rounded-full bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/30 text-xs font-black uppercase tracking-wider inline-block">
-                  VIP WhatsApp Group
+                <span className="px-3.5 py-1 rounded-full bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/30 text-[10px] sm:text-xs font-black uppercase tracking-wider inline-block">
+                  Open WhatsApp Community
                 </span>
-                <h2 className="text-3xl md:text-5xl font-black font-display">
+                <h2 className="text-2xl sm:text-3xl md:text-5xl font-black font-display leading-tight">
                   Join Our Sakthi WhatsApp Community
                 </h2>
               </div>
@@ -1266,9 +1488,9 @@ export default function StorefrontHomePage() {
                 Connect directly with 10,000+ plant-based foodies! Get instant stock updates, delicious cooking recipes, and fast customer support on WhatsApp.
               </p>
 
-              <div className="pt-2 flex flex-row items-center justify-center gap-2 sm:gap-4 w-full">
+              <div className="pt-1 md:pt-2 flex flex-row items-center justify-center gap-2 sm:gap-4 w-full">
                 <a
-                  href="https://wa.me/919876543210?text=Hi%20Sakthi%20Frozen%20Foods!%20I%20want%20to%20join%20the%20WhatsApp%20VIP%20Community."
+                  href="https://wa.me/919876543210?text=Hi%20Sakthi%20Frozen%20Foods!%20I%20want%20to%20join%20the%20WhatsApp%20Community."
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 sm:flex-none px-2 sm:px-8 py-3 sm:py-4 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-[12px] sm:text-base transition-all shadow-xl hover:shadow-2xl flex items-center justify-center gap-1.5 sm:gap-3 active:scale-95 border border-emerald-400/30 text-center"
@@ -1288,9 +1510,9 @@ export default function StorefrontHomePage() {
                 </a>
               </div>
 
-              <div className="pt-4 flex items-center justify-center gap-2 text-xs text-[#A7ADA9]">
-                <ShieldCheck className="w-4 h-4 text-[#25D366]" />
-                <span>Zero Spam • Instant Community Support • Free Recipe Updates</span>
+              <div className="pt-3 md:pt-4 flex items-center justify-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-[#A7ADA9] max-w-[85vw] mx-auto overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                <ShieldCheck className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#25D366] shrink-0" />
+                <span className="whitespace-nowrap">Zero Spam • Instant Community Support • Free Recipe Updates</span>
               </div>
             </div>
           </div>

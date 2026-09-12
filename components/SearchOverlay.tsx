@@ -185,7 +185,7 @@ export default function SearchOverlay() {
                       <Search className="w-8 h-8 text-[#A7ADA9]" />
                     </div>
                     <h3 className="text-lg font-bold text-[#1E201D] mb-1">No products found</h3>
-                    <p className="text-sm text-[#61665D]">We couldn't find anything matching "{query}". Try checking your spelling.</p>
+                    <p className="text-sm text-[#61665D]">We couldn&apos;t find anything matching &quot;{query}&quot;. Try checking your spelling.</p>
                   </div>
                 )}
               </div>

@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const Category = require('../models/Category');
+const { protect, admin } = require('../middleware/authMiddleware');
 
 // GET all categories
 router.get('/', async (req, res) => {
   try {
+    res.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
     const rawCategories = await Category.find().sort({ createdAt: 1 });
     const categories = rawCategories.map((c) => ({
       id: c._id.toString(),
@@ -20,7 +22,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST new category
-router.post('/', async (req, res) => {
+router.post('/', protect, admin, async (req, res) => {
   try {
     const body = req.body;
     const newCat = await Category.create({
@@ -45,7 +47,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT update category
-router.put('/:id', async (req, res) => {
+router.put('/:id', protect, admin, async (req, res) => {
   try {
     const updated = await Category.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!updated) {
@@ -67,7 +69,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE category
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', protect, admin, async (req, res) => {
   try {
     await Category.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'Category deleted successfully' });

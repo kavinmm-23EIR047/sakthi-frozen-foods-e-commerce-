@@ -53,11 +53,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = (userData: UserType) => {
     setUser(userData);
+    if (userData.token) sessionStorage.setItem('auth_token', userData.token);
     showToast(`Welcome back, ${userData.name}!`, 'success');
   };
 
   const logout = async () => {
     setUser(null);
+    sessionStorage.removeItem('auth_token');
     try {
       // Clear the HttpOnly cookie
       await fetch('/api/auth/logout', { method: 'POST' });

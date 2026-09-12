@@ -3,13 +3,13 @@ import { cookies } from 'next/headers';
 
 export async function GET() {
   try {
-    const token = cookies().get('auth_token')?.value;
+    const token = (await cookies()).get('auth_token')?.value;
     
     if (!token) {
       return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 });
     }
     
-    const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:5000/api';
+    const backendUrl = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
     
     // Forward the request to the backend with the token
     const response = await fetch(`${backendUrl}/auth/me`, {
