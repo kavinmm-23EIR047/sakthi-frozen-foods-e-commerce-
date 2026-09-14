@@ -9,6 +9,7 @@ import { useCart } from '@/context/CartContext';
 import { useToast } from '@/context/ToastContext';
 import { ProductType } from '@/lib/types';
 import { fetchApi } from '@/lib/apiConfig';
+import ScrollStackProcedure from '@/components/ScrollStackProcedure';
 import {
   Plus,
   Eye,
@@ -37,7 +38,15 @@ import {
   PlusCircle,
   MapPin,
   Clock,
-  Users
+  Users,
+  ChefHat,
+  Droplets,
+  Snowflake,
+  Layers,
+  Shapes,
+  Play,
+  Pause,
+  Package
 } from 'lucide-react';
 import { handleImageError } from '@/lib/imageCompressor';
 import OptimizedImage from '@/components/OptimizedImage';
@@ -126,18 +135,26 @@ const FAQS = [
   {
     q: 'Does Sakthi Plant-Based Meat taste like real meat?',
     a: 'Yes! Our products are engineered using non-GMO soy and pea protein isolate, giving them the exact fibrous texture, chewiness, and rich masala absorption of authentic meat.',
+    chefTip: 'Sauté with curry leaves, crushed garlic, and black pepper for an authentic Chettinad flavor!',
+    tag: 'Taste & Texture',
   },
   {
     q: 'How should I store and cook frozen plant-based meats?',
     a: 'Keep the packet stored at -18°C in your freezer. When ready to cook, thaw for 10 minutes at room temperature, then pan-fry, air-fry, or simmer directly into your curries & biryanis.',
+    chefTip: 'Add thawed pieces directly into boiling gravy for ultra-succulent bites that soak in all spice essence.',
+    tag: 'Kitchen Prep',
   },
   {
     q: 'What is the shelf life of Sakthi Frozen products?',
     a: 'All Sakthi Frozen products have a freezer shelf life of 12 months from the date of manufacturing without losing nutrition or flavor.',
+    chefTip: 'Once opened, seal tightly in an airtight freezer bag to lock in maximum kitchen freshness.',
+    tag: 'Freshness & Storage',
   },
   {
     q: 'Is cold-chain delivery available across India?',
     a: 'Yes! We ship all orders in temperature-controlled insulated thermal boxes with dry ice to ensure your items arrive deeply frozen at your doorstep.',
+    chefTip: 'Transfer immediately into your home freezer upon doorstep arrival to preserve peak quality.',
+    tag: 'Cold Chain Delivery',
   },
 ];
 
@@ -180,6 +197,29 @@ function cleanBaseProductName(name: string): string {
     .trim();
 }
 
+function formatCleanWeight(w: string): string {
+  if (!w) return '1kg';
+  const clean = w.trim().toUpperCase();
+  if (clean.includes('300')) return '300g';
+  if (clean.includes('400')) return '400g';
+  if (clean.includes('250')) return '250g';
+  if (clean.includes('200')) return '200g';
+  if (clean.includes('500')) return '500g';
+  if (clean.includes('1') && (clean.includes('KG') || clean.includes('KILO'))) return '1kg';
+  return w;
+}
+
+function formatProductDisplayName(name: string): string {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+    .replace(/\bVeg\b/g, 'Veg')
+    .replace(/\bLolipop\b/gi, 'Lollipop');
+}
+
 function isRetailItem(product: ProductType): boolean {
   const cat = (product.category || '').toUpperCase();
   const name = (product.name || '').toUpperCase();
@@ -210,60 +250,51 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
   const uniqueList: UnifiedProduct[] = [];
 
   for (const [baseKey, items] of Array.from(groups.entries())) {
-    const retailItems = items.filter(isRetailItem);
-    const regularItems = items.filter((item: ProductType) => !isRetailItem(item));
+    const primaryItem = items.find((i: ProductType) => i.image && i.image !== 'none') || items[0];
 
-    const retailCandidate = retailItems[0];
-    const regularCandidate = regularItems[0] || items[0];
+    // Collect all genuine distinct packs by normalized weight
+    const packMap = new Map<string, PackDetail>();
 
-    const primaryItem = items.find((i: ProductType) => i.image && i.image !== 'none') || regularCandidate || items[0];
+    for (const item of items) {
+      const isRetail = isRetailItem(item);
+      const cleanWeight = formatCleanWeight(item.weight || (isRetail ? '400g' : '1kg'));
+      const key = cleanWeight.toLowerCase();
 
-    const allPacks: PackDetail[] = [];
+      if (!packMap.has(key)) {
+        packMap.set(key, {
+          type: isRetail ? 'retail' : 'regular',
+          label: isRetail ? `Retail (${cleanWeight})` : `Regular (${cleanWeight})`,
+          weight: cleanWeight,
+          price: item.price,
+          mrp: item.mrp ?? item.price,
+          id: item.id,
+        });
+      }
 
-    let regularPack: PackDetail | undefined;
-    if (regularCandidate) {
-      regularPack = {
-        type: 'regular',
-        label: `Regular (${regularCandidate.weight || '1 KG'})`,
-        weight: regularCandidate.weight || '1 KG',
-        price: regularCandidate.price,
-        mrp: regularCandidate.mrp ?? regularCandidate.price,
-        id: regularCandidate.id,
-      };
-      allPacks.push(regularPack);
-    }
-
-    let retailPack: PackDetail | undefined;
-    if (retailCandidate && (retailCandidate.id !== regularCandidate?.id || isRetailItem(retailCandidate))) {
-      retailPack = {
-        type: 'retail',
-        label: `Retail (${retailCandidate.weight || '400 GRM'})`,
-        weight: retailCandidate.weight || '400 GRM',
-        price: retailCandidate.price,
-        mrp: retailCandidate.mrp ?? retailCandidate.price,
-        id: retailCandidate.id,
-      };
-      allPacks.push(retailPack);
-    }
-
-    if (primaryItem.variants && primaryItem.variants.length > 0) {
-      for (const v of primaryItem.variants) {
-        if (!allPacks.some((p) => p.weight.toUpperCase() === v.weight.toUpperCase())) {
-          allPacks.push({
-            type: v.weight.includes('400') || v.weight.includes('250') || v.weight.includes('200') ? 'retail' : 'regular',
-            label: v.weight,
-            weight: v.weight,
-            price: v.price,
-            mrp: v.price,
-            id: primaryItem.id,
-          });
+      if (item.variants && Array.isArray(item.variants)) {
+        for (const v of item.variants) {
+          const vCleanWeight = formatCleanWeight(v.weight);
+          const vKey = vCleanWeight.toLowerCase();
+          if (!packMap.has(vKey)) {
+            const isVarRetail = vKey.includes('400') || vKey.includes('250') || vKey.includes('200') || vKey.includes('300');
+            packMap.set(vKey, {
+              type: isVarRetail ? 'retail' : 'regular',
+              label: isVarRetail ? `Retail (${vCleanWeight})` : `Regular (${vCleanWeight})`,
+              weight: vCleanWeight,
+              price: v.price,
+              mrp: v.price,
+              id: item.id,
+            });
+          }
         }
       }
     }
 
-    const hasRegularPack = Boolean(regularPack);
-    const hasRetailPack = Boolean(retailPack);
-    const hasBothPacks = hasRegularPack && hasRetailPack;
+    const allPacks = Array.from(packMap.values()).sort((a, b) => a.price - b.price);
+    const hasBothPacks = allPacks.length > 1;
+
+    const regularPack = allPacks.find((p) => p.type === 'regular') || (hasBothPacks ? allPacks[allPacks.length - 1] : undefined);
+    const retailPack = allPacks.find((p) => p.type === 'retail') || (hasBothPacks ? allPacks[0] : undefined);
 
     const prices = allPacks.map((p) => p.price);
     const mrps = allPacks.map((p) => p.mrp);
@@ -277,12 +308,12 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
 
     uniqueList.push({
       ...primaryItem,
-      name: baseKey,
+      name: formatProductDisplayName(baseKey || primaryItem.name),
       isPopular,
       baseKey,
       hasBothPacks,
-      hasRegularPack,
-      hasRetailPack,
+      hasRegularPack: Boolean(regularPack && hasBothPacks),
+      hasRetailPack: Boolean(retailPack && hasBothPacks),
       regularPack,
       retailPack,
       allPacks,
@@ -302,22 +333,89 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
   });
 }
 
+// Promotional Hero Banners using high-res brand artwork from assets
+const HERO_BANNERS = [
+  {
+    id: 'mock-mutton',
+    image: '/hero/0e18a4d9-5d57-4c36-8768-8e7d790a4b5d.jpg',
+    title: 'Flavorful Mock Mutton',
+    subtitle: '100% Veg. 100% Delicious.',
+    category: 'Mutton Alternatives',
+    badge: 'Best Seller',
+    link: '/shop?category=Mutton%20Alternatives',
+  },
+  {
+    id: 'corn-cheese-balls',
+    image: '/hero/813a46d7-0030-47c9-af6a-3db11c6edbc7.jpg',
+    title: 'Crispy Corn Cheese Balls',
+    subtitle: '100% Veg. 100% Delicious.',
+    category: 'Snacks & Starters',
+    badge: 'Popular Favorite',
+    link: '/shop?category=Snacks%20%26%20Starters',
+  },
+  {
+    id: 'veg-chicken-cutlet',
+    image: '/hero/928db126-f62c-4d88-a874-f3d8c08d68bd.jpg',
+    title: 'Crispy Veg Chicken Cutlet',
+    subtitle: 'Soy Protein Goodness',
+    category: 'Poultry Alternatives',
+    badge: 'Chef Special',
+    link: '/shop?category=Poultry%20Alternatives',
+  },
+  {
+    id: 'french-fries',
+    image: '/hero/a677a7a9-c56a-4885-a823-51be3e0177b3.jpg',
+    title: 'Crispy French Fries',
+    subtitle: 'Golden, Hot & Crunchy',
+    category: 'Snacks & Starters',
+    badge: 'All-Time Favorite',
+    link: '/shop?category=Snacks%20%26%20Starters',
+  },
+  {
+    id: 'sweet-corn',
+    image: '/hero/c0410062-941f-4ab6-bcc8-b9b2ffd98cc1.jpg',
+    title: 'Golden Sweet Corn',
+    subtitle: '100% Veg. 100% Delicious.',
+    category: 'Snacks & Starters',
+    badge: 'Pure Veg',
+    link: '/shop?category=Snacks%20%26%20Starters',
+  },
+];
+
   const [topProducts, setTopProducts] = useState<UnifiedProduct[]>([]);
   const [featuredCategories, setFeaturedCategories] = useState<{ name: string; img: string }[]>([]);
   const [reviews, setReviews] = useState<ReviewType[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewSlideIndex, setReviewSlideIndex] = useState(0);
   const [cardsPerPage, setCardsPerPage] = useState(3);
-  const heroDishes = topProducts.slice(0, 3);
+  const [isHeroHovered, setIsHeroHovered] = useState(false);
 
-  // Auto-rotating Hero Image Slider
+  // Preload all hero banner images into browser cache immediately for instant transitions
   useEffect(() => {
-    if (heroDishes.length <= 1) return;
+    HERO_BANNERS.forEach((banner) => {
+      const img = new window.Image();
+      img.src = banner.image;
+    });
+  }, []);
+
+  // Auto-rotating Hero Image Slider using brand assets
+  useEffect(() => {
+    if (isHeroHovered) return;
     const heroInterval = setInterval(() => {
-      setHeroDishIndex((prev) => (prev + 1) % heroDishes.length);
-    }, 5000); // 5 seconds per slide
+      setHeroDishIndex((prev) => (prev + 1) % HERO_BANNERS.length);
+    }, 4500); // 4.5 seconds per slide
     return () => clearInterval(heroInterval);
-  }, [heroDishes.length]);
+  }, [isHeroHovered]);
+
+  const nextHeroSlide = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setHeroDishIndex((prev) => (prev + 1) % HERO_BANNERS.length);
+  };
+
+  const prevHeroSlide = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setHeroDishIndex((prev) => (prev > 0 ? prev - 1 : HERO_BANNERS.length - 1));
+  };
 
   // Responsive cards per view state (Wider cards on Desktop)
   useEffect(() => {
@@ -600,54 +698,55 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
                 }
               `}</style>
 
-              {/* Clean Framed Hero Showcase Image (Auto-Sliding Crossfade) */}
-              <div className="relative rounded-3xl overflow-hidden shadow-[0_20px_50px_rgb(0,0,0,0.12)] border-4 border-white bg-white group aspect-[4/3]">
-                {heroDishes.map((dish, idx) => (
-                  <div
-                    key={idx}
-                    className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                      heroDishIndex === idx ? 'opacity-100 z-10' : 'opacity-0 z-0'
+              {/* Clean Framed Hero Showcase Image (Full Uncropped Brand Posters) */}
+              <div 
+                className="relative rounded-3xl overflow-hidden shadow-[0_20px_50px_rgb(0,0,0,0.14)] border-4 border-white bg-[#141613] group aspect-[1373/1145] select-none"
+                onMouseEnter={() => setIsHeroHovered(true)}
+                onMouseLeave={() => setIsHeroHovered(false)}
+              >
+                {HERO_BANNERS.map((banner, idx) => (
+                  <Link
+                    key={banner.id}
+                    href={banner.link}
+                    className={`absolute inset-0 transition-opacity duration-700 ease-in-out cursor-pointer block ${
+                      heroDishIndex === idx ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
                     }`}
                   >
-                    <div className="w-full h-full relative overflow-hidden bg-[#EAF0E5]">
-                      {dish.image && <OptimizedImage
-                        src={dish.image}
-                        alt={dish.name}
+                    <div className="w-full h-full relative overflow-hidden bg-[#141613]">
+                      <OptimizedImage
+                        src={banner.image}
+                        alt={banner.title}
                         width={900}
-                        priority={idx === 0}
-                        className={`w-full h-full object-cover transition-transform duration-[5000ms] ease-out ${
-                           heroDishIndex === idx ? 'scale-110' : 'scale-100'
-                        }`}
-                      />}
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#1E201D]/90 via-[#1E201D]/20 to-transparent opacity-90" />
-                      
-                      {/* Top Floating Badge */}
-                      <div className={`absolute top-4 left-4 flex items-center gap-2 transition-all duration-700 delay-100 ${heroDishIndex === idx ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'}`}>
-                        <span className="px-3 py-1.5 rounded-full bg-[#4D583F]/90 backdrop-blur-md text-white font-black text-xs shadow-lg flex items-center gap-1.5 border border-white/20">
-                          <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                          <span>{dish.isPopular ? 'Best Seller' : 'Featured Product'}</span>
-                        </span>
-                      </div>
-
-
-
-                      {/* Clean Bottom Title Bar (Animated Entry) */}
-                      <div className={`absolute bottom-0 inset-x-0 p-5 sm:p-7 space-y-1.5 transform transition-all duration-700 delay-200 ${heroDishIndex === idx ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
-                        <span className="text-[10px] sm:text-xs uppercase font-black tracking-widest text-[#A5B889] block drop-shadow-sm">
-                          {dish.category}
-                        </span>
-                        <h3 className="text-2xl sm:text-3xl font-black text-white font-display leading-tight shadow-sm drop-shadow-md">
-                          {dish.name}
-                        </h3>
-                      </div>
+                        priority={true}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                  </div>
+                  </Link>
                 ))}
+
+                {/* Left & Right Navigation Arrows on Hover */}
+                <button
+                  type="button"
+                  onClick={prevHeroSlide}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-md border border-white/20 transition-all opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-95 shadow-lg"
+                  aria-label="Previous slide"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={nextHeroSlide}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center backdrop-blur-md border border-white/20 transition-all opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-95 shadow-lg"
+                  aria-label="Next slide"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
               </div>
               
               {/* Modern Pagination Dots */}
               <div className="flex items-center justify-center gap-2 mt-5">
-                {heroDishes.map((_, idx) => (
+                {HERO_BANNERS.map((_, idx) => (
                   <button
                     key={idx}
                     onClick={() => setHeroDishIndex(idx)}
@@ -661,7 +760,10 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
                     {heroDishIndex === idx && (
                       <div 
                         className="absolute inset-y-0 left-0 bg-[#4D583F] rounded-full" 
-                        style={{ animation: 'sliderProgress 5s linear infinite' }}
+                        style={{ 
+                          animation: isHeroHovered ? 'none' : 'sliderProgress 4.5s linear infinite',
+                          width: isHeroHovered ? '100%' : undefined 
+                        }}
                       />
                     )}
                   </button>
@@ -700,38 +802,38 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               
               {/* Card 1 */}
-              <div className="p-6 rounded-[2rem] bg-white border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_10px_40px_rgb(0,0,0,0.08)] transition-all duration-500 hover:-translate-y-1">
-                <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-5 border border-emerald-100">
-                  <Leaf className="w-5 h-5" />
+              <div className="shine-container p-6 rounded-3xl bg-white border border-[#4F534C]/12 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 group">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-5 border border-emerald-100 group-hover:scale-110 transition-transform">
+                  <Leaf className="w-6 h-6 animate-float-subtle" />
                 </div>
-                <h4 className="font-extrabold text-base text-[#1E201D] mb-1.5">100% Cruelty-Free</h4>
+                <h4 className="font-black text-base text-[#1E201D] mb-1.5 font-poppins">100% Cruelty-Free</h4>
                 <p className="text-sm text-[#4F534C] font-medium leading-relaxed">Made purely from non-GMO soy and pea plant protein. Zero animal ingredients.</p>
               </div>
 
               {/* Card 2 */}
-              <div className="p-6 rounded-[2rem] bg-white border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_10px_40px_rgb(0,0,0,0.08)] transition-all duration-500 hover:-translate-y-1">
-                <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-5 border border-blue-100">
-                  <ShieldCheck className="w-5 h-5" />
+              <div className="shine-container p-6 rounded-3xl bg-white border border-[#4F534C]/12 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 group">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-5 border border-blue-100 group-hover:scale-110 transition-transform">
+                  <ShieldCheck className="w-6 h-6 animate-scale-pulse" />
                 </div>
-                <h4 className="font-extrabold text-base text-[#1E201D] mb-1.5">Zero Cholesterol</h4>
+                <h4 className="font-black text-base text-[#1E201D] mb-1.5 font-poppins">Zero Cholesterol</h4>
                 <p className="text-sm text-[#4F534C] font-medium leading-relaxed">Enjoy the meaty texture you crave without compromising your heart health.</p>
               </div>
 
               {/* Card 3 */}
-              <div className="p-6 rounded-[2rem] bg-white border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_10px_40px_rgb(0,0,0,0.08)] transition-all duration-500 hover:-translate-y-1">
-                <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mb-5 border border-amber-100">
-                  <Truck className="w-5 h-5" />
+              <div className="shine-container p-6 rounded-3xl bg-white border border-[#4F534C]/12 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 group">
+                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-5 border border-amber-100 group-hover:scale-110 transition-transform">
+                  <Truck className="w-6 h-6 animate-float-subtle" />
                 </div>
-                <h4 className="font-extrabold text-base text-[#1E201D] mb-1.5">Express Shipping</h4>
+                <h4 className="font-black text-base text-[#1E201D] mb-1.5 font-poppins">Express Shipping</h4>
                 <p className="text-sm text-[#4F534C] font-medium leading-relaxed">We ship frozen at -18°C. Enjoy free overnight delivery on orders over ₹999.</p>
               </div>
 
               {/* Card 4 */}
-              <div className="p-6 rounded-[2rem] bg-white border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_10px_40px_rgb(0,0,0,0.08)] transition-all duration-500 hover:-translate-y-1">
-                <div className="w-12 h-12 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center mb-5 border border-purple-100">
-                  <Award className="w-5 h-5" />
+              <div className="shine-container p-6 rounded-3xl bg-white border border-[#4F534C]/12 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 group">
+                <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mb-5 border border-purple-100 group-hover:scale-110 transition-transform">
+                  <Award className="w-6 h-6 animate-scale-pulse" />
                 </div>
-                <h4 className="font-extrabold text-base text-[#1E201D] mb-1.5">FSSAI Certified</h4>
+                <h4 className="font-black text-base text-[#1E201D] mb-1.5 font-poppins">FSSAI Certified</h4>
                 <p className="text-sm text-[#4F534C] font-medium leading-relaxed">Manufactured in ISO 22000 certified facilities ensuring the highest food safety.</p>
               </div>
 
@@ -868,168 +970,156 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6">
-                {filteredProducts.slice(0, 8).map((product) => (
-                  <div
-                    key={product.id || product.baseKey}
-                    onClick={() => router.push(`/product/${product.id}`)}
-                    className="group relative flex flex-col justify-between overflow-hidden rounded-2xl sm:rounded-3xl bg-white shadow-sm border border-[#4F534C]/15 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer"
-                  >
-                    {/* Image & Overlay */}
-                    <div className="relative aspect-square sm:aspect-[4/3] bg-[#EAF0E5] overflow-hidden">
-                      <OptimizedImage
-                        src={product.image}
-                        alt={product.name}
-                        width={520}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      
-                      {/* Badges */}
-                      <div className="absolute left-1.5 top-1.5 sm:left-2.5 sm:top-2.5 flex flex-wrap items-center gap-1 sm:gap-1.5 max-w-[90%] z-10">
-                        {product.hasBothPacks ? (
-                          <span className="rounded-md bg-[#2D3E2E]/95 px-1.5 py-0.5 text-[8px] sm:text-[10px] font-extrabold text-white shadow-xs backdrop-blur-xs flex items-center gap-0.5 sm:gap-1">
-                            <span>🌿</span>
-                            <span className="hidden sm:inline">Regular & Retail</span>
-                            <span className="sm:hidden">2 Packs</span>
-                          </span>
-                        ) : product.hasRetailPack ? (
-                          <span className="rounded-md bg-[#0284C7]/95 px-1.5 py-0.5 text-[8px] sm:text-[10px] font-extrabold text-white shadow-xs backdrop-blur-xs flex items-center gap-0.5 sm:gap-1">
-                            <span>🛒</span>
-                            <span className="hidden sm:inline">Retail Pack</span>
-                            <span className="sm:hidden">Retail</span>
-                          </span>
-                        ) : (
-                          <span className="rounded-md bg-[#4D583F]/95 px-1.5 py-0.5 text-[8px] sm:text-[10px] font-extrabold text-white shadow-xs backdrop-blur-xs flex items-center gap-0.5 sm:gap-1">
-                            <span>📦</span>
-                            <span className="hidden sm:inline">Regular Pack</span>
-                            <span className="sm:hidden">Regular</span>
-                          </span>
-                        )}
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+                {filteredProducts.slice(0, 8).map((product) => {
+                  const discountPercent = product.minMrp > product.minPrice
+                    ? Math.round(((product.minMrp - product.minPrice) / product.minMrp) * 100)
+                    : 0;
 
-                        <span className="rounded-md bg-black/65 backdrop-blur-xs px-1.5 py-0.5 text-[8px] sm:text-[10px] font-bold text-white shadow-xs">
+                  return (
+                    <article
+                      key={product.id || product.baseKey}
+                      onClick={() => router.push(`/product/${product.id}`)}
+                      className="group relative flex flex-col justify-between overflow-hidden rounded-2xl sm:rounded-3xl bg-white border border-[#4F534C]/12 shadow-[0_2px_10px_rgba(0,0,0,0.03)] transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-[#4D583F]/35 cursor-pointer"
+                    >
+                      {/* Top Media Container */}
+                      <div className="relative aspect-[4/3] bg-[#EAF0E5] overflow-hidden">
+                        <OptimizedImage
+                          src={product.image}
+                          alt={product.name}
+                          width={520}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+
+                        {/* Subtle Bottom Gradient for Depth */}
+                        <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+
+                        {/* Badges Overlay - Non-overlapping, clean alignment */}
+                        <div className="absolute inset-x-2 top-2 sm:inset-x-3 sm:top-3 flex items-center justify-between gap-1.5 z-10 pointer-events-none">
+                          {/* Left Badge: Pack Info */}
                           {product.hasBothPacks ? (
-                            <>
-                              <span className="hidden sm:inline">400g & 1 KG</span>
-                              <span className="sm:hidden">400g/1kg</span>
-                            </>
-                          ) : (
-                            product.weight
-                          )}
-                        </span>
-
-                        {product.isPopular && (
-                          <span className="rounded-md bg-amber-600 px-1.5 py-0.5 text-[8px] sm:text-[10px] font-bold text-white shadow-xs">
-                            <span className="hidden sm:inline">Best Seller</span>
-                            <span className="sm:hidden">🔥 Hot</span>
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Quick View Overlay Button */}
-                      <div className="absolute inset-0 bg-[#1E201D]/40 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex items-center justify-center text-white font-bold text-xs gap-2">
-                        <span className="bg-[#4D583F] px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-lg min-h-[44px]">
-                          <Eye className="w-4 h-4" /> View Details
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex flex-1 flex-col justify-between p-2.5 sm:p-4 md:p-5 space-y-2 sm:space-y-3">
-                      <div>
-                        {/* Category & Pack Tag Line */}
-                        <div className="flex items-center gap-1 mb-1 text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wide text-[#343F27]">
-                          <span className="truncate">{product.category.replace(' Alternatives', '').replace(' Retail Pack', '')}</span>
-                          <span className="text-[#4F534C]/30">•</span>
-                          {product.hasBothPacks ? (
-                            <span className="text-emerald-700 font-extrabold">2 Pack Sizes</span>
-                          ) : product.hasRetailPack ? (
-                            <span className="text-sky-700 font-extrabold">Retail</span>
-                          ) : (
-                            <span className="text-[#4D583F] font-extrabold">Regular</span>
-                          )}
-                        </div>
-
-                        <h3 className="line-clamp-2 text-xs sm:text-base md:text-lg font-black leading-snug text-[#1A1E16] transition-colors group-hover:text-[#435232] font-poppins">
-                          {product.name}
-                        </h3>
-                        
-                        <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[#3E4536] font-medium hidden sm:block">
-                          {product.description}
-                        </p>
-
-                        {/* Mobile Compact Pack Badge */}
-                        <div className="mt-1.5 flex items-center justify-between rounded-lg bg-[#F4F7F0] px-2 py-1 text-[9px] font-bold text-[#2A3123] sm:hidden">
-                          <span>{product.hasBothPacks ? '400g & 1kg' : product.weight}</span>
-                          <span className="text-[#4D583F] font-black">Available</span>
-                        </div>
-
-                        {/* Desktop Pack Comparison Box */}
-                        {product.hasBothPacks ? (
-                          <div className="mt-3 hidden sm:grid grid-cols-2 gap-1.5 p-2 rounded-xl bg-[#F6F8F3] border border-[#4F534C]/10 text-[10px] sm:text-[11px]">
-                            <div className="flex flex-col p-1.5 rounded-lg bg-white shadow-2xs border border-[#4F534C]/5">
-                              <span className="font-extrabold text-[#0284C7] text-[9px] uppercase tracking-wider">
-                                🛒 Retail Pack
-                              </span>
-                              <span className="font-bold text-[#1E201D] text-xs mt-0.5">{product.retailPack?.weight || '400 GRM'}</span>
-                              <span className="font-black text-[#4D583F] text-xs">₹{product.retailPack?.price}</span>
-                            </div>
-                            <div className="flex flex-col p-1.5 rounded-lg bg-white shadow-2xs border border-[#4F534C]/5">
-                              <span className="font-extrabold text-[#2D3E2E] text-[9px] uppercase tracking-wider">
-                                📦 Regular Pack
-                              </span>
-                              <span className="font-bold text-[#1E201D] text-xs mt-0.5">{product.regularPack?.weight || '1 KG'}</span>
-                              <span className="font-black text-[#4D583F] text-xs">₹{product.regularPack?.price}</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="mt-3 hidden sm:block p-2 rounded-xl bg-[#F6F8F3] border border-[#4F534C]/10 text-[10px] sm:text-[11px]">
-                            <div className="flex items-center justify-between p-1.5 rounded-lg bg-white shadow-2xs border border-[#4F534C]/5">
-                              <span className="font-extrabold text-[#4D583F] text-[9px] uppercase tracking-wider">
-                                {product.hasRetailPack ? '🛒 Everyday Retail Pack' : '📦 Foodservice Regular Pack'}
-                              </span>
-                              <span className="font-bold text-[#1E201D] text-xs">{product.weight}</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Price & Action Row */}
-                      <div className="flex items-end justify-between gap-1 border-t border-[#4F534C]/15 pt-2 sm:gap-2 sm:pt-3">
-                        <div>
-                          <span className="text-[8px] sm:text-[10px] text-[#4F5547] block uppercase font-bold">
-                            {product.hasBothPacks ? 'From' : 'MRP'}
-                          </span>
-                          <span className="block text-[9px] sm:text-xs text-[#555C4D] line-through font-semibold">
-                            ₹{product.minMrp}
-                          </span>
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-sm sm:text-lg md:text-xl font-black text-[#283618]">
-                              ₹{product.minPrice}
+                            <span className="px-2 py-0.5 rounded-full bg-[#1E281D]/90 text-white font-bold text-[9px] sm:text-[10px] shadow-xs backdrop-blur-xs flex items-center gap-1">
+                              <span>🌿</span>
+                              <span>2 Sizes ({product.allPacks.map((p) => p.weight).join(' / ')})</span>
                             </span>
-                            {product.hasBothPacks && product.minPrice !== product.maxPrice && (
-                              <span className="text-[10px] sm:text-xs text-[#555C4D] font-bold hidden sm:inline">
-                                – ₹{product.maxPrice}
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full bg-[#1E281D]/80 text-white font-bold text-[9px] sm:text-[10px] shadow-xs backdrop-blur-xs flex items-center gap-1">
+                              <span>📦</span>
+                              <span>{product.allPacks[0]?.weight || product.weight || 'Pack'}</span>
+                            </span>
+                          )}
+
+                          {/* Right Badge: Popularity */}
+                          {product.isPopular && (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white font-extrabold text-[9px] sm:text-[10px] shadow-xs flex items-center gap-0.5">
+                              <span>⭐</span>
+                              <span className="hidden sm:inline">Best Seller</span>
+                              <span className="sm:hidden">Hot</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Desktop Hover Quick View Pill */}
+                        <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex items-center justify-center">
+                          <span className="px-3.5 py-2 rounded-xl bg-[#4D583F] text-white font-bold text-xs flex items-center gap-1.5 shadow-lg transform translate-y-1 group-hover:translate-y-0 transition-transform">
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Quick View</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Card Body */}
+                      <div className="flex flex-1 flex-col justify-between p-3 sm:p-4 space-y-3">
+                        <div className="space-y-1.5">
+                          {/* Category Tag */}
+                          <div className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-emerald-800 truncate">
+                            {product.category.replace(' Alternatives', '').replace(' Retail Pack', '')}
+                          </div>
+
+                          {/* Product Title */}
+                          <h3 className="text-sm sm:text-base md:text-lg font-black text-[#1E201D] leading-tight group-hover:text-emerald-900 transition-colors line-clamp-1">
+                            {product.name}
+                          </h3>
+
+                          {/* Short Description */}
+                          <p className="text-[11px] sm:text-xs text-[#61665D] line-clamp-1 leading-relaxed">
+                            {product.description}
+                          </p>
+
+                          {/* Clean Pack Sizes Strip */}
+                          {product.hasBothPacks ? (
+                            <div className="pt-1 flex flex-wrap items-center gap-1.5">
+                              {product.allPacks.map((pack, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-2 py-0.5 rounded-md bg-[#F4F7F0] border border-[#E0E6D8] text-[10px] sm:text-[11px] font-bold text-[#2A3123] flex items-center gap-1"
+                                >
+                                  <span className="font-semibold text-gray-600">{pack.weight}:</span>
+                                  <span className="font-black text-[#4D583F]">₹{pack.price}</span>
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="pt-1 flex items-center gap-1.5">
+                              <span className="px-2 py-0.5 rounded-md bg-[#F4F7F0] border border-[#E0E6D8] text-[10px] font-bold text-[#2A3123]">
+                                Single Pack · {product.allPacks[0]?.weight || product.weight}
                               </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Price & Action Row */}
+                        <div className="pt-2.5 border-t border-[#4F534C]/10 flex items-center justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-base sm:text-xl font-black text-[#1E201D]">
+                                ₹{product.minPrice}
+                              </span>
+                              {product.hasBothPacks && product.minPrice !== product.maxPrice && (
+                                <span className="text-xs sm:text-sm font-bold text-gray-500">
+                                  – ₹{product.maxPrice}
+                                </span>
+                              )}
+                            </div>
+
+                            {discountPercent > 0 && (
+                              <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px]">
+                                <span className="text-gray-400 line-through font-medium">₹{product.minMrp}</span>
+                                <span className="font-black text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded">
+                                  {discountPercent}% OFF
+                                </span>
+                              </div>
                             )}
                           </div>
-                        </div>
 
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/product/${product.id}`);
-                          }}
-                          className="flex h-8 sm:h-10 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg sm:rounded-xl bg-[#4D583F] px-2 sm:px-3.5 text-[10px] sm:text-xs font-bold text-white shadow-sm transition-all hover:bg-[#3D4732] active:scale-95 z-10"
-                        >
-                          <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-                          <span className="sm:hidden">Select</span>
-                          <span className="hidden sm:inline">{product.hasBothPacks ? 'Select Size' : 'Select Options'}</span>
-                        </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (product.hasBothPacks) {
+                                router.push(`/product/${product.id}`);
+                              } else {
+                                addToCart({
+                                  id: product.id,
+                                  name: product.name,
+                                  price: product.price,
+                                  weight: product.weight,
+                                  image: product.image,
+                                  category: product.category,
+                                }, 1);
+                                showToast(`Added ${product.name} (${product.weight}) to cart!`, 'success');
+                              }
+                            }}
+                            className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl bg-[#4D583F] hover:bg-[#3B4430] text-white font-black text-xs flex items-center gap-1.5 shadow-xs transition-all active:scale-95 shrink-0"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>{product.hasBothPacks ? 'Select Size' : 'Add'}</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    </article>
+                  );
+                })}
               </div>
             )}
 
@@ -1045,219 +1135,312 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
         </section>
 
         {/* Why Switch to Sakthi Plant-Based Meats Comparison Section */}
-        <section id="why-switch" className="site-shell py-8 md:py-12 relative z-10 bg-transparent">
-          <div className="max-w-7xl mx-auto space-y-16">
+        <section id="why-switch" className="site-shell py-12 md:py-16 relative z-10 bg-transparent">
+          <div className="max-w-7xl mx-auto space-y-12 sm:space-y-16">
             <div className="text-center space-y-4 max-w-3xl mx-auto">
-              <span className="px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold tracking-widest inline-block border border-emerald-100 uppercase">
-                Health & Sustainability
-              </span>
-              <h2 className="text-3xl sm:text-5xl font-extrabold text-[#1E201D] tracking-tight">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100/80 border border-emerald-200 text-emerald-900 text-xs font-black tracking-widest uppercase shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-600 animate-ping" />
+                <span>Health & Sustainability</span>
+              </div>
+              <h2 className="text-3xl sm:text-5xl font-black text-[#1E201D] tracking-tight font-poppins">
                 Why Switch to Sakthi Vegan Meats?
               </h2>
-              <p className="text-base text-[#61665D]">
-                Experience the identical taste and texture of your favorite meats, upgraded with superior plant-based nutrition, zero cholesterol, and a cruelty-free footprint.
+              <p className="text-sm sm:text-base text-[#61665D] leading-relaxed">
+                Experience the authentic taste and fibrous chew of real meat, upgraded with superior plant nutrition, zero cholesterol, and a clean eco footprint.
               </p>
             </div>
 
-            {/* Zapeo-Inspired Grid Comparison */}
+            {/* Dynamic Comparison Grid with Interactive Animated Meters */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
               
-              {/* Metric 1 */}
-              <div className="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-xl transition-all duration-500 relative overflow-hidden group">
-                <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-400 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
-                <h3 className="text-xl font-extrabold text-[#1E201D] mb-6 flex items-center gap-2">
-                  <Flame className="w-5 h-5 text-emerald-500" /> Protein Content
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center bg-[#F4F5F2] p-4 rounded-2xl shadow-sm border border-emerald-50">
-                    <span className="text-sm font-bold text-[#1E201D]">Sakthi Vegan</span>
-                    <span className="text-sm font-extrabold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg">24g / 100g</span>
-                  </div>
-                  <div className="flex justify-between items-center opacity-60 px-4 py-2">
-                    <span className="text-sm font-medium text-[#61665D]">Animal Meat</span>
-                    <span className="text-sm font-semibold text-[#61665D]">20g / 100g</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Metric 2 */}
-              <div className="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-xl transition-all duration-500 relative overflow-hidden group">
-                <div className="absolute top-0 left-0 w-full h-1.5 bg-blue-400 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
-                <h3 className="text-xl font-extrabold text-[#1E201D] mb-6 flex items-center gap-2">
-                  <Heart className="w-5 h-5 text-blue-500" /> Cholesterol
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center bg-[#F4F5F2] p-4 rounded-2xl shadow-sm border border-blue-50">
-                    <span className="text-sm font-bold text-[#1E201D]">Sakthi Vegan</span>
-                    <span className="text-sm font-extrabold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">0 mg (Safe)</span>
-                  </div>
-                  <div className="flex justify-between items-center opacity-60 px-4 py-2">
-                    <span className="text-sm font-medium text-[#61665D]">Animal Meat</span>
-                    <span className="text-sm font-semibold text-[#61665D]">90 mg (High)</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Metric 3 */}
-              <div className="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-xl transition-all duration-500 relative overflow-hidden group">
-                <div className="absolute top-0 left-0 w-full h-1.5 bg-amber-400 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
-                <h3 className="text-xl font-extrabold text-[#1E201D] mb-6 flex items-center gap-2">
-                  <Leaf className="w-5 h-5 text-amber-500" /> Dietary Fiber
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center bg-[#F4F5F2] p-4 rounded-2xl shadow-sm border border-amber-50">
-                    <span className="text-sm font-bold text-[#1E201D]">Sakthi Vegan</span>
-                    <span className="text-sm font-extrabold text-amber-600 bg-amber-50 px-3 py-1 rounded-lg">6g Fiber</span>
-                  </div>
-                  <div className="flex justify-between items-center opacity-60 px-4 py-2">
-                    <span className="text-sm font-medium text-[#61665D]">Animal Meat</span>
-                    <span className="text-sm font-semibold text-[#61665D]">0g Fiber</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Metric 4 */}
-              <div className="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-xl transition-all duration-500 relative overflow-hidden group">
-                <div className="absolute top-0 left-0 w-full h-1.5 bg-purple-400 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
-                <h3 className="text-xl font-extrabold text-[#1E201D] mb-6 flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-purple-500" /> Antibiotics & Hormones
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center bg-[#F4F5F2] p-4 rounded-2xl shadow-sm border border-purple-50">
-                    <span className="text-sm font-bold text-[#1E201D]">Sakthi Vegan</span>
-                    <span className="text-sm font-extrabold text-purple-600 bg-purple-50 px-3 py-1 rounded-lg">100% Free</span>
-                  </div>
-                  <div className="flex justify-between items-center opacity-60 px-4 py-2">
-                    <span className="text-sm font-medium text-[#61665D]">Animal Meat</span>
-                    <span className="text-sm font-semibold text-[#61665D]">Traces Present</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Metric 5 (Spans 2 columns on lg) */}
-              <div className="bg-[#4D583F] rounded-[2rem] p-8 shadow-xl lg:col-span-2 relative overflow-hidden group">
-                <div className="absolute -right-20 -top-20 opacity-5 pointer-events-none">
-                  <Leaf className="w-64 h-64 text-emerald-400" />
-                </div>
-                <h3 className="text-xl font-extrabold text-white mb-6 flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-emerald-400" /> Environmental Footprint
-                </h3>
-                <div className="grid sm:grid-cols-2 gap-6">
-                  <div className="bg-white/10 p-5 rounded-2xl backdrop-blur-md border border-white/10">
-                    <h4 className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-1">Sakthi Vegan</h4>
-                    <p className="text-white font-semibold text-sm">Requires 90% less land and water. Generates drastically less CO₂ emissions.</p>
-                  </div>
-                  <div className="bg-black/20 p-5 rounded-2xl border border-white/5">
-                    <h4 className="text-[#A5B889] text-xs font-bold uppercase tracking-widest mb-1">Animal Meat</h4>
-                    <p className="text-gray-300 font-medium text-sm">Major contributor to global warming, deforestation, and massive water depletion.</p>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </section>
-
-        {/* How to Cook - Zapeo Style Floating Workflow */}
-        <section className="bg-transparent border-y border-[#4F534C]/10 py-8 md:py-12 w-full relative z-10">
-          <div className="site-shell">
-            <div className="text-center max-w-2xl mx-auto mb-20 space-y-4">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-gray-200 text-[#1E201D] text-xs font-bold uppercase tracking-widest shadow-sm">
-                <Clock className="w-4 h-4 text-emerald-500" />
-                <span>Simple 10-Minute Prep</span>
-              </div>
-              <h2 className="text-3xl md:text-5xl font-extrabold text-[#1E201D] tracking-tight">
-                How to Cook Sakthi Frozen Meats
-              </h2>
-              <p className="text-sm text-[#61665D]">
-                No complicated prep required! Enjoy juicy, restaurant-quality plant meat in 3 effortless steps.
-              </p>
-            </div>
-
-            {/* 3 Step Floating Workflow */}
-            <div className="relative max-w-5xl mx-auto">
-              
-              {/* Desktop Horizontal Process Connecting Line */}
-              <div className="hidden md:block absolute top-12 left-1/6 right-1/6 h-0.5 bg-gradient-to-r from-transparent via-gray-300 to-transparent pointer-events-none z-0" />
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+              {/* Metric 1: Protein */}
+              <div className="shine-container bg-white rounded-3xl p-6 sm:p-7 border border-[#4F534C]/12 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 group relative overflow-hidden flex flex-col justify-between">
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-400 to-teal-500 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
                 
-                {/* Step 1 Card */}
-                <div className="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl transition-all duration-500 flex flex-col items-center text-center space-y-6 group hover:-translate-y-2 relative">
-                  <div className="w-20 h-20 rounded-full bg-[#E8EEE0] flex items-center justify-center relative shadow-inner">
-                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#4D583F] text-white flex items-center justify-center font-black text-sm shadow-md">
-                      1
-                    </div>
-                    <Clock className="w-8 h-8 text-emerald-600" />
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg sm:text-xl font-black text-[#1E201D] flex items-center gap-2">
+                      <span className="p-2 rounded-xl bg-emerald-50 text-emerald-600 group-hover:scale-110 transition-transform">
+                        <Flame className="w-5 h-5 text-emerald-500 animate-pulse" />
+                      </span>
+                      <span>Protein Content</span>
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black border border-emerald-200">
+                      +20% Extra
+                    </span>
                   </div>
 
-                  <div>
-                    <span className="text-emerald-600 text-[10px] font-bold uppercase tracking-widest block mb-2">
-                      10 Mins
-                    </span>
-                    <h3 className="font-extrabold text-lg text-[#1E201D]">Thaw at Room Temp</h3>
-                    <p className="text-[15px] text-[#4D534B] leading-relaxed mt-2">
-                      Remove your packet from the freezer and thaw at room temperature for 10 minutes (or lightly microwave for 30 seconds).
-                    </p>
+                  <div className="space-y-3 mt-4">
+                    {/* Sakthi Vegan */}
+                    <div className="bg-[#F4F7F0] p-3.5 rounded-2xl border border-emerald-100/80 transition-all group-hover:border-emerald-300">
+                      <div className="flex justify-between items-center text-xs font-bold mb-1.5">
+                        <span className="text-emerald-950 font-extrabold flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Sakthi Vegan
+                        </span>
+                        <span className="font-black text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md">
+                          24g / 100g
+                        </span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-emerald-200/60 overflow-hidden">
+                        <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 w-full transition-all duration-1000 group-hover:brightness-110" />
+                      </div>
+                    </div>
+
+                    {/* Animal Meat */}
+                    <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200/60 opacity-75">
+                      <div className="flex justify-between items-center text-xs font-semibold text-gray-600 mb-1.5">
+                        <span>Animal Meat</span>
+                        <span className="font-bold text-gray-700">20g / 100g</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-gray-200 overflow-hidden">
+                        <div className="h-full rounded-full bg-gray-400 w-[78%]" />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Step 2 Card */}
-                <div className="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl transition-all duration-500 flex flex-col items-center text-center space-y-6 group hover:-translate-y-2 relative">
-                  <div className="w-20 h-20 rounded-full bg-[#E8EEE0] flex items-center justify-center relative shadow-inner">
-                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#4D583F] text-white flex items-center justify-center font-black text-sm shadow-md">
-                      2
-                    </div>
-                    <Flame className="w-8 h-8 text-amber-500" />
-                  </div>
-
-                  <div>
-                    <span className="text-amber-500 text-[10px] font-bold uppercase tracking-widest block mb-2">
-                      5-8 Mins
-                    </span>
-                    <h3 className="font-extrabold text-lg text-[#1E201D]">Sizzle & Spice</h3>
-                    <p className="text-[15px] text-[#4D534B] leading-relaxed mt-2">
-                      Pan-fry in oil until golden crispy, or toss directly into simmering curry gravies, korma, and biryani pots for deep spice absorption.
-                    </p>
-                  </div>
+                <div className="mt-4 pt-3 border-t border-gray-100 text-[11px] font-semibold text-emerald-800 flex items-center gap-1">
+                  <span>✨ 100% plant protein for faster muscle recovery & energy.</span>
                 </div>
-
-                {/* Step 3 Card */}
-                <div className="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl transition-all duration-500 flex flex-col items-center text-center space-y-6 group hover:-translate-y-2 relative">
-                  <div className="w-20 h-20 rounded-full bg-[#E8EEE0] flex items-center justify-center relative shadow-inner">
-                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#4D583F] text-white flex items-center justify-center font-black text-sm shadow-md">
-                      3
-                    </div>
-                    <Utensils className="w-8 h-8 text-[#4D583F]" />
-                  </div>
-
-                  <div>
-                    <span className="text-[#1E201D] text-[10px] font-bold uppercase tracking-widest block mb-2">
-                      Ready to Serve
-                    </span>
-                    <h3 className="font-extrabold text-lg text-[#1E201D]">Savor Every Bite</h3>
-                    <p className="text-[15px] text-[#4D534B] leading-relaxed mt-2">
-                      Serve hot with rice, parothas, or naan. Enjoy the authentic fibrous meaty chew packed with 100% plant protein goodness!
-                    </p>
-                  </div>
-                </div>
-
               </div>
+
+              {/* Metric 2: Cholesterol */}
+              <div className="shine-container bg-white rounded-3xl p-6 sm:p-7 border border-[#4F534C]/12 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 group relative overflow-hidden flex flex-col justify-between">
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-sky-400 to-blue-500 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
+                
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg sm:text-xl font-black text-[#1E201D] flex items-center gap-2">
+                      <span className="p-2 rounded-xl bg-sky-50 text-sky-600 group-hover:scale-110 transition-transform">
+                        <Heart className="w-5 h-5 text-sky-500 animate-scale-pulse" />
+                      </span>
+                      <span>Cholesterol</span>
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 text-[10px] font-black border border-sky-200">
+                      100% Safe
+                    </span>
+                  </div>
+
+                  <div className="space-y-3 mt-4">
+                    {/* Sakthi Vegan */}
+                    <div className="bg-sky-50/70 p-3.5 rounded-2xl border border-sky-100 transition-all group-hover:border-sky-300">
+                      <div className="flex justify-between items-center text-xs font-bold mb-1.5">
+                        <span className="text-sky-950 font-extrabold flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-sky-600" /> Sakthi Vegan
+                        </span>
+                        <span className="font-black text-sky-700 bg-sky-100 px-2 py-0.5 rounded-md">
+                          0 mg (Zero Risk)
+                        </span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-sky-200/60 overflow-hidden">
+                        <div className="h-full rounded-full bg-gradient-to-r from-sky-400 to-blue-500 w-[5%]" />
+                      </div>
+                    </div>
+
+                    {/* Animal Meat */}
+                    <div className="p-3.5 rounded-2xl bg-rose-50/60 border border-rose-200/60">
+                      <div className="flex justify-between items-center text-xs font-semibold text-rose-900 mb-1.5">
+                        <span>Animal Meat</span>
+                        <span className="font-black text-rose-700">90 mg (High)</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-rose-200 overflow-hidden">
+                        <div className="h-full rounded-full bg-rose-500 w-[90%]" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-gray-100 text-[11px] font-semibold text-sky-800 flex items-center gap-1">
+                  <span>❤️ Zero arterial clogging • Certified heart-friendly nutrition.</span>
+                </div>
+              </div>
+
+              {/* Metric 3: Fiber */}
+              <div className="shine-container bg-white rounded-3xl p-6 sm:p-7 border border-[#4F534C]/12 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 group relative overflow-hidden flex flex-col justify-between">
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-amber-400 to-orange-500 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
+                
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg sm:text-xl font-black text-[#1E201D] flex items-center gap-2">
+                      <span className="p-2 rounded-xl bg-amber-50 text-amber-600 group-hover:scale-110 transition-transform">
+                        <Leaf className="w-5 h-5 text-amber-500 animate-float-subtle" />
+                      </span>
+                      <span>Dietary Fiber</span>
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-black border border-amber-200">
+                      Gut Friendly
+                    </span>
+                  </div>
+
+                  <div className="space-y-3 mt-4">
+                    {/* Sakthi Vegan */}
+                    <div className="bg-amber-50/70 p-3.5 rounded-2xl border border-amber-100 transition-all group-hover:border-amber-300">
+                      <div className="flex justify-between items-center text-xs font-bold mb-1.5">
+                        <span className="text-amber-950 font-extrabold flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" /> Sakthi Vegan
+                        </span>
+                        <span className="font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">
+                          6g Fiber
+                        </span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-amber-200/60 overflow-hidden">
+                        <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500 w-[85%]" />
+                      </div>
+                    </div>
+
+                    {/* Animal Meat */}
+                    <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200/60 opacity-75">
+                      <div className="flex justify-between items-center text-xs font-semibold text-gray-600 mb-1.5">
+                        <span>Animal Meat</span>
+                        <span className="font-bold text-gray-700">0g Fiber (Zero)</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-gray-200 overflow-hidden">
+                        <div className="h-full rounded-full bg-gray-400 w-0" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-gray-100 text-[11px] font-semibold text-amber-800 flex items-center gap-1">
+                  <span>🌿 Promotes smooth digestion with natural plant prebiotics.</span>
+                </div>
+              </div>
+
+              {/* Metric 4: Antibiotics & Hormones */}
+              <div className="shine-container bg-white rounded-3xl p-6 sm:p-7 border border-[#4F534C]/12 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 group relative overflow-hidden flex flex-col justify-between">
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-purple-400 to-indigo-500 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
+                
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg sm:text-xl font-black text-[#1E201D] flex items-center gap-2">
+                      <span className="p-2 rounded-xl bg-purple-50 text-purple-600 group-hover:scale-110 transition-transform">
+                        <ShieldCheck className="w-5 h-5 text-purple-600 animate-scale-pulse" />
+                      </span>
+                      <span>Hormones & Antibiotics</span>
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 text-[10px] font-black border border-purple-200">
+                      Clean Label
+                    </span>
+                  </div>
+
+                  <div className="space-y-3 mt-4">
+                    {/* Sakthi Vegan */}
+                    <div className="bg-purple-50/70 p-3.5 rounded-2xl border border-purple-100 transition-all group-hover:border-purple-300">
+                      <div className="flex justify-between items-center text-xs font-bold mb-1.5">
+                        <span className="text-purple-950 font-extrabold flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-purple-600" /> Sakthi Vegan
+                        </span>
+                        <span className="font-black text-purple-700 bg-purple-100 px-2 py-0.5 rounded-md">
+                          100% Free & Pure
+                        </span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-purple-200/60 overflow-hidden">
+                        <div className="h-full rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 w-full" />
+                      </div>
+                    </div>
+
+                    {/* Animal Meat */}
+                    <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200/60 opacity-75">
+                      <div className="flex justify-between items-center text-xs font-semibold text-gray-600 mb-1.5">
+                        <span>Animal Meat</span>
+                        <span className="font-bold text-gray-700">Antibiotics / Synthetic Feeds</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-gray-200 overflow-hidden">
+                        <div className="h-full rounded-full bg-gray-400 w-1/2" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-gray-100 text-[11px] font-semibold text-purple-800 flex items-center gap-1">
+                  <span>🛡️ Non-GMO soy & pea protein. Zero synthetic chemicals.</span>
+                </div>
+              </div>
+
+              {/* Metric 5 (Spans 2 columns on lg): Environmental & Sustainability Impact */}
+              <div className="bg-gradient-to-br from-[#273624] via-[#1E2B1C] to-[#141E13] rounded-3xl p-6 sm:p-8 shadow-2xl lg:col-span-2 relative overflow-hidden group border border-emerald-500/20 text-white flex flex-col justify-between">
+                {/* Background Ambient Glow & Floating Icons */}
+                <div className="absolute -right-16 -top-16 opacity-10 pointer-events-none animate-float-gentle">
+                  <Leaf className="w-72 h-72 text-emerald-400" />
+                </div>
+                <div className="absolute left-1/3 bottom-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                <div>
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+                    <h3 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2.5">
+                      <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 animate-pulse">
+                        <Zap className="w-6 h-6" />
+                      </span>
+                      <span>Environmental Footprint Savings</span>
+                    </h3>
+                    <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-400/30 backdrop-blur-xs flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                      <span>Eco-Certified Impact</span>
+                    </span>
+                  </div>
+
+                  {/* 3 Animated Planet Impact Pillars */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {/* Land Savings */}
+                    <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 hover:bg-white/15 transition-all group-hover:scale-[1.02]">
+                      <div className="text-2xl sm:text-3xl font-black text-emerald-400 mb-1">
+                        90% Less
+                      </div>
+                      <div className="text-xs font-bold text-white uppercase tracking-wider">
+                        Land Usage
+                      </div>
+                      <p className="text-[11px] text-gray-300 mt-1 leading-relaxed">
+                        Spares forests & biodiversity compared to cattle grazing.
+                      </p>
+                    </div>
+
+                    {/* Water Savings */}
+                    <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 hover:bg-white/15 transition-all group-hover:scale-[1.02]">
+                      <div className="text-2xl sm:text-3xl font-black text-sky-400 mb-1">
+                        85% Less
+                      </div>
+                      <div className="text-xs font-bold text-white uppercase tracking-wider">
+                        Fresh Water
+                      </div>
+                      <p className="text-[11px] text-gray-300 mt-1 leading-relaxed">
+                        Saves ~1,500 litres of precious water with every single pack.
+                      </p>
+                    </div>
+
+                    {/* Carbon Emissions */}
+                    <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 hover:bg-white/15 transition-all group-hover:scale-[1.02]">
+                      <div className="text-2xl sm:text-3xl font-black text-amber-400 mb-1">
+                        80% Lower
+                      </div>
+                      <div className="text-xs font-bold text-white uppercase tracking-wider">
+                        CO₂ Emissions
+                      </div>
+                      <p className="text-[11px] text-gray-300 mt-1 leading-relaxed">
+                        Dramatically curbs methane & greenhouse warming gases.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs text-emerald-300 font-semibold">
+                  <div className="flex items-center gap-1.5">
+                    <span>🌱 Every delicious bite is a step toward a greener, kinder planet.</span>
+                  </div>
+                  <Link
+                    href="/shop"
+                    className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs transition-all shadow-lg hover:shadow-emerald-500/25 active:scale-95"
+                  >
+                    Taste the Future →
+                  </Link>
+                </div>
+              </div>
+
             </div>
-
-            {/* Pro Chef Tip Banner */}
-            <div className="max-w-3xl mx-auto mt-16 p-6 rounded-[1.5rem] bg-white border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.02)] flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left transition-transform hover:-translate-y-1 duration-300">
-              <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <div className="text-[13px] text-[#61665D] leading-relaxed">
-                <span className="font-extrabold text-[#1E201D] block sm:inline mr-1">Chef&apos;s Secret Tip:</span>
-                For biryanis and gravies, add thawed Veg Mutton directly into the boiling masala so it absorbs authentic South Indian spices deeply.
-              </div>
-            </div>
-
           </div>
         </section>
+
+        {/* React Bits Style Scroll Stack Mock Meat Procedure Section */}
+        <ScrollStackProcedure />
 
         {/* GOOGLE REVIEWS SECTION */}
         <section className="site-shell py-12 md:py-16 relative z-10">
@@ -1447,11 +1630,22 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
         </section>
 
         {/* FAQ Accordion Section */}
-        <section className="bg-transparent border-y border-[#4F534C]/15 py-12 md:py-16 w-full relative z-10">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6">
-            <div className="text-center max-w-xl mx-auto mb-12">
-              <h2 className="text-3xl font-black text-[#1E201D] font-display">Frequently Asked Questions</h2>
-              <p className="text-xs text-[#61665D] mt-2">Got questions? We&apos;ve got answers.</p>
+        <section className="bg-transparent border-y border-[#4F534C]/15 py-14 md:py-20 w-full relative z-10 overflow-hidden">
+          {/* Subtle culinary background glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-[#4D583F]/5 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
+            <div className="text-center max-w-xl mx-auto mb-12 space-y-3">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-[#4F534C]/15 text-[#4D583F] text-xs font-black uppercase tracking-wider shadow-xs">
+                <ChefHat className="w-4 h-4 text-emerald-600 animate-float-subtle" />
+                <span>Chef &amp; Kitchen FAQs</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-black text-[#1E201D] font-display tracking-tight">
+                Frequently Asked Questions
+              </h2>
+              <p className="text-xs sm:text-sm text-[#61665D] leading-relaxed">
+                Got questions? We&apos;ve got answers straight from the Sakthi master kitchen.
+              </p>
             </div>
 
             <div className="space-y-4">
@@ -1460,28 +1654,86 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
                 return (
                   <div
                     key={idx}
-                    className="rounded-2xl border border-[#4F534C]/20 bg-[#FAFAF5] overflow-hidden transition-all shadow-xs"
+                    className={`rounded-2xl border transition-all duration-300 overflow-hidden ${
+                      isOpen
+                        ? 'border-[#4D583F]/35 bg-white shadow-md'
+                        : 'border-[#4F534C]/15 bg-[#FAFAF5] hover:bg-white hover:border-[#4D583F]/25 shadow-xs'
+                    }`}
                   >
                     <button
                       onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
-                      className="w-full p-5 text-left font-bold text-sm text-[#1E201D] flex items-center justify-between gap-4"
+                      className="w-full p-5 text-left font-bold text-sm sm:text-base text-[#1E201D] flex items-center justify-between gap-4 group"
                     >
-                      <span>{faq.q}</span>
-                      {isOpen ? (
-                        <ChevronUp className="w-5 h-5 text-[#4D583F] shrink-0" />
-                      ) : (
-                        <ChevronDown className="w-5 h-5 text-[#61665D] shrink-0" />
-                      )}
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 ${
+                          isOpen
+                            ? 'bg-[#4D583F] text-white shadow-sm'
+                            : 'bg-[#E8EEE0] text-[#4D583F] group-hover:bg-[#4D583F] group-hover:text-white'
+                        }`}>
+                          <ChefHat className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2.5">
+                          <span className="font-extrabold text-[#1E201D] group-hover:text-[#4D583F] transition-colors">{faq.q}</span>
+                          {faq.tag && (
+                            <span className="self-start sm:self-auto text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/60 shrink-0">
+                              {faq.tag}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-transform duration-300 ${
+                        isOpen ? 'bg-[#E8EEE0] text-[#4D583F]' : 'bg-transparent text-[#61665D]'
+                      }`}>
+                        {isOpen ? (
+                          <ChevronUp className="w-5 h-5 text-[#4D583F]" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 group-hover:text-[#1E201D]" />
+                        )}
+                      </div>
                     </button>
 
                     {isOpen && (
-                      <div className="px-5 pb-5 text-xs text-[#61665D] leading-relaxed border-t border-[#4F534C]/10 pt-3">
-                        {faq.a}
+                      <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-[#4D534B] leading-relaxed border-t border-[#4F534C]/10 space-y-3">
+                        <p>{faq.a}</p>
+                        
+                        {faq.chefTip && (
+                          <div className="p-3.5 rounded-xl bg-amber-50/90 border border-amber-200 flex items-start gap-3 text-amber-950">
+                            <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                              <ChefHat className="w-4 h-4 text-amber-700" />
+                            </div>
+                            <div className="text-[12px] sm:text-[13px] leading-relaxed">
+                              <span className="font-extrabold text-amber-900 block sm:inline mr-1">Chef&apos;s Pro Tip:</span>
+                              <span>{faq.chefTip}</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 );
               })}
+            </div>
+
+            {/* Chef Support Footer Card */}
+            <div className="mt-8 p-5 sm:p-6 rounded-2xl bg-white border border-[#4F534C]/12 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-[#4D583F] text-white flex items-center justify-center shrink-0 shadow-md">
+                  <ChefHat className="w-6 h-6 animate-scale-pulse" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-sm sm:text-base text-[#1E201D]">Have a Custom Cooking or Bulk Culinary Question?</h4>
+                  <p className="text-xs text-[#61665D]">Our Master Chef team is ready to help you with personalized recipes &amp; pairings.</p>
+                </div>
+              </div>
+              <a
+                href="https://wa.me/919876543210?text=Hi%20Chef!%20I%20have%20a%20culinary%20recipe%20question%20about%20Sakthi%20Frozen%20Foods."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2.5 rounded-xl bg-[#4D583F] hover:bg-[#3D4732] text-white text-xs font-extrabold flex items-center gap-2 shrink-0 shadow-sm active:scale-95 transition-all"
+              >
+                <ChefHat className="w-3.5 h-3.5" />
+                Ask Master Chef
+              </a>
             </div>
           </div>
         </section>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Image as ImageIcon } from 'lucide-react';
 import { optimizeImageUrl } from '@/lib/imageCompressor';
 
@@ -21,11 +21,21 @@ export default function OptimizedImage({
 }: OptimizedImageProps) {
   const normalizedSrc = src && src !== 'none' ? src : '';
   const optimizedSrc = normalizedSrc ? optimizeImageUrl(normalizedSrc, width) : '';
-  const [isLoading, setIsLoading] = useState(Boolean(optimizedSrc));
+  const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
-    setIsLoading(Boolean(optimizedSrc));
+    if (!optimizedSrc) {
+      setIsLoading(false);
+      return;
+    }
+    // If the image is already cached/complete in browser memory, skip shimmer
+    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
+      setIsLoading(false);
+    } else {
+      setIsLoading(true);
+    }
     setHasError(false);
   }, [optimizedSrc]);
 
@@ -42,18 +52,19 @@ export default function OptimizedImage({
 
   return (
     <div className={`relative overflow-hidden bg-[#EAF0E5] ${className || 'h-full w-full'}`}>
-      {isLoading && <div className="loading-shimmer absolute inset-0 z-10" aria-hidden="true" />}
+      {isLoading && <div className="loading-shimmer absolute inset-0 z-10 pointer-events-none" aria-hidden="true" />}
       {optimizedSrc && !hasError ? (
         <img
+          ref={imgRef}
           {...props}
           src={optimizedSrc}
           alt={alt}
           loading={priority ? 'eager' : 'lazy'}
-          decoding="async"
-          fetchPriority={priority ? 'high' : 'low'}
+          decoding={priority ? 'sync' : 'async'}
+          fetchPriority={priority ? 'high' : 'auto'}
           onLoad={handleLoad}
           onError={handleError}
-          className={`${className} w-full h-full object-cover ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+          className={`${className} w-full h-full object-cover ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-200`}
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center text-[#8E9D64]" aria-label={alt || 'Image unavailable'}>

@@ -8,12 +8,35 @@ import Footer from '@/components/Footer';
 import { useCart } from '@/context/CartContext';
 import { ProductType } from '@/lib/types';
 import { fetchApi } from '@/lib/apiConfig';
-import { Plus, Eye, Filter, RefreshCw, SlidersHorizontal, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Plus, Eye, Filter, RefreshCw, SlidersHorizontal, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChefHat } from 'lucide-react';
 import { handleImageError } from '@/lib/imageCompressor';
 import OptimizedImage from '@/components/OptimizedImage';
 
 function isRetailCategory(category: string) {
   return category.toUpperCase().includes('RETAIL PACK');
+}
+
+function formatCleanWeight(w: string): string {
+  if (!w) return '1kg';
+  const clean = w.trim().toUpperCase();
+  if (clean.includes('300')) return '300g';
+  if (clean.includes('400')) return '400g';
+  if (clean.includes('250')) return '250g';
+  if (clean.includes('200')) return '200g';
+  if (clean.includes('500')) return '500g';
+  if (clean.includes('1') && (clean.includes('KG') || clean.includes('KILO'))) return '1kg';
+  return w;
+}
+
+function formatProductDisplayName(name: string): string {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+    .replace(/\bVeg\b/g, 'Veg')
+    .replace(/\bLolipop\b/gi, 'Lollipop');
 }
 
 function getCategoryAudience(category: string) {
@@ -195,7 +218,10 @@ function ShopContent() {
 
       <main className="mx-auto w-full max-w-[1180px] px-3 py-5 sm:px-4 sm:py-8 md:py-10 flex-1">
         <div className="mb-6 max-w-2xl sm:mb-10">
-          <p className="text-sm font-bold tracking-[0.14em] text-[#656B4F] uppercase mb-2">Shop Sakthi</p>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EAF0E5] border border-[#4D583F]/20 text-[#4D583F] text-xs font-black uppercase tracking-wider mb-3 shadow-xs">
+            <ChefHat className="w-4 h-4 text-emerald-600 animate-float-subtle" />
+            <span>Master Chef Grade Collection</span>
+          </div>
           <h1 className="text-3xl leading-tight sm:text-5xl font-black text-[#2F2F2F] tracking-tight font-poppins">
             Frozen food, made simple.
           </h1>
@@ -379,77 +405,98 @@ function ShopContent() {
                     {collapsedCategories[category] ? <ChevronDown className="h-5 w-5" /> : <ChevronUp className="h-5 w-5" />}
                   </span>
                 </button>
-                {!collapsedCategories[category] && <div id={`products-${category}`} className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {categoryProducts.map((product) => (
-              <div
-                key={product.id}
-                className="group flex min-w-0 flex-col justify-between overflow-hidden rounded-xl border border-[#676662]/15 bg-[#FBFDF2] shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl sm:rounded-2xl"
-              >
-                {/* Image Container */}
-                <div className="relative aspect-[4/3] bg-[#EAF0E5] overflow-hidden">
-                  <OptimizedImage
-                    src={product.image}
-                    alt={product.name}
-                    width={520}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  {/* Badges */}
-                  <div className="absolute left-2 top-2 flex items-center gap-1 sm:left-3 sm:top-3 sm:gap-1.5">
-                    <span className="rounded-md bg-[#4D583F] px-1.5 py-0.5 text-[9px] font-bold text-white shadow-xs sm:px-2.5 sm:py-1 sm:text-[10px]">
-                      {product.weight}
-                    </span>
-                    {product.isPopular && (
-                      <span className="rounded-md bg-amber-600 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-xs sm:px-2 sm:py-1 sm:text-[10px]">
-                        Best Seller
+                {!collapsedCategories[category] && <div id={`products-${category}`} className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+            {categoryProducts.map((product) => {
+              const displayName = formatProductDisplayName(product.name);
+              const cleanWeight = formatCleanWeight(product.weight);
+              const mrp = product.mrp ?? product.price;
+              const discountPercent = mrp > product.price ? Math.round(((mrp - product.price) / mrp) * 100) : 0;
+
+              return (
+                <article
+                  key={product.id}
+                  className="group flex min-w-0 flex-col justify-between overflow-hidden rounded-2xl sm:rounded-3xl border border-[#4F534C]/12 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-[#4D583F]/35"
+                >
+                  {/* Image Container */}
+                  <div className="relative aspect-[4/3] bg-[#EAF0E5] overflow-hidden">
+                    <OptimizedImage
+                      src={product.image}
+                      alt={displayName}
+                      width={520}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+
+                    {/* Subtle bottom gradient */}
+                    <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+
+                    {/* Badges */}
+                    <div className="absolute inset-x-2 top-2 sm:inset-x-3 sm:top-3 flex items-center justify-between gap-1.5 z-10 pointer-events-none">
+                      <span className="rounded-full bg-[#1E281D]/85 backdrop-blur-xs px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-white shadow-xs">
+                        📦 {cleanWeight}
                       </span>
-                    )}
-                  </div>
-
-                  {/* Quick View Overlay Button */}
-                  <Link
-                    href={`/product/${product.id}`}
-                    className="absolute inset-0 bg-[#1E201D]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-xs gap-2"
-                  >
-                    <span className="bg-[#4D583F] px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-lg min-h-[44px]">
-                      <Eye className="w-4 h-4" /> Quick View
-                    </span>
-                  </Link>
-                </div>
-
-                {/* Content */}
-                <div className="flex flex-1 flex-col justify-between space-y-2 p-2.5 sm:space-y-4 sm:p-5">
-                  <div>
-                    <div className="mb-1 truncate text-[9px] font-extrabold uppercase tracking-wide text-[#343F27] sm:text-[11px] sm:tracking-wider">
-                      {product.category}
-                    </div>
-                    <h3 className="line-clamp-2 text-xs font-black leading-snug text-[#1A1E16] transition-colors group-hover:text-[#435232] sm:text-xl font-poppins">
-                      {product.name}
-                    </h3>
-                    <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[#3E4536] font-medium sm:mt-1.5 sm:text-sm">
-                      {product.description}
-                    </p>
-                  </div>
-
-                  {/* Price & Action */}
-                  <div className="flex items-end justify-between gap-1 border-t border-[#4F534C]/15 pt-2 sm:gap-2 sm:pt-3">
-                    <div>
-                      <span className="text-[10px] text-[#4F5547] block uppercase font-bold">MRP</span>
-                      <span className="block text-[10px] text-[#555C4D] line-through font-semibold sm:text-sm">₹{product.mrp ?? product.price}</span>
-                      <span className="text-base font-black text-[#283618] block sm:text-xl">₹{product.price}</span>
+                      {product.isPopular && (
+                        <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[9px] sm:text-[10px] font-extrabold text-white shadow-xs flex items-center gap-1">
+                          <ChefHat className="w-2.5 h-2.5" />
+                          <span>Chef Pick</span>
+                        </span>
+                      )}
                     </div>
 
+                    {/* Quick View Overlay Button */}
                     <Link
                       href={`/product/${product.id}`}
-                      className="flex min-h-9 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg bg-[#4D583F] px-2 py-2 text-[10px] font-bold text-white shadow-md transition-all hover:bg-[#414b35] active:scale-95 sm:min-h-11 sm:gap-1.5 sm:rounded-xl sm:px-3.5 sm:text-xs"
+                      className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-xs gap-2"
                     >
-                      <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      <span className="hidden sm:inline">Select Options</span>
-                      <span className="sm:hidden">Add</span>
+                      <span className="bg-[#4D583F] px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-lg transform translate-y-1 group-hover:translate-y-0 transition-transform">
+                        <Eye className="w-4 h-4" /> Quick View
+                      </span>
                     </Link>
                   </div>
-                </div>
-              </div>
-            ))}
+
+                  {/* Content */}
+                  <div className="flex flex-1 flex-col justify-between p-3 sm:p-4 space-y-2.5">
+                    <div className="space-y-1">
+                      <div className="truncate text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-emerald-800">
+                        {product.category.replace(' Alternatives', '').replace(' Retail Pack', '')}
+                      </div>
+                      <h3 className="line-clamp-1 text-sm sm:text-base md:text-lg font-black leading-snug text-[#1E201D] transition-colors group-hover:text-emerald-900">
+                        {displayName}
+                      </h3>
+                      <p className="line-clamp-1 text-[11px] sm:text-xs text-[#61665D] leading-relaxed">
+                        {product.description}
+                      </p>
+                    </div>
+
+                    {/* Price & Action */}
+                    <div className="pt-2.5 border-t border-[#4F534C]/10 flex items-center justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-base sm:text-xl font-black text-[#1E201D]">
+                            ₹{product.price}
+                          </span>
+                        </div>
+                        {discountPercent > 0 && (
+                          <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px]">
+                            <span className="text-gray-400 line-through font-medium">₹{mrp}</span>
+                            <span className="font-black text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded">
+                              {discountPercent}% OFF
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <Link
+                        href={`/product/${product.id}`}
+                        className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl bg-[#4D583F] hover:bg-[#3B4430] text-white font-black text-xs flex items-center gap-1.5 shadow-xs transition-all active:scale-95 shrink-0"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Options</span>
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
                 </div>}
               </section>
             ))}

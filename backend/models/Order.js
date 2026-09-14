@@ -44,6 +44,20 @@ const orderSchema = new mongoose.Schema(
     razorpayRefundId: { type: String },
     refundedAmount: { type: Number },
     refundedAt: { type: Date },
+    paymentExpiresAt: {
+      type: Date,
+      default: function () {
+        return new Date(Date.now() + 30 * 60 * 1000);
+      },
+    },
+    isLocked: { type: Boolean, default: false },
+    failureReason: { type: String, default: '' },
+    followUpStatus: {
+      type: String,
+      enum: ['Not Contacted', 'Contacted', 'Recovered', 'Lost'],
+      default: 'Not Contacted',
+    },
+    followUpNotes: { type: String, default: '' },
     status: {
       type: String,
       enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],

@@ -154,22 +154,34 @@ export async function compressImageToWebP(
 }
 
 /**
- * Utility to attach quality and auto-format params to Cloudinary or Unsplash URLs
- * to prevent high bandwidth consumption when using remote CDN URLs.
+ * Utility to attach standardized quality and auto-format params to Cloudinary or Unsplash URLs
+ * - Uses bucketed widths (400, 600, 900) to minimize Cloudinary transformation counts and save free tier credits.
+ * - Uses f_auto,q_auto:good for modern WebP/AVIF delivery with smallest byte size.
  */
 export function optimizeImageUrl(url: string, width: number = 800): string {
   if (!url) return '';
 
-  // Cloudinary Optimization
+  // Local assets (served directly by Next.js - uses 0 Cloudinary credits)
+  if (url.startsWith('/') || url.startsWith('data:')) {
+    return url;
+  }
+
+  // Cloudinary Optimization (Free-Tier Credit Friendly)
   if (url.includes('res.cloudinary.com')) {
+    // Normalize width to standard buckets to prevent burning transformation credits
+    const targetWidth = width <= 400 ? 400 : width <= 700 ? 600 : 900;
+    
     if (url.includes('/upload/')) {
-      const transformations = url.split('/upload/')[1]?.split('/')[0] || '';
-      if (!transformations.includes('w_')) {
-        const prefix = transformations.includes('f_auto') ? `w_${width}/` : `f_auto,q_auto,w_${width}/`;
-        return transformations
-          ? url.replace(`/upload/${transformations}/`, `/upload/${prefix}${transformations}/`)
-          : url.replace('/upload/', `/upload/${prefix}`);
+      const parts = url.split('/upload/');
+      const afterUpload = parts[1] || '';
+      
+      // If already transformed with w_, reuse
+      if (afterUpload.includes('w_')) {
+        return url;
       }
+      
+      // Inject unified f_auto,q_auto:good,w_XXX transformation
+      return `${parts[0]}/upload/f_auto,q_auto:good,w_${targetWidth}/${afterUpload}`;
     }
   }
 
@@ -178,8 +190,9 @@ export function optimizeImageUrl(url: string, width: number = 800): string {
     try {
       const urlObj = new URL(url);
       urlObj.searchParams.set('auto', 'format');
-      urlObj.searchParams.set('q', '85');
-      urlObj.searchParams.set('w', width.toString());
+      urlObj.searchParams.set('q', '80');
+      const targetWidth = width <= 400 ? 400 : width <= 700 ? 600 : 900;
+      urlObj.searchParams.set('w', targetWidth.toString());
       return urlObj.toString();
     } catch {
       return url;

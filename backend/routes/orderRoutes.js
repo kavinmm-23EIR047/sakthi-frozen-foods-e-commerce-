@@ -19,6 +19,15 @@ function getRazorpay() {
 }
 
 function publicOrder(order) {
+  const createdAtDate = order.createdAt ? new Date(order.createdAt) : new Date();
+  const paymentExpiresAt = order.paymentExpiresAt
+    ? new Date(order.paymentExpiresAt).toISOString()
+    : new Date(createdAtDate.getTime() + 30 * 60 * 1000).toISOString();
+  const isExpired = order.paymentMethod === 'Razorpay (Online)' && order.paymentStatus === 'Pending' && Date.now() > new Date(paymentExpiresAt).getTime();
+  const paymentStatus = isExpired ? 'Failed' : (order.paymentStatus || 'Pending');
+  const status = isExpired && order.status === 'Pending' ? 'Cancelled' : order.status;
+  const isLocked = order.isLocked || paymentStatus === 'Failed' || status === 'Cancelled';
+
   return {
     id: order._id.toString(),
     orderNumber: order.orderNumber,
@@ -37,13 +46,43 @@ function publicOrder(order) {
     items: order.items,
     totalAmount: order.totalAmount,
     paymentMethod: order.paymentMethod,
-    paymentStatus: order.paymentStatus || 'Pending',
+    paymentStatus,
+    razorpayOrderId: order.razorpayOrderId || null,
     razorpayPaymentId: order.razorpayPaymentId || null,
     refundStatus: order.refundStatus || 'None',
     refundedAmount: order.refundedAmount || null,
-    status: order.status,
-    createdAt: order.createdAt ? order.createdAt.toISOString() : new Date().toISOString(),
+    status,
+    isLocked,
+    failureReason: order.failureReason || (isExpired ? 'Payment window expired (30 minutes elapsed without completion)' : null),
+    paymentExpiresAt,
+    followUpStatus: order.followUpStatus || 'Not Contacted',
+    followUpNotes: order.followUpNotes || '',
+    createdAt: createdAtDate.toISOString(),
   };
+}
+
+async function autoExpirePendingOrders() {
+  try {
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    await Order.updateMany(
+      {
+        paymentMethod: 'Razorpay (Online)',
+        paymentStatus: 'Pending',
+        createdAt: { $lte: thirtyMinutesAgo },
+        status: 'Pending',
+      },
+      {
+        $set: {
+          paymentStatus: 'Failed',
+          status: 'Cancelled',
+          isLocked: true,
+          failureReason: 'Payment window expired (30 minutes elapsed without completion)',
+        },
+      }
+    );
+  } catch (err) {
+    console.error('Error auto-expiring pending orders:', err);
+  }
 }
 
 function validateCustomer(body) {
@@ -86,6 +125,7 @@ async function commitCashOnDeliveryStock(order) {
 
 router.get('/', protect, admin, async (req, res, next) => {
   try {
+    await autoExpirePendingOrders();
     const page = Math.max(Number.parseInt(req.query.page || '1', 10), 1);
     const limit = Math.min(Math.max(Number.parseInt(req.query.limit || '20', 10), 1), 100);
     const [orders, total] = await Promise.all([
@@ -100,6 +140,7 @@ router.get('/', protect, admin, async (req, res, next) => {
 
 router.get('/mine', protect, async (req, res, next) => {
   try {
+    await autoExpirePendingOrders();
     const orders = await Order.find({ customerEmail: req.user.email })
       .sort({ createdAt: -1 })
       .select('-razorpaySignature')
@@ -112,6 +153,7 @@ router.get('/mine', protect, async (req, res, next) => {
 
 router.get('/:id', protect, async (req, res, next) => {
   try {
+    await autoExpirePendingOrders();
     const order = await Order.findById(req.params.id).select('-razorpaySignature').lean();
     if (!order) return res.status(404).json({ success: false, error: 'Order not found' });
     if (req.user.role !== 'Admin' && order.customerEmail !== req.user.email) return res.status(403).json({ success: false, error: 'Not authorized to view this order' });
@@ -283,12 +325,118 @@ router.post('/:id/cancel', protect, async (req, res, next) => {
   }
 });
 
+router.post('/:id/retry-payment', protect, async (req, res, next) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ success: false, error: 'Order not found' });
+    if (req.user.role !== 'Admin' && order.customerEmail !== req.user.email) {
+      return res.status(403).json({ success: false, error: 'Not authorized to retry payment for this order' });
+    }
+
+    if (order.paymentStatus === 'Paid') {
+      return res.status(400).json({ success: false, error: 'This order has already been paid successfully.' });
+    }
+
+    // Check if 30 minutes have elapsed
+    const createdAtTime = new Date(order.createdAt).getTime();
+    const isPast30Mins = Date.now() > createdAtTime + 30 * 60 * 1000;
+
+    if (isPast30Mins || order.isLocked || order.paymentStatus === 'Failed') {
+      // Mark permanently as Failed and locked
+      order.paymentStatus = 'Failed';
+      order.status = 'Cancelled';
+      order.isLocked = true;
+      order.failureReason = 'Payment window expired (30-minute grace period exceeded).';
+      await order.save();
+
+      return res.status(400).json({
+        success: false,
+        error: 'Payment window expired after 30 minutes. This order is marked as Failed and cannot be completed. Please place a new order.',
+      });
+    }
+
+    // Still within 30 minutes: Refresh or create Razorpay order if needed
+    let razorpayOrderId = order.razorpayOrderId;
+    let razorpayAmount = order.razorpayAmount || Math.round(order.totalAmount * 100);
+
+    if (!razorpayOrderId) {
+      const razorpayOrder = await getRazorpay().orders.create({
+        amount: razorpayAmount,
+        currency: 'INR',
+        receipt: order._id.toString(),
+      });
+      order.razorpayOrderId = razorpayOrder.id;
+      order.razorpayAmount = razorpayOrder.amount;
+      await order.save();
+      razorpayOrderId = razorpayOrder.id;
+      razorpayAmount = razorpayOrder.amount;
+    }
+
+    res.json({
+      success: true,
+      data: publicOrder(order),
+      razorpayOrderId,
+      razorpayAmount,
+      razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put('/:id/follow-up', protect, admin, async (req, res, next) => {
+  try {
+    const { followUpStatus, followUpNotes } = req.body;
+    const allowedStatuses = ['Not Contacted', 'Contacted', 'Recovered', 'Lost'];
+    if (followUpStatus && !allowedStatuses.includes(followUpStatus)) {
+      return res.status(400).json({ success: false, error: 'Invalid follow-up status' });
+    }
+
+    const updated = await Order.findByIdAndUpdate(
+      req.params.id,
+      {
+        ...(followUpStatus ? { followUpStatus } : {}),
+        ...(typeof followUpNotes === 'string' ? { followUpNotes } : {}),
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updated) return res.status(404).json({ success: false, error: 'Order not found' });
+    res.json({ success: true, data: publicOrder(updated) });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.put('/:id', protect, admin, async (req, res, next) => {
   try {
     const allowedStatuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
     if (!allowedStatuses.includes(req.body.status)) return res.status(400).json({ success: false, error: 'Invalid order status' });
-    const existing = await Order.findById(req.params.id).select('status');
+    const existing = await Order.findById(req.params.id).select('status paymentStatus isLocked createdAt paymentMethod');
     if (!existing) return res.status(404).json({ success: false, error: 'Order not found' });
+
+    // Lock condition: After 30 minutes or if failed/locked, do NOT make any edit option
+    const isExpired = existing.paymentMethod === 'Razorpay (Online)' && existing.paymentStatus === 'Pending' && (Date.now() > new Date(existing.createdAt).getTime() + 30 * 60 * 1000);
+    if (existing.isLocked || existing.paymentStatus === 'Failed' || isExpired) {
+      if (isExpired && existing.paymentStatus !== 'Failed') {
+        await Order.findByIdAndUpdate(existing._id, { paymentStatus: 'Failed', status: 'Cancelled', isLocked: true });
+      }
+      return res.status(400).json({
+        success: false,
+        error: 'This order is marked as Failed / Expired and is permanently locked. No status edits are allowed.',
+      });
+    }
+
+    // Payment Pending condition: Do not allow status progression (Processing, Shipped, Delivered) until payment is Paid
+    if (existing.paymentMethod === 'Razorpay (Online)' && existing.paymentStatus === 'Pending') {
+      if (req.body.status !== 'Cancelled') {
+        return res.status(400).json({
+          success: false,
+          error: 'Online payment is currently Pending. Order status can only be updated after payment is verified as Paid.',
+        });
+      }
+    }
+
     if (!allowedStatusTransitions[existing.status].includes(req.body.status)) return res.status(409).json({ success: false, error: `Cannot change order from ${existing.status} to ${req.body.status}` });
     if (req.body.status === 'Cancelled') {
       const session = await mongoose.startSession();
@@ -329,7 +477,7 @@ router.post('/:id/refund', protect, admin, async (req, res, next) => {
     if (!reserved) return res.status(409).json({ success: false, error: 'Refund is already being processed' });
     try {
       const refund = await getRazorpay().payments.refund(order.razorpayPaymentId, { amount: Math.round(order.totalAmount * 100), notes: { orderId: order._id.toString() } });
-      const refunded = await Order.findByIdAndUpdate(order._id, { paymentStatus: 'Refunded', refundStatus: 'Processed', razorpayRefundId: refund.id, refundedAmount: refund.amount, refundedAt: new Date(), status: 'Cancelled' }, { new: true, runValidators: true });
+      const refunded = await Order.findByIdAndUpdate(order._id, { paymentStatus: 'Refunded', refundStatus: 'Processed', razorpayRefundId: refund.id, refundedAmount: refund.amount, refundedAt: new Date(), status: 'Cancelled', isLocked: true }, { new: true, runValidators: true });
       void queueOrderNotifications(refunded, 'payment.refunded');
       return res.json({ success: true, data: publicOrder(refunded) });
     } catch (error) {

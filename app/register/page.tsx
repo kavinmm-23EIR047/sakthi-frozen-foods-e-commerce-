@@ -29,12 +29,23 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Strict 10-digit mobile validation
+    const cleanPhone = formData.phone.replace(/\D/g, '').replace(/^91/, '');
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      setError('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
+      return;
+    }
+
     setLoading(true);
 
     try {
       const res = await fetchApi('/auth/register', {
         method: 'POST',
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          phone: cleanPhone,
+        }),
       });
 
       if (res.success) {
@@ -60,7 +71,7 @@ export default function RegisterPage() {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 rounded-2xl flex items-start gap-3 border border-red-100">
+            <div className="mb-6 p-4 bg-red-50 rounded-2xl flex items-start gap-3 border border-red-100 animate-shake">
               <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
               <p className="text-xs font-semibold text-red-800 leading-relaxed">{error}</p>
             </div>
@@ -108,21 +119,29 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#4D583F] mb-1.5 uppercase tracking-wide">
-                Phone Number
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-[#4D583F] uppercase tracking-wide">
+                  Mobile Number <span className="text-red-500">*</span>
+                </label>
+                <span className="text-[10px] text-[#61665D] font-semibold">Required for Login & Delivery</span>
+              </div>
+              <div className="relative flex items-center">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none gap-1.5">
                   <Phone className="h-4 w-4 text-[#61665D]" />
+                  <span className="text-xs font-bold text-[#4D583F] border-r border-[#4F534C]/30 pr-2">+91</span>
                 </div>
                 <input
-                  type="text"
+                  type="tel"
                   name="phone"
+                  maxLength={10}
                   value={formData.phone}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                    const onlyNums = e.target.value.replace(/\D/g, '');
+                    setFormData({ ...formData, phone: onlyNums });
+                  }}
                   required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F] shadow-sm"
-                  placeholder="+91 98765 43210"
+                  className="w-full pl-20 pr-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-bold text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F] shadow-sm tracking-wider"
+                  placeholder="98765 43210"
                 />
               </div>
             </div>

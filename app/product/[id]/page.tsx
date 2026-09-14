@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Star, ShoppingBag, Plus, Minus, ShieldCheck, Flame, Sparkles, ArrowLeft } from 'lucide-react';
+import { Star, ShoppingBag, Plus, Minus, ShieldCheck, Flame, Sparkles, ArrowLeft, ChefHat } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { fetchApi } from '@/lib/apiConfig';
 import { ProductType } from '@/lib/types';
@@ -222,6 +222,17 @@ export default function ProductPage() {
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-[#E8EEE0] border border-[#4F534C]/10 text-xs font-semibold text-[#1E201D]">
                   <ShieldCheck className="w-4 h-4 text-[#4D583F]" />
                   <span>Keep Frozen (-18°C)</span>
+                </div>
+              </div>
+
+              {/* Chef's Culinary Tip */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50 via-white to-amber-50/60 border border-amber-200/80 flex items-start gap-3.5 shadow-xs">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                  <ChefHat className="w-5 h-5 text-amber-700 animate-float-subtle" />
+                </div>
+                <div className="text-xs text-[#4D534B] leading-relaxed">
+                  <span className="font-extrabold text-amber-900 block mb-0.5">Chef&apos;s Master Recommendation:</span>
+                  Thaw for 10 minutes at room temperature, then toss directly into bubbling gravies or pan-sear with herbs to seal in juicy tenderness and authentic meaty chew.
                 </div>
               </div>
             </div>

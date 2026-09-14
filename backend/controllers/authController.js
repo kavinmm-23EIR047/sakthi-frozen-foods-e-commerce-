@@ -12,6 +12,24 @@ const generateToken = (id, role, sessionVersion = 0) => {
   });
 };
 
+// Helper to sanitize and validate 10-digit Indian phone numbers
+const cleanPhoneNumber = (phone) => {
+  if (!phone) return '';
+  const digits = String(phone).replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) {
+    return digits.slice(2);
+  }
+  if (digits.length === 11 && digits.startsWith('0')) {
+    return digits.slice(1);
+  }
+  return digits;
+};
+
+const isValidMobileNumber = (phone) => {
+  const cleaned = cleanPhoneNumber(phone);
+  return /^[6-9]\d{9}$/.test(cleaned);
+};
+
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
@@ -20,21 +38,37 @@ const registerUser = async (req, res) => {
 
   try {
     if (!name || !email || !password || !phone || password.length < 8) {
-      return res.status(400).json({ success: false, message: 'Name, email, phone, and an 8-character password are required' });
+      return res.status(400).json({ success: false, message: 'Name, email, mobile number, and an 8-character password are required' });
     }
+
+    const cleanedPhone = cleanPhoneNumber(phone);
+    if (!isValidMobileNumber(cleanedPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter a valid 10-digit Indian mobile number (e.g., 9876543210)',
+      });
+    }
+
     const normalizedEmail = email.trim().toLowerCase();
-    const userExists = await User.findOne({ email: normalizedEmail }).select('_id').lean();
+    
+    // Check if email or phone is already registered
+    const userExists = await User.findOne({
+      $or: [{ email: normalizedEmail }, { phone: cleanedPhone }],
+    }).select('_id email phone').lean();
 
     if (userExists) {
-      return res.status(400).json({ success: false, message: 'User already exists' });
+      if (userExists.email === normalizedEmail) {
+        return res.status(400).json({ success: false, message: 'An account with this email address already exists' });
+      }
+      return res.status(400).json({ success: false, message: 'An account with this mobile number already exists' });
     }
 
     const user = await User.create({
-      name,
+      name: String(name).trim(),
       email: normalizedEmail,
       password,
-      phone,
-      address,
+      phone: cleanedPhone,
+      address: String(address || '').trim(),
     });
 
     if (user) {
@@ -44,40 +78,88 @@ const registerUser = async (req, res) => {
           _id: user._id,
           name: user.name,
           email: user.email,
+          phone: user.phone,
           role: user.role,
           token: generateToken(user._id, user.role, user.sessionVersion),
         },
       });
     } else {
-      res.status(400).json({ success: false, message: 'Invalid user data' });
+      res.status(400).json({ success: false, message: 'Invalid user registration data' });
     }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Auth user & get token
+// @desc    Auth user & get token (Login via Mobile Number or Email)
 // @route   POST /api/auth/login
 // @access  Public
 const loginUser = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, phone, identifier, password } = req.body;
 
   try {
-    const user = await User.findOne({ email: String(email || '').trim().toLowerCase() });
+    const rawInput = String(identifier || email || phone || '').trim();
+    if (!rawInput || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter your mobile number or email and password',
+      });
+    }
+
+    const cleanedPhone = cleanPhoneNumber(rawInput);
+    const isMobile = isValidMobileNumber(cleanedPhone);
+    const normalizedEmail = rawInput.toLowerCase();
+
+    // Query user by phone or email
+    let user;
+    if (isMobile) {
+      user = await User.findOne({
+        $or: [{ phone: cleanedPhone }, { phone: `+91${cleanedPhone}` }, { phone: `91${cleanedPhone}` }],
+      });
+    } else {
+      user = await User.findOne({ email: normalizedEmail });
+    }
+
+    // If still not found, try fallback search by exact raw string
+    if (!user) {
+      user = await User.findOne({
+        $or: [{ email: normalizedEmail }, { phone: rawInput }],
+      });
+    }
 
     if (user && (await user.matchPassword(password))) {
+      // Ensure user has a valid mobile number associated
+      if (!user.phone || !isValidMobileNumber(user.phone)) {
+        // If legacy user missing valid mobile, check if rawInput was a mobile or block until updated
+        if (isMobile) {
+          user.phone = cleanedPhone;
+          await user.save();
+        } else {
+          return res.status(403).json({
+            success: false,
+            message: 'Mobile number verification required. Please register with your 10-digit mobile number.',
+          });
+        }
+      }
+
       res.json({
         success: true,
         data: {
           _id: user._id,
           name: user.name,
           email: user.email,
+          phone: user.phone,
           role: user.role,
           token: generateToken(user._id, user.role, user.sessionVersion),
         },
       });
     } else {
-      res.status(401).json({ success: false, message: 'Invalid email or password' });
+      res.status(401).json({
+        success: false,
+        message: isMobile
+          ? 'Incorrect mobile number or password'
+          : 'Incorrect email or password',
+      });
     }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
