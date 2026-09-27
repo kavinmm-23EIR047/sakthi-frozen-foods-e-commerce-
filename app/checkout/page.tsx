@@ -3,12 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
-import { CheckCircle2, ShoppingBag, CreditCard, Truck, ArrowLeft, ShieldCheck, MapPin, Building, Home, HelpCircle } from 'lucide-react';
+import { CheckCircle2, ShoppingBag, CreditCard, Truck, ArrowLeft, ShieldCheck, MapPin, Building, Home, HelpCircle, Lock, UserCheck, LogIn, ArrowRight } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import { fetchApi } from '@/lib/apiConfig';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import LocationMapPicker, { LocationData } from '@/components/LocationMapPicker';
+import Link from 'next/link';
 
 declare global {
   interface Window {
@@ -19,6 +21,7 @@ declare global {
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const { cart, totalPrice, clearCart } = useCart();
 
   const [customerName, setCustomerName] = useState('');
@@ -36,6 +39,21 @@ export default function CheckoutPage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderConfirmed, setOrderConfirmed] = useState<any>(null);
+
+  // Auto-populate logged-in customer info
+  useEffect(() => {
+    if (user) {
+      if (user.name) setCustomerName((prev) => prev || user.name);
+      if (user.email) setCustomerEmail((prev) => prev || user.email);
+      if (user.phone) {
+        const cleanP = user.phone.replace(/\D/g, '').slice(-10);
+        setCustomerPhone((prev) => prev || cleanP);
+      }
+      if (user.address && !flatHouse && !streetArea) {
+        setFlatHouse(user.address);
+      }
+    }
+  }, [user, flatHouse, streetArea]);
 
   useEffect(() => {
     if (cart.length === 0 && !orderConfirmed) {
@@ -80,6 +98,13 @@ export default function CheckoutPage() {
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!user) {
+      alert('Please sign in to complete your checkout and secure order tracking.');
+      router.push('/login?redirect=/checkout');
+      return;
+    }
+
     if (!customerName || !customerPhone || !flatHouse || !streetArea || !city || !pincode) {
       alert('Please fill in all required fields: Name, Phone, House/Flat No, Street/Area, City, and 6-digit Pincode.');
       return;
@@ -102,9 +127,9 @@ export default function CheckoutPage() {
       const orderData = await fetchApi('/orders', {
         method: 'POST',
         body: JSON.stringify({
-          customerName,
-          customerEmail: customerEmail || `${customerPhone}@customer.com`,
-          customerPhone,
+          customerName: customerName.trim(),
+          customerEmail: (user.email || customerEmail || `${customerPhone}@customer.com`).trim(),
+          customerPhone: customerPhone.trim(),
           shippingAddress: fullShippingAddress,
           landmark: landmark.trim(),
           pincode: pincode.trim(),
@@ -120,7 +145,7 @@ export default function CheckoutPage() {
       });
 
       if (!orderData.success) {
-        alert('Failed to initialize payment: ' + orderData.error);
+        alert('Failed to initialize payment: ' + (orderData.error || 'Server error'));
         setIsSubmitting(false);
         return;
       }
@@ -158,9 +183,9 @@ export default function CheckoutPage() {
           }
         },
         prefill: {
-          name: customerName,
-          email: customerEmail || `${customerPhone}@customer.com`,
-          contact: customerPhone,
+          name: customerName || user.name,
+          email: user.email || customerEmail || `${customerPhone}@customer.com`,
+          contact: customerPhone || user.phone,
         },
         theme: {
           color: '#4D583F',
@@ -179,6 +204,74 @@ export default function CheckoutPage() {
       setIsSubmitting(false);
     }
   };
+
+  // Auth Loading Skeleton
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#F3FBEE] text-[#1E201D] flex flex-col font-sans">
+        <Navbar />
+        <main className="mx-auto w-full max-w-[1180px] px-4 py-16 flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-10 h-10 border-4 border-[#4D583F] border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-sm font-bold text-[#4D583F]">Preparing secure checkout session...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Auth Guard: If not logged in and order is not confirmed, show dedicated auth prompt
+  if (!user && !orderConfirmed) {
+    return (
+      <div className="min-h-screen bg-[#F3FBEE] text-[#1E201D] flex flex-col font-sans">
+        <Navbar />
+        <main className="mx-auto w-full max-w-[540px] px-4 py-12 sm:py-20 flex-1 flex flex-col items-center justify-center">
+          <div className="bg-white rounded-3xl p-8 sm:p-10 border border-[#4F534C]/15 shadow-xl w-full text-center space-y-6">
+            <div className="w-20 h-20 rounded-3xl bg-[#EAF0E5] text-[#4D583F] flex items-center justify-center mx-auto shadow-sm border border-[#4D583F]/20">
+              <Lock className="w-10 h-10" />
+            </div>
+
+            <div>
+              <span className="inline-block text-xs font-black uppercase tracking-widest text-[#4D583F] bg-[#EAF0E5] px-3 py-1 rounded-full mb-3">
+                Secure Order Access
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black text-[#1A1E16] font-poppins">Sign In to Continue</h2>
+              <p className="text-xs sm:text-sm text-[#52594B] font-semibold mt-2.5 leading-relaxed">
+                Please sign in or create an account before paying. This ensures your Razorpay transaction and delivery status are permanently saved in your dashboard.
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <Link
+                href="/login?redirect=/checkout"
+                className="w-full py-4 bg-[#4D583F] text-white font-black rounded-2xl hover:bg-[#3D4732] transition-all shadow-md text-base flex items-center justify-center gap-2 group"
+              >
+                <span>Sign In & Proceed</span>
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <Link
+                href="/register?redirect=/checkout"
+                className="w-full py-3.5 bg-[#EAF0E5] text-[#4D583F] font-black rounded-2xl hover:bg-[#dfe7d9] transition-all border border-[#4D583F]/20 text-sm flex items-center justify-center gap-2"
+              >
+                Create New Account
+              </Link>
+            </div>
+
+            <div className="pt-4 border-t border-[#4F534C]/15">
+              <button
+                onClick={() => router.push('/cart')}
+                className="text-xs font-bold text-[#61665D] hover:text-[#1A1E16] transition-colors"
+              >
+                &larr; Return to Cart
+              </button>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F3FBEE] text-[#1E201D] flex flex-col font-sans">
@@ -204,6 +297,12 @@ export default function CheckoutPage() {
                 {orderConfirmed ? 'Order Confirmed!' : 'Secure Checkout'}
               </h1>
             </div>
+            {user && !orderConfirmed && (
+              <div className="hidden sm:flex items-center gap-2 text-xs font-bold bg-white/15 px-3 py-1.5 rounded-xl border border-white/20">
+                <UserCheck className="w-4 h-4 text-emerald-300" />
+                <span>Account: {user.name}</span>
+              </div>
+            )}
           </div>
 
           {orderConfirmed ? (
@@ -274,10 +373,27 @@ export default function CheckoutPage() {
                 
                 {/* 1. Contact Info */}
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 border-b border-[#4F534C]/15 pb-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#4D583F] text-[11px] font-black text-white">1</span>
-                    <h3 className="text-base font-black text-[#1A1E16]">Customer Information</h3>
+                  <div className="flex items-center justify-between border-b border-[#4F534C]/15 pb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#4D583F] text-[11px] font-black text-white">1</span>
+                      <h3 className="text-base font-black text-[#1A1E16]">Customer Information</h3>
+                    </div>
+                    {user && (
+                      <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <UserCheck className="w-3.5 h-3.5" /> Verified Customer
+                      </span>
+                    )}
                   </div>
+
+                  {user && (
+                    <div className="p-3 bg-[#EAF0E5] rounded-xl border border-[#4D583F]/20 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="font-bold text-[#3E4536]">Signed in as: </span>
+                        <strong className="text-[#1A1E16] font-black">{user.name}</strong>
+                        <span className="text-[#4D583F] font-semibold ml-1">({user.email || user.phone})</span>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="sm:col-span-2">
@@ -309,7 +425,7 @@ export default function CheckoutPage() {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-[#1A1E16] mb-1">Email Address (Optional)</label>
+                      <label className="block text-xs font-bold text-[#1A1E16] mb-1">Email Address</label>
                       <input
                         type="email"
                         placeholder="name@example.com"
@@ -514,4 +630,3 @@ export default function CheckoutPage() {
     </div>
   );
 }
-

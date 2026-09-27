@@ -4,7 +4,7 @@ const Razorpay = require('razorpay');
 const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
-const { protect, admin } = require('../middleware/authMiddleware');
+const { protect, optionalProtect, admin } = require('../middleware/authMiddleware');
 const rateLimit = require('express-rate-limit');
 const { queueOrderNotifications } = require('../services/notificationService');
 
@@ -141,7 +141,15 @@ router.get('/', protect, admin, async (req, res, next) => {
 router.get('/mine', protect, async (req, res, next) => {
   try {
     await autoExpirePendingOrders();
-    const orders = await Order.find({ customerEmail: req.user.email })
+    const queryConditions = [
+      { user: req.user._id },
+      { customerEmail: req.user.email.toLowerCase() },
+    ];
+    if (req.user.phone) {
+      queryConditions.push({ customerPhone: req.user.phone });
+      queryConditions.push({ customerPhone: `+91${req.user.phone}` });
+    }
+    const orders = await Order.find({ $or: queryConditions })
       .sort({ createdAt: -1 })
       .select('-razorpaySignature')
       .lean();
@@ -184,7 +192,7 @@ function normalizeWeight(w) {
     .replace(/grm|grams?|gm/i, 'g');
 }
 
-router.post('/', createOrderLimiter, async (req, res, next) => {
+router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => {
   let created;
   try {
     const body = req.body || {};
@@ -257,9 +265,10 @@ router.post('/', createOrderLimiter, async (req, res, next) => {
     const paymentMethod = body.paymentMethod === 'Cash on Delivery' ? 'Cash on Delivery' : 'Razorpay (Online)';
     created = await Order.create({
       orderNumber: `SKT-${crypto.randomBytes(5).toString('hex').toUpperCase()}`,
+      user: req.user ? req.user._id : undefined,
       customerName: String(body.customerName).trim(),
-      customerEmail: String(body.customerEmail).trim().toLowerCase(),
-      customerPhone: String(body.customerPhone).trim(),
+      customerEmail: String(body.customerEmail || req.user?.email).trim().toLowerCase(),
+      customerPhone: String(body.customerPhone || req.user?.phone).trim(),
       shippingAddress: String(body.shippingAddress).trim(),
       landmark: body.landmark ? String(body.landmark).trim() : undefined,
       pincode: body.pincode ? String(body.pincode).trim() : undefined,

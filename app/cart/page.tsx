@@ -2,13 +2,15 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Trash2, Plus, Minus, ArrowRight, ShoppingCart, ArrowLeft } from 'lucide-react';
+import { Trash2, Plus, Minus, ArrowRight, ShoppingCart, ArrowLeft, UserCheck, LogIn } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
 export default function CartPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const { cart, removeFromCart, updateQuantity, totalPrice } = useCart();
 
   const subtotal = totalPrice;
@@ -143,7 +145,7 @@ export default function CartPage() {
               )}
             </div>
 
-            <div className="pt-5 mt-6 border-t border-[#4F534C]/20 flex justify-between items-center mb-6">
+            <div className="pt-5 mt-6 border-t border-[#4F534C]/20 flex justify-between items-center mb-4">
               <div>
                 <span className="text-sm font-black text-[#1A1E16] block">Grand Total</span>
                 <span className="text-[10px] text-[#4F5547] font-semibold">Incl. all taxes & fees</span>
@@ -151,16 +153,35 @@ export default function CartPage() {
               <span className="text-2xl font-black text-[#26311A]">₹{grandTotal}</span>
             </div>
 
+            {user ? (
+              <div className="mb-4 p-2.5 bg-white/80 rounded-xl border border-[#4F534C]/15 flex items-center gap-2 text-xs text-[#26311A] font-bold">
+                <UserCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                <span className="truncate">Checking out as: <strong className="text-[#1A1E16]">{user.name}</strong></span>
+              </div>
+            ) : (
+              <div className="mb-4 p-2.5 bg-amber-50 rounded-xl border border-amber-200/80 flex items-center gap-2 text-[11px] text-amber-900 font-bold">
+                <LogIn className="w-4 h-4 text-amber-700 shrink-0" />
+                <span>Sign in required at checkout to track your delivery.</span>
+              </div>
+            )}
+
             <button
               disabled={cart.length === 0}
-              onClick={() => router.push('/checkout')}
+              onClick={() => {
+                if (cart.length === 0) return;
+                if (!user) {
+                  router.push('/login?redirect=/checkout');
+                } else {
+                  router.push('/checkout');
+                }
+              }}
               className={`w-full py-4 px-6 rounded-2xl font-black text-base transition-all shadow-lg flex items-center justify-center gap-2 group whitespace-nowrap ${
                 cart.length > 0 
                   ? 'bg-[#4D583F] text-white hover:bg-[#414b35] hover:shadow-xl' 
                   : 'bg-[#D3D8CF] text-[#8F968B] cursor-not-allowed'
               }`}
             >
-              <span>Proceed to Checkout</span>
+              <span>{user ? 'Proceed to Checkout' : 'Sign In & Checkout'}</span>
               {cart.length > 0 && <ArrowRight className="w-5 h-5 shrink-0 group-hover:translate-x-1 transition-transform" />}
             </button>
           </div>

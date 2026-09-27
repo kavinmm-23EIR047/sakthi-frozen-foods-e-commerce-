@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { fetchApi } from '@/lib/apiConfig';
 import Link from 'next/link';
-import { ArrowRight, Lock, Mail, Phone, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, Lock, Mail, Phone, AlertCircle, Eye, EyeOff, ShoppingBag } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginForm() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -16,6 +16,9 @@ export default function LoginPage() {
   
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get('redirect');
+  const targetRedirect = redirectParam && redirectParam.startsWith('/') ? redirectParam : '/';
 
   const isNumericOnly = /^\d+$/.test(identifier.trim().replace(/\+91|\s/g, ''));
 
@@ -42,7 +45,7 @@ export default function LoginPage() {
         if (res.data.role === 'Admin') {
           router.push('/admin');
         } else {
-          router.push('/');
+          router.push(targetRedirect);
         }
       } else {
         setError(res.message || 'Invalid mobile number/email or password');
@@ -62,6 +65,13 @@ export default function LoginPage() {
             <h1 className="text-3xl font-black text-[#1E201D] tracking-tight">Welcome Back</h1>
             <p className="text-sm text-[#61665D] mt-2">Sign in with Mobile Number or Email</p>
           </div>
+
+          {targetRedirect === '/checkout' && (
+            <div className="mb-6 p-3.5 bg-emerald-50 rounded-2xl flex items-center gap-3 border border-emerald-200 text-emerald-900 text-xs font-bold">
+              <ShoppingBag className="w-5 h-5 text-emerald-700 shrink-0" />
+              <span>Please sign in to complete your checkout and track delivery.</span>
+            </div>
+          )}
 
           {error && (
             <div className="mb-6 p-4 bg-red-50 rounded-2xl flex items-start gap-3 border border-red-100 animate-shake">
@@ -140,7 +150,10 @@ export default function LoginPage() {
 
           <p className="text-center text-xs text-[#61665D] mt-8 font-medium">
             Don&apos;t have an account?{' '}
-            <Link href="/register" className="text-[#4D583F] font-bold hover:underline">
+            <Link
+              href={targetRedirect !== '/' ? `/register?redirect=${encodeURIComponent(targetRedirect)}` : '/register'}
+              className="text-[#4D583F] font-bold hover:underline"
+            >
               Create Account
             </Link>
           </p>
@@ -155,5 +168,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#E8EEE0] flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#4D583F] border-t-transparent rounded-full animate-spin"></div></div>}>
+      <LoginForm />
+    </Suspense>
   );
 }
