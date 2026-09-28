@@ -37,8 +37,9 @@ export const metadata: Metadata = {
 
 import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/context/ToastContext';
-import { Manrope, Bricolage_Grotesque } from 'next/font/google';
+import { Plus_Jakarta_Sans, Manrope, Bricolage_Grotesque } from 'next/font/google';
 
+const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], variable: '--font-jakarta' });
 const manrope = Manrope({ subsets: ['latin'], weight: ['400', '600', '700', '800'], variable: '--font-manrope' });
 const bricolage = Bricolage_Grotesque({ subsets: ['latin'], weight: ['600', '700', '800'], variable: '--font-bricolage' });
 
@@ -56,7 +57,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
         <link rel="shortcut icon" href="/favicon.ico" />
       </head>
-      <body className={`${manrope.variable} ${bricolage.variable} font-sans antialiased min-h-screen bg-[#F3FBEE] text-[#2F2F2F]`}>
+      <body className={`${jakarta.variable} ${manrope.variable} ${bricolage.variable} font-sans antialiased min-h-screen bg-[#FBFDF2] text-[#1E201D]`}>
         <ToastProvider>
           <AuthProvider>
             <CartProvider>{children}</CartProvider>

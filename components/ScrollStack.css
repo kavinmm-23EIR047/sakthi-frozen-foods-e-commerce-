@@ -1,43 +1,38 @@
-.scroll-stack-scroller {
+.scroll-stack-container {
   position: relative;
   width: 100%;
-  overflow: visible;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
+  max-width: 820px;
+  margin: 0 auto;
 }
 
-.scroll-stack-inner {
+.scroll-stack-list {
   position: relative;
   width: 100%;
-  padding: 1rem 0 35vh 0;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  padding-bottom: 2rem;
 }
 
-.scroll-stack-card-wrapper {
-  position: relative;
+.scroll-stack-item-wrapper {
+  position: sticky;
+  width: 100%;
+  transform-origin: top center;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
 .scroll-stack-card {
-  transform-origin: top center;
-  will-change: transform, filter;
-  backface-visibility: hidden;
-  transform-style: preserve-3d;
-  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.1);
-  min-height: 15rem;
-  max-width: 680px;
   width: 100%;
-  margin: 24px auto;
-  padding: 0;
-  border-radius: 26px;
-  box-sizing: border-box;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  position: relative;
-  border: 1px solid rgba(79, 83, 76, 0.2);
-  overflow: hidden;
   background-color: #ffffff;
+  border-radius: 20px;
+  border: 1px solid rgba(79, 83, 76, 0.16);
+  box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.09), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
-.scroll-stack-end {
-  width: 100%;
-  height: 1px;
+.scroll-stack-card:hover {
+  box-shadow: 0 18px 45px -10px rgba(0, 0, 0, 0.13);
+  border-color: rgba(79, 83, 76, 0.28);
 }

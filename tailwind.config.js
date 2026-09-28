@@ -8,9 +8,9 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-manrope)', 'sans-serif'],
-        display: ['var(--font-bricolage)', 'sans-serif'],
-        poppins: ['var(--font-bricolage)', 'sans-serif'],
+        sans: ['var(--font-jakarta)', 'var(--font-manrope)', 'sans-serif'],
+        display: ['var(--font-jakarta)', 'var(--font-manrope)', 'sans-serif'],
+        poppins: ['var(--font-jakarta)', 'sans-serif'],
       },
       colors: {
         olive: {

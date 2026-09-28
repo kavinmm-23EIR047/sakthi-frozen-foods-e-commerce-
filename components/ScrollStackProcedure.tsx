@@ -24,7 +24,6 @@ interface ProcedureStep {
   keyPoints: string[];
   tags: string[];
   iconName: string;
-  cardBg: string;
   headerBg: string;
   accentColor: string;
   badgeBg: string;
@@ -39,15 +38,14 @@ const PROCEDURE_STEPS: ProcedureStep[] = [
     tag: '100% Non-GMO Soy & Pea',
     summary: 'Selecting high-protein TVP soy chunks, oyster mushrooms, tender jackfruit, and wheat gluten (seitan) for an authentic fibrous meaty chew.',
     keyPoints: [
-      'Non-GMO soy & pea protein isolate for 1:1 amino acid balance',
-      'King Oyster mushrooms & jackfruit for fibrous "mutton" grain'
+      'Non-GMO soy & pea protein isolate for 1:1 complete amino acids',
+      'King Oyster mushrooms & jackfruit for fibrous succulent grain'
     ],
     tags: ['Soy Protein', 'Pea Isolate', 'Mushrooms', 'Seitan Gluten'],
     iconName: 'Leaf',
-    cardBg: 'bg-[#F9FAF6]',
-    headerBg: 'bg-[#3B482E] text-white',
-    accentColor: 'text-[#3B482E]',
-    badgeBg: 'bg-emerald-100 text-emerald-900 border-emerald-300/60',
+    headerBg: 'bg-[#20361C] text-white',
+    accentColor: 'text-[#20361C]',
+    badgeBg: 'bg-emerald-50 text-emerald-900 border-emerald-300',
     chefTip: 'Blending soy chunks with pea isolate creates the exact springy bite of tender meat.',
   },
   {
@@ -58,14 +56,13 @@ const PROCEDURE_STEPS: ProcedureStep[] = [
     summary: 'Soak in hot aromatic vegetable stock, firmly squeeze out excess water, and shred fibers to open deep porous spice pockets.',
     keyPoints: [
       '15–20 min hot stock soak opens internal cell structure',
-      'Firm moisture squeezing leaves maximum room for spices'
+      'Firm moisture squeezing leaves maximum room for rich spices'
     ],
     tags: ['Hot Veg Broth', 'Firm Squeeze', 'Fiber Grain Shred'],
     iconName: 'Droplets',
-    cardBg: 'bg-[#F4F9FD]',
-    headerBg: 'bg-[#1E3A5F] text-white',
-    accentColor: 'text-[#1E3A5F]',
-    badgeBg: 'bg-sky-100 text-sky-900 border-sky-300/60',
+    headerBg: 'bg-[#163554] text-white',
+    accentColor: 'text-[#163554]',
+    badgeBg: 'bg-sky-50 text-sky-900 border-sky-300',
     chefTip: 'The drier the internal pockets after squeezing, the deeper the spices soak in.',
   },
   {
@@ -80,17 +77,16 @@ const PROCEDURE_STEPS: ProcedureStep[] = [
     ],
     tags: ['Garam Masala', 'Ginger-Garlic', 'Cold-Pressed Oil', 'Kelp / Nori'],
     iconName: 'Flame',
-    cardBg: 'bg-[#FDFBF7]',
-    headerBg: 'bg-[#854D0E] text-white',
-    accentColor: 'text-[#854D0E]',
-    badgeBg: 'bg-amber-100 text-amber-900 border-amber-300/60',
+    headerBg: 'bg-[#7C2D12] text-white',
+    accentColor: 'text-[#7C2D12]',
+    badgeBg: 'bg-amber-50 text-amber-900 border-amber-300',
     chefTip: 'Cold-pressed mustard or sesame oil locks in volatile spice aromas during frying.',
   },
   {
     step: 4,
-    title: 'Natural Binding',
+    title: 'Natural Clean Binding',
     phase: 'Cohesion Matrix',
-    tag: 'Clean Binders',
+    tag: 'Pure Clean Binders',
     summary: 'Fold in roasted gram flour (besan), cornstarch, and fresh herbs to hold structural shape firmly without crumbling in gravies.',
     keyPoints: [
       'Gram flour (besan) & cornstarch ensure zero crumbling',
@@ -98,10 +94,9 @@ const PROCEDURE_STEPS: ProcedureStep[] = [
     ],
     tags: ['Besan (Gram Flour)', 'Cornstarch', 'Shallots', 'Fresh Herbs'],
     iconName: 'Layers',
-    cardBg: 'bg-[#FAF8FE]',
-    headerBg: 'bg-[#4338CA] text-white',
-    accentColor: 'text-[#4338CA]',
-    badgeBg: 'bg-purple-100 text-purple-900 border-purple-300/60',
+    headerBg: 'bg-[#3730A3] text-white',
+    accentColor: 'text-[#3730A3]',
+    badgeBg: 'bg-purple-50 text-purple-900 border-purple-300',
     chefTip: 'Gram flour adds subtle nuttiness while preserving shape in bubbling biryanis.',
   },
   {
@@ -116,10 +111,9 @@ const PROCEDURE_STEPS: ProcedureStep[] = [
     ],
     tags: ['Mutton Chunks', 'Cutlets', 'Fish Fingers', 'Burger Patties'],
     iconName: 'Shapes',
-    cardBg: 'bg-[#F4FCFA]',
-    headerBg: 'bg-[#0F766E] text-white',
-    accentColor: 'text-[#0F766E]',
-    badgeBg: 'bg-teal-100 text-teal-900 border-teal-300/60',
+    headerBg: 'bg-[#115E59] text-white',
+    accentColor: 'text-[#115E59]',
+    badgeBg: 'bg-teal-50 text-teal-900 border-teal-300',
     chefTip: 'Uniform sizing guarantees even cooking temperature throughout every piece.',
   },
   {
@@ -134,10 +128,9 @@ const PROCEDURE_STEPS: ProcedureStep[] = [
     ],
     tags: ['Gentle Steam', 'Flash Par-Fry', 'Sealed Juices'],
     iconName: 'Utensils',
-    cardBg: 'bg-[#FFF9F5]',
-    headerBg: 'bg-[#C2410C] text-white',
-    accentColor: 'text-[#C2410C]',
-    badgeBg: 'bg-orange-100 text-orange-900 border-orange-300/60',
+    headerBg: 'bg-[#9A3412] text-white',
+    accentColor: 'text-[#9A3412]',
+    badgeBg: 'bg-orange-50 text-orange-900 border-orange-300',
     chefTip: 'Par-cooking locks the outer pore layer, preventing excess oil absorption later.',
   },
   {
@@ -152,17 +145,16 @@ const PROCEDURE_STEPS: ProcedureStep[] = [
     ],
     tags: ['IQF Flash Freeze', 'No Clumping', '-18°C Nitrogen Sealed'],
     iconName: 'Snowflake',
-    cardBg: 'bg-[#F2FBFE]',
     headerBg: 'bg-[#0369A1] text-white',
     accentColor: 'text-[#0369A1]',
-    badgeBg: 'bg-cyan-100 text-cyan-900 border-cyan-300/60',
+    badgeBg: 'bg-cyan-50 text-cyan-900 border-cyan-300',
     chefTip: 'Grab exact piece portions straight from the freezer without defrosting the whole bag.',
   },
   {
     step: 8,
     title: 'Sizzle & Feast',
     phase: 'Kitchen Cook',
-    tag: '100% Ready in 8 Mins',
+    tag: 'Ready in 8 Mins',
     summary: 'Pan-fry, air-fry at 180°C, or drop directly from frozen into simmering masala gravies & biryanis in 5–8 minutes. Savor hot!',
     keyPoints: [
       'Pan-fry / deep fry in medium-hot oil until golden & crisp',
@@ -170,10 +162,9 @@ const PROCEDURE_STEPS: ProcedureStep[] = [
     ],
     tags: ['Pan-Fry 5-8 Mins', 'Air-Fry 180°C', 'Direct Curry Simmer'],
     iconName: 'ChefHat',
-    cardBg: 'bg-[#F4FAF2]',
     headerBg: 'bg-[#15803D] text-white',
     accentColor: 'text-[#15803D]',
-    badgeBg: 'bg-emerald-100 text-emerald-900 border-emerald-300/60',
+    badgeBg: 'bg-emerald-50 text-emerald-900 border-emerald-300',
     chefTip: 'Serve immediately off the stove for maximum succulent chew and intoxicating aromatic crunch!',
   },
 ];
@@ -199,8 +190,8 @@ export default function ScrollStackProcedure() {
         
         {/* Centered Top Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-10 space-y-3">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-[#4F534C]/15 text-[#4D583F] text-xs font-black uppercase tracking-wider shadow-xs">
-            <ChefHat className="w-4 h-4 text-emerald-600 animate-float-subtle" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-[#4F534C]/20 text-[#2D3823] text-xs font-black uppercase tracking-wider shadow-xs">
+            <ChefHat className="w-4 h-4 text-emerald-700" />
             <span>8-Step Making &amp; Cooking Guide</span>
           </div>
 
@@ -208,12 +199,12 @@ export default function ScrollStackProcedure() {
             How Vegan Mock Meat Is Made
           </h2>
 
-          <p className="text-xs sm:text-sm text-[#61665D] leading-relaxed max-w-lg mx-auto">
+          <p className="text-xs sm:text-sm text-[#555C52] leading-relaxed max-w-lg mx-auto">
             From pure botanical protein extraction and flavor alchemy to -18°C IQF cryo-freezing and 8-minute kitchen sizzling.
           </p>
 
-          <div className="pt-2 flex items-center justify-center gap-2 text-xs font-bold text-[#4D583F]">
-            <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+          <div className="pt-1 flex items-center justify-center gap-2 text-xs font-bold text-[#3B482E]">
+            <Sparkles className="w-3.5 h-3.5 text-amber-700" />
             <span>Scroll down the page to stack cards</span>
           </div>
         </div>
@@ -221,20 +212,15 @@ export default function ScrollStackProcedure() {
         {/* Centered Window Scroll Stack Container */}
         <div className="w-full max-w-3xl mx-auto">
           <ScrollStack
-            itemDistance={90}
-            itemScale={0.025}
-            itemStackDistance={24}
-            stackPosition="18%"
-            scaleEndPosition="8%"
-            baseScale={0.88}
-            useWindowScroll={true}
+            itemStackDistance={20}
+            topOffset={85}
           >
             {PROCEDURE_STEPS.map((s) => (
-              <ScrollStackItem key={s.step} itemClassName={s.cardBg}>
-                {/* Top Color Accent Header Bar (Peeks out in stack!) */}
-                <div className={`px-5 sm:px-6 py-3 flex items-center justify-between shadow-xs ${s.headerBg}`}>
+              <ScrollStackItem key={s.step} itemClassName="bg-white">
+                {/* Top Solid Color Accent Header Bar (Peeks out in stack) */}
+                <div className={`px-5 sm:px-6 py-3.5 flex items-center justify-between shadow-xs ${s.headerBg}`}>
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-lg bg-white/20 backdrop-blur-xs font-black text-xs sm:text-sm flex items-center justify-center border border-white/20">
+                    <span className="w-7 h-7 rounded-lg bg-white/20 font-black text-xs sm:text-sm flex items-center justify-center border border-white/25">
                       0{s.step}
                     </span>
                     <span className="font-extrabold text-xs sm:text-sm tracking-wider uppercase">
@@ -243,17 +229,17 @@ export default function ScrollStackProcedure() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider bg-white/15 px-2.5 py-0.5 rounded-md backdrop-blur-xs border border-white/15">
+                    <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider bg-white/20 px-2.5 py-0.5 rounded-md border border-white/25">
                       {s.phase}
                     </span>
-                    <div className="p-1 rounded-md bg-white/15 backdrop-blur-xs">
+                    <div className="p-1 rounded-md bg-white/20">
                       {getStepIcon(s.iconName, "w-4 h-4 text-white")}
                     </div>
                   </div>
                 </div>
 
                 {/* Card Content Body */}
-                <div className="p-5 sm:p-6 space-y-3.5 bg-white/80 backdrop-blur-xs">
+                <div className="p-5 sm:p-6 space-y-4 bg-white">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="font-black text-base sm:text-xl text-[#1E201D] font-display">
                       {s.title}
@@ -270,27 +256,27 @@ export default function ScrollStackProcedure() {
                   {/* Bullet Highlights */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                     {s.keyPoints.map((kp, kIdx) => (
-                      <div key={kIdx} className="flex items-start gap-1.5 text-xs text-[#2F342F] font-semibold leading-snug">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <div key={kIdx} className="flex items-start gap-2 text-xs text-[#2F342F] font-semibold leading-snug">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
                         <span>{kp}</span>
                       </div>
                     ))}
                   </div>
 
                   {/* Chef Tip Sub-box */}
-                  <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200/70 flex items-start gap-2.5 text-left">
-                    <ChefHat className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-                    <p className="text-[11px] sm:text-xs text-amber-900 leading-snug">
+                  <div className="p-3 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] flex items-start gap-2.5 text-left">
+                    <ChefHat className="w-4 h-4 text-[#B45309] shrink-0 mt-0.5" />
+                    <p className="text-[11px] sm:text-xs text-[#92400E] leading-snug">
                       <span className="font-bold">Chef&apos;s Pro Tip:</span> {s.chefTip}
                     </p>
                   </div>
 
                   {/* Ingredient Pills */}
-                  <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-gray-200/70">
+                  <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-stone-200">
                     {s.tags.map((t, tIdx) => (
                       <span
                         key={tIdx}
-                        className="px-2.5 py-0.5 rounded-md bg-white text-[#3D4732] text-[10px] sm:text-[11px] font-bold border border-gray-200 shadow-2xs"
+                        className="px-2.5 py-0.5 rounded-md bg-stone-50 text-[#3D4732] text-[10px] sm:text-[11px] font-bold border border-stone-200 shadow-2xs"
                       >
                         {t}
                       </span>
