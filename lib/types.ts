@@ -54,6 +54,10 @@ export interface OrderType {
   razorpayPaymentId?: string;
   status: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
   createdAt: string;
+  isLocked?: boolean;
+  failureReason?: string;
+  followUpStatus?: string;
+  followUpNotes?: string;
 }
 
 export interface UserType {

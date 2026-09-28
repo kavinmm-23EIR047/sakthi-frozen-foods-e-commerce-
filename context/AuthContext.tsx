@@ -9,6 +9,8 @@ export type UserType = {
   email: string;
   role: 'Customer' | 'Admin';
   token: string;
+  phone?: string;
+  address?: string;
 };
 
 interface AuthContextType {
