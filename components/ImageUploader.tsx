@@ -101,7 +101,7 @@ export default function ImageUploader({ value, onChange, label = 'Product Image'
             onClick={() => setMode('upload')}
             className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
               mode === 'upload'
-                ? 'bg-[#4D583F] text-white shadow-sm'
+                ? 'bg-[#656B4F] text-white shadow-sm'
                 : 'text-[#61665D] hover:text-[#1E201D]'
             }`}
           >
@@ -113,7 +113,7 @@ export default function ImageUploader({ value, onChange, label = 'Product Image'
             onClick={() => setMode('url')}
             className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
               mode === 'url'
-                ? 'bg-[#4D583F] text-white shadow-sm'
+                ? 'bg-[#656B4F] text-white shadow-sm'
                 : 'text-[#61665D] hover:text-[#1E201D]'
             }`}
           >
@@ -133,8 +133,8 @@ export default function ImageUploader({ value, onChange, label = 'Product Image'
             onClick={() => fileInputRef.current?.click()}
             className={`relative cursor-pointer rounded-2xl border-2 border-dashed p-6 text-center transition-all flex flex-col items-center justify-center gap-3 ${
               isDragging
-                ? 'border-[#4D583F] bg-[#EAF0E5]/60 scale-[1.01]'
-                : 'border-[#4F534C]/20 bg-[#FAFAF5] hover:border-[#4D583F]/50 hover:bg-[#E8EEE0]'
+                ? 'border-[#656B4F] bg-[#EAF0E5]/60 scale-[1.01]'
+                : 'border-[#4F534C]/20 bg-[#FAFAF5] hover:border-[#656B4F]/50 hover:bg-[#E8EEE0]'
             }`}
           >
             <input
@@ -147,7 +147,7 @@ export default function ImageUploader({ value, onChange, label = 'Product Image'
 
             {isCompressing ? (
               <div className="py-4 flex flex-col items-center gap-2">
-                <RefreshCw className="w-8 h-8 text-[#4D583F] animate-spin" />
+                <RefreshCw className="w-8 h-8 text-[#656B4F] animate-spin" />
                 <p className="text-sm font-extrabold text-[#1E201D]">Compressing & Converting to WebP...</p>
                 <p className="text-xs text-[#61665D]">Reducing file size while keeping HD quality</p>
               </div>
@@ -171,7 +171,7 @@ export default function ImageUploader({ value, onChange, label = 'Product Image'
                 {/* Stats & Actions */}
                 <div className="flex-1 min-w-0 space-y-1.5">
                   <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#EAF0E5] text-[#4D583F] font-black text-[11px] uppercase tracking-wider flex items-center gap-1">
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#EAF0E5] text-[#656B4F] font-black text-[11px] uppercase tracking-wider flex items-center gap-1">
                       <Sparkles className="w-3 h-3" /> WebP Compressed
                     </span>
                     {compressionStats?.savingsPercentage ? (
@@ -200,7 +200,7 @@ export default function ImageUploader({ value, onChange, label = 'Product Image'
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="text-xs font-bold text-[#4D583F] hover:underline flex items-center gap-1"
+                      className="text-xs font-bold text-[#656B4F] hover:underline flex items-center gap-1"
                     >
                       <RefreshCw className="w-3 h-3" /> Replace File
                     </button>
@@ -216,7 +216,7 @@ export default function ImageUploader({ value, onChange, label = 'Product Image'
               </div>
             ) : (
               <>
-                <div className="w-12 h-12 rounded-2xl bg-[#EAF0E5] text-[#4D583F] flex items-center justify-center shadow-sm">
+                <div className="w-12 h-12 rounded-2xl bg-[#EAF0E5] text-[#656B4F] flex items-center justify-center shadow-sm">
                   <UploadCloud className="w-6 h-6" />
                 </div>
                 <div>
@@ -227,7 +227,7 @@ export default function ImageUploader({ value, onChange, label = 'Product Image'
                     PNG, JPG, JPEG, WEBP or AVIF (Auto-converts to WebP, Low KB)
                   </p>
                 </div>
-                <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#EAF0E5] text-[#4D583F] text-[10px] font-black uppercase tracking-wider">
+                <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#EAF0E5] text-[#656B4F] text-[10px] font-black uppercase tracking-wider">
                   <ShieldCheck className="w-3 h-3" /> Auto-Compression Enabled
                 </div>
               </>
@@ -244,12 +244,12 @@ export default function ImageUploader({ value, onChange, label = 'Product Image'
               onChange={(e) => setUrlInput(e.target.value)}
               onBlur={handleUrlSubmit}
               placeholder="https://res.cloudinary.com/..."
-              className="flex-1 px-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F]"
+              className="flex-1 px-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
             />
             <button
               type="button"
               onClick={handleUrlSubmit}
-              className="px-4 py-2.5 bg-[#4D583F] text-white font-bold text-xs rounded-xl hover:bg-[#414b35] transition-colors shadow-sm shrink-0"
+              className="px-4 py-2.5 bg-[#656B4F] text-white font-bold text-xs rounded-xl hover:bg-[#50563D] transition-colors shadow-sm shrink-0"
             >
               Apply URL
             </button>

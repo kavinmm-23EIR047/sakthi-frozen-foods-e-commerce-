@@ -117,10 +117,13 @@ export default function SearchOverlay() {
         className="w-full relative cursor-text group"
         onClick={() => setIsOpen(true)}
       >
-        <div className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-[#E8EEE0] border border-[#4F534C]/20 text-sm text-[#61665D] group-hover:border-[#4D583F] group-hover:bg-white transition-all shadow-inner flex items-center min-h-[44px]">
-          Search Veg Mutton, Fish...
+        <div className="w-full pl-9 pr-14 py-2 rounded-full bg-[#F3F6EE] border border-stone-200/90 text-xs sm:text-sm text-[#5C6657] group-hover:border-[#2E7D32]/40 group-hover:bg-white transition-all shadow-2xs flex items-center justify-between min-h-[38px]">
+          <span className="truncate">Search veg mutton, chicken, fish, starters..</span>
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-bold text-[#6B7566] bg-white border border-stone-200 rounded-md shadow-2xs shrink-0">
+            Ctrl K
+          </kbd>
         </div>
-        <Search className="w-4 h-4 text-[#61665D] absolute left-4 top-3.5" />
+        <Search className="w-4 h-4 text-[#5C6657] absolute left-3 top-2.5" />
       </div>
 
       {/* Fullscreen Overlay using Portal to escape stacking context */}
@@ -135,9 +138,9 @@ export default function SearchOverlay() {
                 placeholder="What are you craving?"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full pl-10 pr-10 py-3 rounded-2xl bg-[#E8EEE0] border border-[#4F534C]/20 text-base text-[#1E201D] placeholder-[#61665D] focus:outline-none focus:ring-2 focus:ring-[#4D583F] focus:bg-white transition-all shadow-inner"
+                className="w-full pl-10 pr-10 py-3 rounded-2xl bg-[#E8EEE0] border border-[#4F534C]/20 text-base text-[#1E201D] placeholder-[#61665D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] focus:bg-white transition-all shadow-inner"
               />
-              <Search className="w-5 h-5 text-[#4D583F] absolute left-3.5 top-3.5" />
+              <Search className="w-5 h-5 text-[#656B4F] absolute left-3.5 top-3.5" />
               {query && (
                 <button 
                   type="button" 
@@ -150,7 +153,7 @@ export default function SearchOverlay() {
             </form>
             <button 
               onClick={() => setIsOpen(false)}
-              className="text-[#4D583F] font-bold text-sm px-2"
+              className="text-[#656B4F] font-bold text-sm px-2"
             >
               Cancel
             </button>
@@ -175,7 +178,7 @@ export default function SearchOverlay() {
                       </div>
                       <div className="text-right whitespace-nowrap">
                         <div className="text-[10px] text-[#61665D] line-through">MRP ₹{product.mrp ?? product.price}</div>
-                        <div className="font-bold text-[#4D583F] text-sm">₹{product.price}</div>
+                        <div className="font-bold text-[#656B4F] text-sm">₹{product.price}</div>
                       </div>
                     </div>
                   ))
@@ -198,14 +201,14 @@ export default function SearchOverlay() {
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="font-bold text-sm text-[#1E201D] uppercase tracking-wider">Recent Searches</h3>
-                      <button onClick={clearRecentSearches} className="text-xs text-[#61665D] hover:text-[#4D583F] font-semibold">Clear All</button>
+                      <button onClick={clearRecentSearches} className="text-xs text-[#61665D] hover:text-[#656B4F] font-semibold">Clear All</button>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {recentSearches.map((term, i) => (
                         <button
                           key={i}
                           onClick={() => { setQuery(term); handleSearchSubmit({ preventDefault: () => {} } as any); }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#4F534C]/15 rounded-lg text-sm text-[#61665D] hover:border-[#4D583F] hover:text-[#4D583F] transition-colors shadow-sm"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#4F534C]/15 rounded-lg text-sm text-[#61665D] hover:border-[#656B4F] hover:text-[#656B4F] transition-colors shadow-sm"
                         >
                           <Clock className="w-3.5 h-3.5" />
                           {term}
@@ -236,7 +239,7 @@ export default function SearchOverlay() {
                             <h4 className="font-bold text-[#1E201D] text-xs truncate">{product.name}</h4>
                             <p className="text-[10px] text-[#61665D] mt-0.5">
                               <span className="line-through">MRP ₹{product.mrp ?? product.price}</span>{' '}
-                              <span className="font-bold text-[#4D583F]">₹{product.price}</span>
+                              <span className="font-bold text-[#656B4F]">₹{product.price}</span>
                             </p>
                           </div>
                         </div>
@@ -253,10 +256,10 @@ export default function SearchOverlay() {
                       <button
                         key={cat}
                         onClick={() => { setIsOpen(false); router.push(`/shop?category=${encodeURIComponent(cat)}`); }}
-                        className="w-full flex items-center justify-between p-3 bg-white rounded-xl border border-[#4F534C]/15 hover:border-[#4D583F] hover:shadow-sm transition-all group"
+                        className="w-full flex items-center justify-between p-3 bg-white rounded-xl border border-[#4F534C]/15 hover:border-[#656B4F] hover:shadow-sm transition-all group"
                       >
-                        <span className="font-semibold text-sm text-[#4F534C] group-hover:text-[#4D583F]">{cat}</span>
-                        <ArrowRight className="w-4 h-4 text-[#A7ADA9] group-hover:text-[#4D583F] group-hover:translate-x-0.5 transition-transform" />
+                        <span className="font-semibold text-sm text-[#4F534C] group-hover:text-[#656B4F]">{cat}</span>
+                        <ArrowRight className="w-4 h-4 text-[#A7ADA9] group-hover:text-[#656B4F] group-hover:translate-x-0.5 transition-transform" />
                       </button>
                     ))}
                   </div>

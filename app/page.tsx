@@ -11,6 +11,7 @@ import { useToast } from '@/context/ToastContext';
 import { ProductType } from '@/lib/types';
 import { fetchApi } from '@/lib/apiConfig';
 import {
+  LayoutGrid,
   ShieldCheck,
   Flame,
   Sparkles,
@@ -31,7 +32,9 @@ import {
   X,
   Image as ImageIcon,
   Smartphone,
-  Check
+  Check,
+  Truck,
+  Award
 } from 'lucide-react';
 
 interface ReviewType {
@@ -55,43 +58,112 @@ function WhatsAppIcon({ className = "w-6 h-6" }: { className?: string }) {
   );
 }
 
-// 4 Official Hero Banner Images from User Workspace Assets
+// 5 Official Full-Art Banner Images from Workspace Assets
 const HERO_BANNERS = [
   {
-    id: 'mock-mutton',
-    image: '/assets/mock-mutton.jpg',
-    title: 'Flavorful Mock Mutton',
-    subtitle: '100% Veg. 100% Delicious.',
-    category: 'Mutton Alternatives',
-    badge: 'Best Seller',
-    link: '/shop?category=Mutton%20Alternatives',
-  },
-  {
     id: 'corn-cheese-balls',
-    image: '/assets/corn-cheese-balls.jpg',
+    image: '/assets/813a46d7-0030-47c9-af6a-3db11c6edbc7.jpg',
     title: 'Crispy Corn Cheese Balls',
     subtitle: '100% Veg. 100% Delicious.',
     category: 'Snacks & Starters',
-    badge: 'Popular Favorite',
     link: '/shop?category=Snacks%20%26%20Starters',
+    thumbLabel: 'Crispy Corn Cheese Balls',
+    thumbImage: '/assets/813a46d7-0030-47c9-af6a-3db11c6edbc7.jpg',
   },
   {
-    id: 'french-fries',
-    image: '/assets/french-fries.jpg',
-    title: 'Crispy French Fries',
-    subtitle: 'Golden, Hot & Crunchy',
+    id: 'mock-mutton',
+    image: '/assets/0e18a4d9-5d57-4c36-8768-8e7d790a4b5d.jpg',
+    title: 'Flavorful Mock Mutton',
+    subtitle: '100% VEG. 100% DELICIOUS.',
+    category: 'Mutton Alternatives',
+    link: '/shop?category=Mutton%20Alternatives',
+    thumbLabel: 'Mock Mutton Curry',
+    thumbImage: '/assets/0e18a4d9-5d57-4c36-8768-8e7d790a4b5d.jpg',
+  },
+  {
+    id: 'veg-chicken-cutlet',
+    image: '/assets/928db126-f62c-4d88-a874-f3d8c08d68bd.jpg',
+    title: 'Veg Chicken Cutlet',
+    subtitle: '100% Veg. 100% Delicious.',
     category: 'Snacks & Starters',
-    badge: 'All-Time Favorite',
     link: '/shop?category=Snacks%20%26%20Starters',
+    thumbLabel: 'Veg Starters',
+    thumbImage: '/assets/928db126-f62c-4d88-a874-f3d8c08d68bd.jpg',
   },
   {
     id: 'sweet-corn',
-    image: '/assets/sweet-corn.jpg',
+    image: '/assets/c0410062-941f-4ab6-bcc8-b9b2ffd98cc1.jpg',
     title: 'Golden Sweet Corn',
     subtitle: '100% Veg. 100% Delicious.',
-    category: 'Snacks & Starters',
-    badge: 'Pure Veg',
+    category: 'Frozen Veggies',
     link: '/shop?category=Snacks%20%26%20Starters',
+    thumbLabel: 'Sweet Corn',
+    thumbImage: '/assets/c0410062-941f-4ab6-bcc8-b9b2ffd98cc1.jpg',
+  },
+  {
+    id: 'french-fries',
+    image: '/assets/a677a7a9-c56a-4885-a823-51be3e0177b3.jpg',
+    title: 'Crispy French Fries',
+    subtitle: 'Golden, Hot & Crunchy',
+    category: 'Snacks & Starters',
+    link: '/shop?category=Snacks%20%26%20Starters',
+    thumbLabel: 'French Fries',
+    thumbImage: '/assets/a677a7a9-c56a-4885-a823-51be3e0177b3.jpg',
+  },
+];
+
+// Category Image Fallback Helper
+function getCategoryFallbackImage(name: string): string {
+  const n = (name || '').toLowerCase();
+  if (n.includes('mutton') || n.includes('meat') || n.includes('vegan')) return '/assets/mock-mutton.jpg';
+  if (n.includes('cheese') || n.includes('ball') || n.includes('starter') || n.includes('snack')) return '/assets/corn-cheese-balls.jpg';
+  if (n.includes('cutlet') || n.includes('chicken') || n.includes('combo')) return '/assets/dish-crispy-cutlets.jpg';
+  if (n.includes('corn') || n.includes('veggie') || n.includes('frozen')) return '/assets/sweet-corn.jpg';
+  if (n.includes('fry') || n.includes('fries') || n.includes('french')) return '/assets/french-fries.jpg';
+  if (n.includes('retail')) return '/assets/c0410062-941f-4ab6-bcc8-b9b2ffd98cc1.jpg';
+  return '/assets/mock-mutton.jpg';
+}
+
+interface CategoryItem {
+  id?: string;
+  name: string;
+  shortName?: string;
+  link: string;
+  img: string;
+  description?: string;
+}
+
+// 5 Official Default Categories matching the design mockup
+const DEFAULT_CATEGORIES: CategoryItem[] = [
+  {
+    name: 'Vegan Meat',
+    shortName: 'Vegan Meat',
+    link: '/shop?category=Mutton%20Alternatives',
+    img: '/assets/mock-mutton.jpg',
+  },
+  {
+    name: 'Starters',
+    shortName: 'Starters',
+    link: '/shop?category=Snacks%20%26%20Starters',
+    img: '/assets/corn-cheese-balls.jpg',
+  },
+  {
+    name: 'Retail Packs',
+    shortName: 'Retail Packs',
+    link: '/shop?category=Retail%20Packs',
+    img: '/assets/c0410062-941f-4ab6-bcc8-b9b2ffd98cc1.jpg',
+  },
+  {
+    name: 'Combo Packs',
+    shortName: 'Combo Packs',
+    link: '/shop?category=Combos',
+    img: '/assets/dish-crispy-cutlets.jpg',
+  },
+  {
+    name: 'Frozen Veggies',
+    shortName: 'Frozen Veggies',
+    link: '/shop?category=Snacks%20%26%20Starters',
+    img: '/assets/sweet-corn.jpg',
   },
 ];
 
@@ -301,7 +373,7 @@ export default function StorefrontHomePage() {
   const [heroDishIndex, setHeroDishIndex] = useState(0);
   const [isHeroHovered, setIsHeroHovered] = useState(false);
   const [topProducts, setTopProducts] = useState<UnifiedProduct[]>([]);
-  const [featuredCategories, setFeaturedCategories] = useState<{ name: string; img: string; subtitle?: string }[]>([]);
+  const [categoriesList, setCategoriesList] = useState<CategoryItem[]>(DEFAULT_CATEGORIES);
   const [reviews, setReviews] = useState<ReviewType[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeReviewIndex, setActiveReviewIndex] = useState(0);
@@ -319,6 +391,48 @@ export default function StorefrontHomePage() {
   const categoryScrollRef = useRef<HTMLDivElement>(null);
   const productScrollRef = useRef<HTMLDivElement>(null);
   const recipeScrollRef = useRef<HTMLDivElement>(null);
+
+  // Mouse / Touch Drag State for Category Carousel on Tab and Mobile
+  const [isDraggingCategory, setIsDraggingCategory] = useState(false);
+  const [categoryStartX, setCategoryStartX] = useState(0);
+  const [categoryScrollStart, setCategoryScrollStart] = useState(0);
+  const [categoryMoved, setCategoryMoved] = useState(false);
+
+  const handleCategoryMouseDown = (e: React.MouseEvent) => {
+    if (!categoryScrollRef.current) return;
+    setIsDraggingCategory(true);
+    setCategoryMoved(false);
+    setCategoryStartX(e.pageX - categoryScrollRef.current.offsetLeft);
+    setCategoryScrollStart(categoryScrollRef.current.scrollLeft);
+  };
+
+  const handleCategoryMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingCategory || !categoryScrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - categoryScrollRef.current.offsetLeft;
+    const walk = (x - categoryStartX) * 1.5;
+    if (Math.abs(walk) > 4) {
+      setCategoryMoved(true);
+    }
+    categoryScrollRef.current.scrollLeft = categoryScrollStart - walk;
+  };
+
+  const handleCategoryMouseUp = () => {
+    setIsDraggingCategory(false);
+  };
+
+  const handleCategoryMouseLeave = () => {
+    setIsDraggingCategory(false);
+  };
+
+  const handleCategoryItemClick = (e: React.MouseEvent, link: string) => {
+    if (categoryMoved) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    router.push(link);
+  };
 
   // Auto-rotating Hero Banner Slider
   useEffect(() => {
@@ -344,13 +458,16 @@ export default function StorefrontHomePage() {
           setTopProducts(processed);
         }
 
-        if (catRes.success && Array.isArray(catRes.data)) {
-          const cats = catRes.data.map((c: any) => ({
+        if (catRes.success && Array.isArray(catRes.data) && catRes.data.length > 0) {
+          const cats: CategoryItem[] = catRes.data.map((c: any) => ({
+            id: c.id || c._id,
             name: c.name,
-            img: c.image || '',
-            subtitle: c.description || '100% Plant-Based',
+            shortName: c.name,
+            link: `/shop?category=${encodeURIComponent(c.name)}`,
+            img: c.image && c.image.trim() !== '' ? c.image : getCategoryFallbackImage(c.name),
+            description: c.description || '100% Plant-Based',
           }));
-          setFeaturedCategories(cats);
+          setCategoriesList(cats);
         }
 
         if (revRes.success && Array.isArray(revRes.data)) {
@@ -463,410 +580,361 @@ export default function StorefrontHomePage() {
 
       <main className="flex-1">
         {/* ========================================================================= */}
+        {/* 1. HERO SECTION (Leaf Garnishes, Natural Content Flow & Clean Artwork Card) */}
         {/* ========================================================================= */}
-        {/* ========================================================================= */}
-        {/* ========================================================================= */}
-        {/* 1. HERO SECTION */}
-        {/* ========================================================================= */}
-        <section className="relative bg-[#FBFDF5] overflow-hidden border-b border-stone-200/60">
-          
-          {/* ======================= MOBILE & TABLET LAYOUT (< lg) ======================= */}
-          <div className="lg:hidden px-4 sm:px-6 pt-5 pb-6 space-y-4">
-            
-            {/* Mobile Header Copy */}
-            <div className="text-left space-y-1.5">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EAF2E3] text-[#2E7D32] text-xs font-extrabold uppercase tracking-wider w-fit shadow-2xs">
-                <Leaf className="w-3.5 h-3.5 text-[#2E7D32]" />
-                <span>100% Plant-Based</span>
-              </div>
-              <h1 className="text-2xl sm:text-4xl font-black tracking-tight leading-[1.1] text-[#1E201D] font-display">
-                Authentic Taste, <br />
-                <span className="text-[#2F3D27]">A Kinder Tomorrow.</span>
-              </h1>
-              <p className="text-xs sm:text-sm text-[#5A6355] font-medium leading-relaxed max-w-md">
-                Enjoy rich taste and satisfying texture made purely from plants — for a healthier you and planet.
-              </p>
-            </div>
+        <section className="relative w-full py-2 sm:py-4 lg:py-6 overflow-hidden">
+          <div className="max-w-[1400px] mx-auto px-3 sm:px-6 lg:px-8">
+            <div className="relative w-full bg-[#FAFDF6] rounded-2xl sm:rounded-3xl lg:rounded-[32px] border border-white/80 shadow-xs overflow-hidden isolate">
 
-            {/* Mobile Full-Width Uncropped Banner Carousel */}
-            <div
-              className="relative w-full aspect-[4/3] xs:aspect-[16/11] sm:aspect-[16/10] max-h-[380px] rounded-2xl overflow-hidden shadow-xl bg-black/90 group select-none"
-              onMouseEnter={() => setIsHeroHovered(true)}
-              onMouseLeave={() => setIsHeroHovered(false)}
-            >
-              <img
-                src={currentHeroBanner.image}
-                alt={currentHeroBanner.title}
-                className="w-full h-full object-cover object-center transition-all duration-700"
-              />
+              {/* Botanical Leaf SVG Corner Garnishes */}
+              <svg className="absolute -top-6 -left-6 w-24 h-24 sm:w-32 sm:h-32 text-[#2E7D32]/15 pointer-events-none -z-10 rotate-12" viewBox="0 0 100 100" fill="currentColor">
+                <path d="M50 0 C20 30 10 60 50 100 C90 60 80 30 50 0 Z M50 20 C60 40 65 60 50 85 C35 60 40 40 50 20 Z" />
+              </svg>
+              <svg className="absolute -bottom-8 -right-8 w-28 h-28 sm:w-36 sm:h-36 text-[#86EFAC]/20 pointer-events-none -z-10 -rotate-45" viewBox="0 0 100 100" fill="currentColor">
+                <path d="M50 0 C20 30 10 60 50 100 C90 60 80 30 50 0 Z" />
+              </svg>
 
-              {/* Bottom Gradient for Text Legibility */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
+              {/* Ambient Background Glows */}
+              <div className="absolute top-0 left-0 w-[280px] sm:w-[420px] h-[280px] sm:h-[420px] bg-gradient-to-br from-[#86EFAC]/20 via-[#BBF7D0]/10 to-transparent rounded-full blur-[60px] sm:blur-[90px] pointer-events-none -z-10" />
+              <div className="absolute bottom-0 left-1/4 w-[240px] sm:w-[360px] h-[240px] sm:h-[360px] bg-gradient-to-tr from-[#FEF08A]/15 via-[#FEF9C3]/8 to-transparent rounded-full blur-[60px] sm:blur-[80px] pointer-events-none -z-10" />
 
-              {/* Slider Prev / Next Controls */}
-              <button
-                onClick={prevHeroSlide}
-                aria-label="Previous Slide"
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md flex items-center justify-center shadow-lg active:scale-95 z-20"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                onClick={nextHeroSlide}
-                aria-label="Next Slide"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md flex items-center justify-center shadow-lg active:scale-95 z-20"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
+              {/* Responsive Grid Layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch min-h-0 sm:min-h-[460px] lg:min-h-[500px]">
 
-              {/* Bottom Bar: Dish Info + Floating Shop Now CTA + Dots */}
-              <div className="absolute bottom-3 left-3 right-3 z-20 flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <span className="text-xs sm:text-sm font-extrabold text-white block truncate">
-                    {currentHeroBanner.title}
-                  </span>
-                  <span className="text-[10px] sm:text-xs text-[#4ADE80] font-bold block truncate">
-                    {currentHeroBanner.subtitle}
-                  </span>
+                {/* Left Column: Compact Content Sizing */}
+                <div className="lg:col-span-6 xl:col-span-6 flex flex-col justify-between p-4 sm:p-7 lg:p-10 text-left z-10 space-y-4 sm:space-y-5">
+
+                  {/* Top Text Block */}
+                  <div className="space-y-2.5 sm:space-y-3.5">
+                    {/* Pulsing Brand Tagline */}
+                    <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 py-0.5 sm:py-1 rounded-full bg-[#EAF5E5] border border-white text-[#1B4316] text-[10px] sm:text-xs font-black uppercase tracking-wider w-fit shadow-2xs">
+                      <span className="relative flex h-1.5 sm:h-2 w-1.5 sm:w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#2E7D32] opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 sm:h-2 w-1.5 sm:w-2 bg-[#2E7D32]"></span>
+                      </span>
+                      <span>100% VEGETARIAN • PLANT-BASED MEATS</span>
+                    </div>
+
+                    {/* Compact Headline */}
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-[44px] font-black tracking-tight leading-[1.12]">
+                      <span className="text-[#50563D] block">Authentic Taste</span>
+                      <span className="bg-gradient-to-r from-[#1E6221] via-[#2E7D32] to-[#16A34A] bg-clip-text text-transparent">
+                        A Kinder{' '}
+                      </span>
+                      <span className="bg-gradient-to-r from-[#D97706] to-[#CA8A04] bg-clip-text text-transparent">
+                        Tomorrow.
+                      </span>
+                    </h1>
+
+                    {/* Subtitle */}
+                    <p className="text-[11px] sm:text-xs lg:text-sm text-[#656B4F] max-w-lg font-medium leading-relaxed">
+                      Enjoy the same rich taste and satisfying texture as real meat — made from plants, for a healthier you and a healthier planet.
+                    </p>
+
+                    {/* 4 Feature Badges in 2x2 Grid for Mobile/Tablet */}
+                    <div className="py-1 sm:py-1.5 grid grid-cols-2 gap-2 sm:gap-3 lg:gap-4">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#E5F5E0] text-[#2E7D32] flex items-center justify-center shrink-0 shadow-2xs">
+                          <Leaf className="w-3.5 h-3.5 text-[#2E7D32] fill-[#2E7D32]/20" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-[11px] sm:text-xs font-black text-[#14360F] block leading-tight">100%</span>
+                          <span className="text-[9px] sm:text-[10px] lg:text-[11px] font-semibold text-[#4A5E46] block leading-tight truncate">Plant Based</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#FEEBEA] text-[#DC2626] flex items-center justify-center shrink-0 shadow-2xs">
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                          </svg>
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-[11px] sm:text-xs font-black text-[#5C1616] block leading-tight truncate">No Hormones</span>
+                          <span className="text-[9px] sm:text-[10px] lg:text-[11px] font-semibold text-[#6E4848] block leading-tight truncate">No Antibiotics</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#E2F7F2] text-[#0D9488] flex items-center justify-center shrink-0 shadow-2xs">
+                          <Utensils className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-[11px] sm:text-xs font-black text-[#0B4842] block leading-tight truncate">Ready to Cook</span>
+                          <span className="text-[9px] sm:text-[10px] lg:text-[11px] font-semibold text-[#3D6460] block leading-tight truncate">Quick & Easy</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#FCE8E6] text-[#E11D48] flex items-center justify-center shrink-0 shadow-2xs">
+                          <Heart className="w-3.5 h-3.5 text-[#E11D48] fill-[#E11D48]/20" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-[11px] sm:text-xs font-black text-[#591422] block leading-tight truncate">Rich in</span>
+                          <span className="text-[9px] sm:text-[10px] lg:text-[11px] font-semibold text-[#733F4A] block leading-tight truncate">Protein & Fiber</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Perfectly Aligned Horizontal Action Buttons for Mobile, Tablet & Desktop */}
+                    <div className="pt-1 flex flex-row items-center gap-2.5 sm:gap-3 w-full">
+                      <Link
+                        href="/shop"
+                        className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 rounded-full bg-[#50563D] hover:bg-[#50563D] text-white font-black text-xs sm:text-sm transition-all shadow-md hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2 text-center"
+                      >
+                        <span>Shop Now</span>
+                        <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </Link>
+
+                      <a
+                        href="#how-its-made"
+                        className="flex-1 sm:flex-none px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-full bg-white hover:bg-[#F2F6ED] text-[#50563D] font-bold text-xs sm:text-sm border border-stone-200 transition-all shadow-2xs hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2 text-center"
+                      >
+                        <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-[#50563D] text-[#50563D]" />
+                        <span>Watch Story</span>
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Brand Value Grid Bar */}
+                  <div className="pt-2.5 border-t border-[#E1EFE0] grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-left">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#E5F5E0] text-[#2E7D32] flex items-center justify-center shrink-0">
+                        <Truck className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[10px] sm:text-xs font-bold text-[#50563D] block leading-tight truncate">Cold-Chain</span>
+                        <span className="text-[8px] sm:text-[10px] text-[#656B4F] block leading-tight truncate">Frozen Express</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#E5F5E0] text-[#2E7D32] flex items-center justify-center shrink-0">
+                        <Award className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[10px] sm:text-xs font-bold text-[#50563D] block leading-tight truncate">Premium</span>
+                        <span className="text-[8px] sm:text-[10px] text-[#656B4F] block leading-tight truncate">Non-GMO</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#E5F5E0] text-[#2E7D32] flex items-center justify-center shrink-0">
+                        <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[10px] sm:text-xs font-bold text-[#50563D] block leading-tight truncate">100% Hygienic</span>
+                        <span className="text-[8px] sm:text-[10px] text-[#656B4F] block leading-tight truncate">FSSAI Certified</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#E5F5E0] text-[#2E7D32] flex items-center justify-center shrink-0">
+                        <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[10px] sm:text-xs font-bold text-[#50563D] block leading-tight truncate">Real Spices</span>
+                        <span className="text-[8px] sm:text-[10px] text-[#656B4F] block leading-tight truncate">Authentic Flavor</span>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <Link
-                    href={currentHeroBanner.link || "/shop"}
-                    className="px-3.5 py-1.5 rounded-full bg-[#2E7D32] hover:bg-[#1EA74F] text-white font-extrabold text-xs shadow-md active:scale-95 flex items-center gap-1"
+                {/* Right Column: Clean Separate Image Card Layout with Distinct White Border */}
+                <div className="lg:col-span-6 xl:col-span-6 p-2 sm:p-3 lg:p-0 flex items-center justify-center">
+                  <div
+                    className="relative w-full h-[260px] xs:h-[300px] sm:h-[380px] lg:h-full min-h-[260px] sm:min-h-[380px] lg:min-h-[480px] xl:min-h-[520px] bg-stone-900 rounded-2xl sm:rounded-3xl lg:rounded-r-[32px] lg:rounded-l-none border-2 sm:border-4 border-white shadow-md overflow-hidden group select-none flex items-center justify-center"
+                    onMouseEnter={() => setIsHeroHovered(true)}
+                    onMouseLeave={() => setIsHeroHovered(false)}
                   >
-                    <span>Shop Now</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-
-                  {/* Indicator Dots */}
-                  <div className="flex items-center gap-1 bg-black/50 backdrop-blur-md px-2 py-1 rounded-full border border-white/20">
-                    {HERO_BANNERS.map((banner, dotIdx) => (
-                      <button
-                        key={banner.id}
-                        onClick={() => setHeroDishIndex(dotIdx)}
-                        className={`transition-all duration-300 rounded-full ${
-                          heroDishIndex === dotIdx
-                            ? 'w-4 h-1.5 bg-[#4ADE80]'
-                            : 'w-1.5 h-1.5 bg-white/50'
-                        }`}
-                        aria-label={`Go to slide ${dotIdx + 1}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Dish Selector Tabs */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-              {HERO_BANNERS.map((banner, idx) => (
-                <button
-                  key={banner.id}
-                  onClick={() => setHeroDishIndex(idx)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
-                    heroDishIndex === idx
-                      ? 'bg-[#202D1B] text-white shadow-sm'
-                      : 'bg-stone-200/80 hover:bg-stone-300 text-stone-700'
-                  }`}
-                >
-                  {banner.title}
-                </button>
-              ))}
-            </div>
-
-            {/* 4 Feature Badges Row */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-stone-200/80">
-              <div className="flex items-center gap-2 text-xs font-bold text-[#2D3527]">
-                <div className="w-6 h-6 rounded-full bg-[#EAF2E3] text-[#2E7D32] flex items-center justify-center shrink-0">
-                  <Leaf className="w-3 h-3" />
-                </div>
-                <span>100% Plant Based</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs font-bold text-[#2D3527]">
-                <div className="w-6 h-6 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
-                  <Heart className="w-3 h-3 fill-rose-500 text-rose-500" />
-                </div>
-                <span>No Hormones</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs font-bold text-[#2D3527]">
-                <div className="w-6 h-6 rounded-full bg-[#EAF2E3] text-[#2E7D32] flex items-center justify-center shrink-0">
-                  <Sparkles className="w-3 h-3" />
-                </div>
-                <span>Good for Planet</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs font-bold text-[#2D3527]">
-                <div className="w-6 h-6 rounded-full bg-[#EAF2E3] text-[#2E7D32] flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-3 h-3" />
-                </div>
-                <span>Rich in Protein</span>
-              </div>
-            </div>
-
-          </div>
-
-          {/* ======================= DESKTOP LAYOUT (>= lg) ======================= */}
-          <div className="hidden lg:grid w-full max-w-[1440px] mx-auto grid-cols-12 min-h-[660px]">
-            
-            {/* Left Column: Copy, Actions, Trust Badges & Product Tabs */}
-            <div className="col-span-6 flex flex-col justify-center py-16 pl-12 pr-8 text-left z-10 space-y-6">
-              
-              {/* 100% Plant-Based Pill Badge */}
-              <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#EAF2E3] text-[#2E7D32] text-xs font-extrabold uppercase tracking-wider w-fit shadow-2xs">
-                <Leaf className="w-3.5 h-3.5 text-[#2E7D32]" />
-                <span>100% Plant-Based</span>
-              </div>
-
-              {/* Main Headline */}
-              <h1 className="text-4xl lg:text-[54px] xl:text-[60px] font-black tracking-tight leading-[1.08] text-[#1E201D] font-display">
-                Authentic Taste <br />
-                <span className="text-[#2F3D27]">A Kinder Tomorrow.</span>
-              </h1>
-
-              {/* Subtitle */}
-              <p className="text-base text-[#5A6355] max-w-lg font-medium leading-relaxed">
-                Enjoy the same rich taste and satisfying texture as real meat — made from plants, for a healthier you and a healthier planet.
-              </p>
-
-              {/* CTA Buttons */}
-              <div className="pt-1 flex flex-wrap items-center gap-4">
-                <Link
-                  href="/shop"
-                  className="px-8 py-3.5 rounded-full bg-[#202D1B] hover:bg-[#151F12] text-white font-black text-sm transition-all shadow-md hover:shadow-lg hover:scale-105 active:scale-95 flex items-center gap-2"
-                >
-                  <span>Shop Now</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-
-                <a
-                  href="#how-its-made"
-                  className="px-7 py-3.5 rounded-full bg-white hover:bg-[#F2F6ED] text-[#1E201D] font-bold text-sm border border-stone-300 transition-all shadow-2xs hover:scale-105 active:scale-95 flex items-center gap-2"
-                >
-                  <Play className="w-3.5 h-3.5 fill-[#202D1B] text-[#202D1B]" />
-                  <span>Watch Our Story</span>
-                </a>
-              </div>
-
-              {/* 4 Feature Badges Row */}
-              <div className="pt-4 grid grid-cols-4 gap-3 border-t border-stone-200">
-                <div className="flex items-center gap-2 text-xs font-bold text-[#2D3527]">
-                  <div className="w-7 h-7 rounded-full bg-[#EAF2E3] text-[#2E7D32] flex items-center justify-center shrink-0">
-                    <Leaf className="w-3.5 h-3.5" />
-                  </div>
-                  <span>100% Plant Based</span>
-                </div>
-
-                <div className="flex items-center gap-2 text-xs font-bold text-[#2D3527]">
-                  <div className="w-7 h-7 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
-                    <Heart className="w-3.5 h-3.5 fill-rose-500 text-rose-500" />
-                  </div>
-                  <span>No Hormones</span>
-                </div>
-
-                <div className="flex items-center gap-2 text-xs font-bold text-[#2D3527]">
-                  <div className="w-7 h-7 rounded-full bg-[#EAF2E3] text-[#2E7D32] flex items-center justify-center shrink-0">
-                    <Sparkles className="w-3.5 h-3.5" />
-                  </div>
-                  <span>Good for Planet</span>
-                </div>
-
-                <div className="flex items-center gap-2 text-xs font-bold text-[#2D3527]">
-                  <div className="w-7 h-7 rounded-full bg-[#EAF2E3] text-[#2E7D32] flex items-center justify-center shrink-0">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                  </div>
-                  <span>Rich in Protein</span>
-                </div>
-              </div>
-
-              {/* Quick Product Tabs Selector */}
-              <div className="pt-2 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                {HERO_BANNERS.map((banner, idx) => (
-                  <button
-                    key={banner.id}
-                    onClick={() => setHeroDishIndex(idx)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap shrink-0 ${
-                      heroDishIndex === idx
-                        ? 'bg-[#202D1B] text-white shadow-sm'
-                        : 'bg-stone-200/80 hover:bg-stone-300 text-stone-700'
-                    }`}
-                  >
-                    {banner.title}
-                  </button>
-                ))}
-              </div>
-
-            </div>
-
-            {/* Right Column: Full-Height, Full-Width Edge-to-Edge Image Showcase */}
-            <div
-              className="col-span-6 relative w-full h-full min-h-[660px] overflow-hidden group select-none"
-              onMouseEnter={() => setIsHeroHovered(true)}
-              onMouseLeave={() => setIsHeroHovered(false)}
-            >
-              {/* Full Bleed Image */}
-              <img
-                src={currentHeroBanner.image}
-                alt={currentHeroBanner.title}
-                className="w-full h-full object-cover object-center transition-all duration-700 group-hover:scale-103"
-              />
-
-              {/* Subtle Gradient Vignette */}
-              <div className="absolute inset-0 bg-gradient-to-r from-[#FBFDF5]/20 via-transparent to-transparent pointer-events-none" />
-
-              {/* Slider Prev / Next Controls */}
-              <button
-                onClick={prevHeroSlide}
-                aria-label="Previous Slide"
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md flex items-center justify-center shadow-xl transition-all opacity-0 group-hover:opacity-100 active:scale-95 z-30"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button
-                onClick={nextHeroSlide}
-                aria-label="Next Slide"
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md flex items-center justify-center shadow-xl transition-all opacity-0 group-hover:opacity-100 active:scale-95 z-30"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-
-              {/* Bottom Overlay Info & Slide Indicator Dots */}
-              <div className="absolute bottom-6 left-6 right-6 z-20 flex items-center justify-between pointer-events-auto">
-                <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl text-white border border-white/20 shadow-lg text-left">
-                  <span className="text-sm font-extrabold block">
-                    {currentHeroBanner.title}
-                  </span>
-                  <span className="text-xs text-[#4ADE80] font-bold block">
-                    {currentHeroBanner.subtitle}
-                  </span>
-                </div>
-
-                {/* Indicator Dots */}
-                <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-3 py-2 rounded-full border border-white/20">
-                  {HERO_BANNERS.map((banner, dotIdx) => (
-                    <button
-                      key={banner.id}
-                      onClick={() => setHeroDishIndex(dotIdx)}
-                      className={`transition-all duration-300 rounded-full ${
-                        heroDishIndex === dotIdx
-                          ? 'w-6 h-2 bg-[#4ADE80]'
-                          : 'w-2 h-2 bg-white/50 hover:bg-white'
-                      }`}
-                      aria-label={`Go to slide ${dotIdx + 1}`}
+                    <img
+                      src={currentHeroBanner.image}
+                      alt={currentHeroBanner.title}
+                      className="w-full h-full object-cover object-[center_top] transition-all duration-700"
                     />
-                  ))}
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
+
+                    {/* 3 Floating Pure Icon Badges */}
+                    <div className="absolute right-2.5 sm:right-4 top-2.5 sm:top-4 z-20 flex flex-col gap-2 pointer-events-auto">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/95 backdrop-blur-md border border-white shadow-md text-[#2E7D32] flex items-center justify-center hover:scale-110 transition-transform cursor-pointer group/icon relative" title="100% Plant Based">
+                        <Leaf className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-[#2E7D32] fill-[#2E7D32]/20" />
+                        <span className="absolute right-11 bg-black/80 text-white text-[10px] font-bold px-2 py-1 rounded-md opacity-0 group-hover/icon:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                          100% Plant Based
+                        </span>
+                      </div>
+
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/95 backdrop-blur-md border border-white shadow-md text-[#2E7D32] flex items-center justify-center hover:scale-110 transition-transform cursor-pointer group/icon relative" title="High in Protein">
+                        <svg className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-[#2E7D32]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12.5 4a3.5 3.5 0 0 0-3.5 3.5v1a2 2 0 0 1-2 2H5a2 2 0 0 0-2 2v2a4 4 0 0 0 4 4h4a7 7 0 0 0 7-7v-3.5A4 4 0 0 0 14.5 4h-2z" />
+                          <path d="M12 11.5c1.5 0 3 .5 3 2" />
+                        </svg>
+                        <span className="absolute right-11 bg-black/80 text-white text-[10px] font-bold px-2 py-1 rounded-md opacity-0 group-hover/icon:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                          High in Protein
+                        </span>
+                      </div>
+
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/95 backdrop-blur-md border border-white shadow-md text-[#2E7D32] flex items-center justify-center hover:scale-110 transition-transform cursor-pointer group/icon relative" title="No Preservatives">
+                        <svg className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-[#2E7D32]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="9" />
+                          <path d="M10 8v3l-2.5 4.5h9L14 11V8" />
+                          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                        </svg>
+                        <span className="absolute right-11 bg-black/80 text-white text-[10px] font-bold px-2 py-1 rounded-md opacity-0 group-hover/icon:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                          No Preservatives
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Slider Navigation Controls */}
+                    <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-5 z-20 bg-black/65 backdrop-blur-md px-3 py-1 sm:py-1.5 rounded-full border border-white/20 shadow-xl flex items-center gap-2 sm:gap-2.5">
+                      <button
+                        onClick={prevHeroSlide}
+                        aria-label="Previous Slide"
+                        className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/20 hover:bg-white text-white hover:text-black flex items-center justify-center shadow-xs active:scale-90 transition-all"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </button>
+
+                      <div className="flex items-center gap-1 sm:gap-1.5 px-0.5">
+                        {HERO_BANNERS.map((banner, dotIdx) => (
+                          <button
+                            key={banner.id}
+                            onClick={() => setHeroDishIndex(dotIdx)}
+                            className={`transition-all duration-300 rounded-full ${heroDishIndex === dotIdx
+                                ? 'w-4 sm:w-5 h-1.5 sm:h-2 bg-[#4ADE80]'
+                                : 'w-1.5 sm:w-2 h-1.5 sm:h-2 bg-white/50 hover:bg-white/80'
+                              }`}
+                            aria-label={`Go to slide ${dotIdx + 1}`}
+                          />
+                        ))}
+                      </div>
+
+                      <button
+                        onClick={nextHeroSlide}
+                        aria-label="Next Slide"
+                        className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/20 hover:bg-white text-white hover:text-black flex items-center justify-center shadow-xs active:scale-90 transition-all"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      </button>
+                    </div>
+
+                  </div>
                 </div>
+
               </div>
 
             </div>
-
           </div>
         </section>
 
         {/* ========================================================================= */}
-        {/* 2. SHOP BY CATEGORY SECTION (Horizontal Slider on Mobile & Desktop) */}
+        {/* 2. SHOP BY CATEGORY SECTION (Connected to Backend, Full Medium Width & Smooth Mobile/Tab Swipe) */}
         {/* ========================================================================= */}
-        <section className="py-10 md:py-14 site-shell">
-          {/* Header Row */}
-          <div className="flex items-end justify-between mb-6">
+        <section className="py-6 sm:py-8 lg:py-10 max-w-[1400px] mx-auto px-3 sm:px-6 lg:px-8 w-full">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-black text-[#1E201D] tracking-tight font-display">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#1E201D] tracking-tight font-display">
                 Shop by Category
               </h2>
-              <p className="text-xs sm:text-sm text-[#61665D] mt-0.5">
-                Delicious plant-based options for every meal.
+              <p className="text-xs sm:text-sm text-[#657563] font-medium mt-0.5 hidden sm:block">
+                Explore our full line of delicious 100% plant-based frozen favorites
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <Link href="/shop" className="text-xs font-extrabold text-[#202D1B] hover:underline flex items-center gap-1">
-                <span>View All Products</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-              <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Left/Right Floating Scroll Buttons for touch & mouse convenience */}
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <button
                   onClick={() => scrollContainer(categoryScrollRef, 'left')}
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-stone-200 bg-white hover:bg-stone-50 flex items-center justify-center text-stone-700 transition-colors shadow-2xs"
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-stone-200 bg-white hover:bg-[#F2F7EE] hover:border-[#2E7D32]/40 flex items-center justify-center text-stone-700 transition-all shadow-xs active:scale-95"
+                  aria-label="Scroll Categories Left"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </button>
                 <button
                   onClick={() => scrollContainer(categoryScrollRef, 'right')}
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-stone-200 bg-white hover:bg-stone-50 flex items-center justify-center text-stone-700 transition-colors shadow-2xs"
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-stone-200 bg-white hover:bg-[#F2F7EE] hover:border-[#2E7D32]/40 flex items-center justify-center text-stone-700 transition-all shadow-xs active:scale-95"
+                  aria-label="Scroll Categories Right"
                 >
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </button>
               </div>
+
+              <Link
+                href="/shop"
+                className="text-xs sm:text-sm font-black text-[#1B4316] hover:text-[#2E7D32] flex items-center gap-1 transition-colors px-3 py-1.5 rounded-full bg-[#EAF5E5] hover:bg-[#DDF0D6] border border-[#2E7D32]/20 shadow-2xs"
+              >
+                <span>View All</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
           </div>
 
-          {/* Categories Horizontal Carousel */}
+          {/* Full Medium Width Container on Laptop / Desktop & Smooth Drag/Touch Swipe on Mobile/Tablet */}
           <div
             ref={categoryScrollRef}
-            className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide [-ms-overflow-style:none] [scrollbar-width:none]"
+            onMouseDown={handleCategoryMouseDown}
+            onMouseMove={handleCategoryMouseMove}
+            onMouseUp={handleCategoryMouseUp}
+            onMouseLeave={handleCategoryMouseLeave}
+            className="w-full flex gap-3 sm:gap-4 overflow-x-auto pb-3 pt-1 scrollbar-hide [-ms-overflow-style:none] [scrollbar-width:none] touch-pan-x overscroll-x-contain select-none cursor-grab active:cursor-grabbing snap-x snap-mandatory md:grid md:grid-cols-4 lg:grid-cols-6 md:overflow-visible md:cursor-default md:active:cursor-default"
           >
-            {(featuredCategories.length > 0
-              ? featuredCategories
-              : [
-                  { name: 'Mock Mutton', subtitle: 'Rich & Spicy', img: '/assets/mock-mutton.jpg' },
-                  { name: 'Kebabs & Cutlets', subtitle: 'Ready to Cook', img: '/assets/dish-crispy-cutlets.jpg' },
-                  { name: 'Chunks', subtitle: 'Versatile & Juicy', img: '/assets/corn-cheese-balls.jpg' },
-                  { name: 'Minced', subtitle: 'Perfect for Recipes', img: '/assets/dish-mock-meat-curry.jpg' },
-                  { name: 'Sausages', subtitle: 'High Protein', img: '/assets/french-fries.jpg' },
-                  { name: 'Nuggets & Bites', subtitle: 'Kids Favorite', img: '/assets/sweet-corn.jpg' },
-                ]
-            ).map((cat, idx) => (
-              <Link
-                key={idx}
-                href={`/shop?category=${encodeURIComponent(cat.name)}`}
-                className="group bg-white rounded-2xl border border-stone-200/80 shadow-2xs hover:shadow-md transition-all p-3 flex flex-col justify-between w-[150px] sm:w-[180px] shrink-0 snap-start hover:-translate-y-0.5"
-              >
-                {/* Category Image Box */}
-                <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-stone-50 mb-2.5 flex items-center justify-center border border-stone-100">
-                  {cat.img ? (
-                    <img
-                      src={cat.img}
-                      alt={cat.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-[#F4F7F0]">
-                      <Utensils className="w-6 h-6 text-[#2E7D32] mb-1" />
-                      <span className="text-[10px] font-bold text-[#2E7D32]">{cat.name}</span>
-                    </div>
-                  )}
-                </div>
+            {/* All Categories Item */}
+            <div
+              onClick={(e) => handleCategoryItemClick(e, '/shop')}
+              className="group flex w-[132px] sm:w-[160px] md:w-auto min-w-0 bg-[#50563D] hover:bg-[#50563D] text-white rounded-2xl p-3 sm:p-4 flex-col items-center justify-center shrink-0 md:shrink h-28 sm:h-32 md:h-36 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] cursor-pointer snap-start border border-[#234E37]"
+            >
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/10 flex items-center justify-center mb-1.5 sm:mb-2 group-hover:scale-110 transition-transform">
+                <LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6 text-[#4ADE80]" />
+              </div>
+              <span className="text-xs sm:text-sm font-black text-white text-center leading-tight">
+                All Products
+              </span>
+              <span className="text-[10px] sm:text-[11px] text-[#A7D7B5] mt-0.5 font-semibold">
+                Explore
+              </span>
+            </div>
 
-                <div>
-                  <div className="flex items-center justify-between gap-1">
-                    <h3 className="font-extrabold text-xs sm:text-sm text-[#1E201D] group-hover:text-[#202D1B] transition-colors line-clamp-1">
-                      {cat.name}
-                    </h3>
-                    <ArrowRight className="w-3 h-3 text-stone-400 group-hover:text-[#202D1B] group-hover:translate-x-0.5 transition-all shrink-0" />
-                  </div>
-                  <p className="text-[10px] text-[#61665D] mt-0.5 line-clamp-1">{cat.subtitle || '100% Pure Veg'}</p>
+            {/* Dynamic Category Items Connected to Backend */}
+            {categoriesList.map((cat, idx) => (
+              <div
+                key={cat.id || idx}
+                onClick={(e) => handleCategoryItemClick(e, cat.link)}
+                className="group flex w-[132px] sm:w-[160px] md:w-auto min-w-0 bg-white hover:bg-[#F9FCF7] rounded-2xl p-2.5 sm:p-3.5 flex-col items-center justify-center shrink-0 md:shrink h-28 sm:h-32 md:h-36 shadow-xs hover:shadow-md border border-stone-200/80 hover:border-[#2E7D32]/40 transition-all hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer snap-start"
+              >
+                <div className="w-13 h-13 sm:w-16 sm:h-16 md:w-18 md:h-18 rounded-full overflow-hidden p-0.5 bg-stone-100 border-2 border-white shadow-xs group-hover:scale-110 group-hover:border-[#2E7D32]/40 transition-all shrink-0">
+                  <img
+                    src={cat.img}
+                    alt={cat.name}
+                    className="w-full h-full rounded-full object-cover pointer-events-none"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = getCategoryFallbackImage(cat.name);
+                    }}
+                  />
                 </div>
-              </Link>
+                <span className="mt-1.5 sm:mt-2 text-xs sm:text-sm font-extrabold text-[#1E201D] group-hover:text-[#2E7D32] transition-colors text-center leading-tight line-clamp-2 px-1">
+                  {cat.name}
+                </span>
+              </div>
             ))}
           </div>
         </section>
 
         {/* ========================================================================= */}
-        {/* 3. "GOOD FOOD DOES GOOD" & 3 IMPACT STATS (Exact Figma Layout & Colors) */}
+        {/* 3. GOOD FOOD DOES GOOD & 3 IMPACT STATS */}
         {/* ========================================================================= */}
         <section className="py-6 md:py-10 site-shell">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-            
-            {/* Left Card: Good Food Does Good (Spans 7 Cols with Organic Plate Backdrop) */}
+
             <div className="lg:col-span-7 bg-[#EAF3E7] rounded-[28px] sm:rounded-[36px] p-6 sm:p-8 lg:p-10 flex flex-col sm:flex-row items-center gap-6 lg:gap-8 shadow-xs border border-[#DFEBE0] text-left relative overflow-hidden">
-              
-              {/* Organic Watercolor Green Backdrop Splash & Plate */}
               <div className="relative shrink-0 flex items-center justify-center w-44 sm:w-52 md:w-60 aspect-square">
-                {/* Custom organic watercolor blob background behind plate */}
                 <div className="absolute inset-0 bg-[#CDE8C9]/70 rounded-[40%_60%_70%_30%_/_40%_50%_60%_55%] blur-sm scale-110 pointer-events-none" />
                 <div className="absolute -top-3 -left-3 w-24 h-24 bg-[#B8E2B2]/60 rounded-[60%_40%_30%_70%_/_50%_60%_40%_50%] blur-md pointer-events-none" />
                 <div className="absolute -bottom-2 -right-2 w-28 h-28 bg-[#D6EED2]/80 rounded-[50%_50%_60%_40%_/_60%_40%_50%_50%] blur-sm pointer-events-none" />
-                
-                {/* Plate Image with transparent/seamless blending */}
+
                 <div className="relative w-full h-full rounded-full overflow-hidden shadow-xl z-10">
                   <img
                     src="/assets/good-food-plate.jpg"
@@ -876,14 +944,13 @@ export default function StorefrontHomePage() {
                 </div>
               </div>
 
-              {/* Text Content */}
               <div className="space-y-3 flex-1 z-10">
                 <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#DFEDE0] border border-[#2E7D32]/25 text-[#2E7D32] text-[10px] font-extrabold uppercase tracking-wider shadow-2xs">
                   <Leaf className="w-3 h-3 text-[#2E7D32]" />
                   <span>Why Sakthi!</span>
                 </div>
 
-                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#182B17] font-display tracking-tight leading-tight">
+                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#50563D] font-display tracking-tight leading-tight">
                   Good Food Does Good
                 </h3>
 
@@ -894,7 +961,7 @@ export default function StorefrontHomePage() {
                 <div className="pt-2">
                   <Link
                     href="/shop"
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-white hover:bg-stone-50 text-[#182B17] font-extrabold text-xs shadow-md shadow-black/5 border border-stone-200/80 transition-all hover:scale-105 active:scale-95 group"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-white hover:bg-stone-50 text-[#50563D] font-extrabold text-xs shadow-md shadow-black/5 border border-stone-200/80 transition-all hover:scale-105 active:scale-95 group"
                   >
                     <span>Learn More</span>
                     <ArrowRight className="w-3.5 h-3.5 text-[#2E7D32] group-hover:translate-x-1 transition-transform" />
@@ -903,35 +970,29 @@ export default function StorefrontHomePage() {
               </div>
             </div>
 
-            {/* Right Card: Unified Single Card for 3 Planet Impact Metrics */}
             <div className="lg:col-span-5 bg-white rounded-[28px] sm:rounded-[36px] p-6 sm:p-8 border border-stone-200/80 shadow-xs flex flex-col justify-between gap-6">
-              
-              {/* Top Row: 2 Metrics (Land & Water) with Custom Organic Radius Badges */}
               <div className="grid grid-cols-2 gap-4">
-                {/* 90% Less Land Usage */}
                 <div className="flex flex-col items-center justify-center text-center p-2">
                   <div className="w-13 h-13 rounded-[16px_24px_18px_26px] bg-[#E6F4EA] text-[#2E7D32] flex items-center justify-center mb-2.5 shadow-2xs">
                     <svg className="w-6 h-6 text-[#2E7D32]" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d="M12 2L5 10h4l-3 6h5v4h2v-4h5l-3-6h4L12 2z" />
                     </svg>
                   </div>
-                  <span className="text-2xl sm:text-3xl font-extrabold text-[#182B17] font-display tracking-tight">90%</span>
-                  <span className="text-xs font-bold text-[#556953] mt-0.5">Less Land Usage</span>
+                  <span className="text-2xl sm:text-3xl font-extrabold text-[#50563D] font-display tracking-tight">90%</span>
+                  <span className="text-xs font-bold text-[#656B4F] mt-0.5">Less Land Usage</span>
                 </div>
 
-                {/* 85% Less Fresh Water */}
                 <div className="flex flex-col items-center justify-center text-center p-2">
                   <div className="w-13 h-13 rounded-[24px_16px_26px_18px] bg-[#E1F3FE] text-[#0288D1] flex items-center justify-center mb-2.5 shadow-2xs">
                     <svg className="w-6 h-6 text-[#0288D1]" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" />
                     </svg>
                   </div>
-                  <span className="text-2xl sm:text-3xl font-extrabold text-[#182B17] font-display tracking-tight">85%</span>
-                  <span className="text-xs font-bold text-[#556953] mt-0.5">Less Fresh Water</span>
+                  <span className="text-2xl sm:text-3xl font-extrabold text-[#50563D] font-display tracking-tight">85%</span>
+                  <span className="text-xs font-bold text-[#656B4F] mt-0.5">Less Fresh Water</span>
                 </div>
               </div>
 
-              {/* Bottom Row: 1 Centered Metric (80% Lower CO2 Emissions) with Custom Organic Badge */}
               <div className="flex flex-col items-center justify-center text-center pb-2">
                 <div className="w-13 h-13 rounded-[20px_26px_16px_24px] bg-[#FDEEE9] text-[#E65100] flex items-center justify-center mb-2 shadow-2xs">
                   <svg className="w-6 h-6 text-[#E65100]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -940,20 +1001,18 @@ export default function StorefrontHomePage() {
                     <path d="M13 12.5h1a1.5 1.5 0 011.5 1.5v0a1.5 1.5 0 01-1.5 1.5h-1" />
                   </svg>
                 </div>
-                <span className="text-2xl sm:text-3xl font-extrabold text-[#182B17] font-display tracking-tight">80%</span>
-                <span className="text-xs font-bold text-[#556953] mt-0.5">Lower CO₂ Emissions</span>
+                <span className="text-2xl sm:text-3xl font-extrabold text-[#50563D] font-display tracking-tight">80%</span>
+                <span className="text-xs font-bold text-[#656B4F] mt-0.5">Lower CO₂ Emissions</span>
               </div>
-
             </div>
 
           </div>
         </section>
 
         {/* ========================================================================= */}
-        {/* 4. FEATURED PRODUCTS SECTION (Mobile Horizontal Scroll / Desktop 4-Col Grid) */}
+        {/* 4. FEATURED PRODUCTS SECTION */}
         {/* ========================================================================= */}
         <section className="py-10 md:py-14 site-shell">
-          {/* Header Row */}
           <div className="flex items-end justify-between mb-6">
             <div>
               <h2 className="text-2xl sm:text-3xl font-black text-[#1E201D] tracking-tight font-display">
@@ -965,7 +1024,7 @@ export default function StorefrontHomePage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <Link href="/shop" className="text-xs font-extrabold text-[#202D1B] hover:underline flex items-center gap-1">
+              <Link href="/shop" className="text-xs font-extrabold text-[#50563D] hover:underline flex items-center gap-1">
                 <span>View All Products</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
@@ -986,7 +1045,6 @@ export default function StorefrontHomePage() {
             </div>
           </div>
 
-          {/* Product Cards: Horizontal Swipeable on Mobile, 4-Col Grid on Large */}
           <div
             ref={productScrollRef}
             className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 overflow-x-auto pb-4 sm:pb-0 snap-x snap-mandatory scrollbar-hide"
@@ -996,7 +1054,6 @@ export default function StorefrontHomePage() {
                 key={p.id || idx}
                 className="bg-white rounded-2xl border border-stone-200/80 shadow-2xs hover:shadow-md transition-all p-3.5 flex flex-col justify-between group relative w-[220px] sm:w-auto shrink-0 snap-start"
               >
-                {/* Product Image Box */}
                 <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-stone-50 mb-3 border border-stone-100 flex items-center justify-center">
                   <Link href={`/product/${p.id}`} className="w-full h-full block">
                     {p.image ? (
@@ -1013,7 +1070,6 @@ export default function StorefrontHomePage() {
                     )}
                   </Link>
 
-                  {/* Heart Save Button */}
                   <button
                     onClick={(e) => toggleSaveProduct(e, p.id)}
                     className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center text-stone-600 hover:text-rose-600 transition-colors shadow-2xs"
@@ -1024,14 +1080,13 @@ export default function StorefrontHomePage() {
                   </button>
                 </div>
 
-                {/* Details */}
                 <div className="space-y-1 mb-3">
                   <Link href={`/product/${p.id}`}>
-                    <h3 className="font-extrabold text-sm sm:text-base text-[#1E201D] group-hover:text-[#202D1B] transition-colors line-clamp-1">
+                    <h3 className="font-extrabold text-sm sm:text-base text-[#1E201D] group-hover:text-[#50563D] transition-colors line-clamp-2 min-h-[44px] leading-snug">
                       {p.name}
                     </h3>
                   </Link>
-                  <p className="text-[11px] text-[#61665D] line-clamp-1">
+                  <p className="text-xs text-[#61665D] line-clamp-2 min-h-[32px] leading-relaxed">
                     {p.description || 'Juicy, tender and full of authentic flavor.'}
                   </p>
 
@@ -1050,10 +1105,9 @@ export default function StorefrontHomePage() {
                   </div>
                 </div>
 
-                {/* Add to Cart Button */}
                 <button
                   onClick={(e) => handleAddToCart(p, e)}
-                  className="w-full py-2.5 rounded-xl bg-[#202D1B] hover:bg-[#151F12] text-white font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95"
+                  className="w-full py-2.5 rounded-xl bg-[#50563D] hover:bg-[#151F12] text-white font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95"
                 >
                   <ShoppingBag className="w-3.5 h-3.5" />
                   <span>Add to Cart</span>
@@ -1064,24 +1118,17 @@ export default function StorefrontHomePage() {
         </section>
 
         {/* ========================================================================= */}
-        {/* 5. "HOW SAKTHI MOCK MEAT IS MADE" (Clean Horizontal Ribbon on Mobile & Desktop) */}
+        {/* 5. HOW SAKTHI MOCK MEAT IS MADE */}
         {/* ========================================================================= */}
         <section id="how-its-made" className="py-4 md:py-6 w-full max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="w-full bg-[#0D2413] text-white rounded-[20px] sm:rounded-[24px] py-4 sm:py-5 px-4 sm:px-8 lg:px-10 relative overflow-hidden shadow-xl border border-[#1A3D21]">
-            
-            {/* Background Botanical Leaf Silhouettes & Ambient Glows */}
             <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
               <div className="absolute -left-16 -top-16 w-48 h-48 bg-[#34D399]/20 rounded-full blur-3xl" />
               <div className="absolute right-1/4 top-1/2 -translate-y-1/2 w-60 h-60 bg-[#25D366]/15 rounded-full blur-3xl" />
             </div>
 
-            {/* Always Horizontal Layout: Left Content & Right Patty Graphic */}
             <div className="relative z-10 flex flex-row items-center justify-between gap-2.5 sm:gap-6 lg:gap-8">
-              
-              {/* Left & Center: Title + 4 Step Pipeline */}
               <div className="flex-1 min-w-0 space-y-2 sm:space-y-3 text-left">
-                
-                {/* Header Tagline & Title */}
                 <div>
                   <div className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full bg-[#13331A] border border-[#2EA043]/40 text-[#4ADE80] text-[8px] xs:text-[9px] sm:text-[10px] font-black uppercase tracking-wider shadow-2xs">
                     <Leaf className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#4ADE80]" />
@@ -1098,10 +1145,7 @@ export default function StorefrontHomePage() {
                   </div>
                 </div>
 
-                {/* 4 Process Steps in Balanced Grid (Zero Empty Gaps) */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 xs:gap-2 sm:gap-3 lg:gap-4 pt-1.5 sm:pt-2.5 border-t border-[#1F4525]/60">
-                  
-                  {/* Step 01 */}
                   <div className="flex items-start gap-1.5 sm:gap-2">
                     <div className="w-5 h-5 xs:w-6 xs:h-6 sm:w-8 sm:h-8 rounded-full bg-[#1EA74F] text-white flex items-center justify-center shrink-0 shadow-sm border border-white/20 mt-0.5">
                       <Leaf className="w-2.5 h-2.5 xs:w-3 xs:h-3 sm:w-4 sm:h-4 text-white" />
@@ -1117,7 +1161,6 @@ export default function StorefrontHomePage() {
                     </div>
                   </div>
 
-                  {/* Step 02 */}
                   <div className="flex items-start gap-1.5 sm:gap-2">
                     <div className="w-5 h-5 xs:w-6 xs:h-6 sm:w-8 sm:h-8 rounded-full bg-[#1EA74F] text-white flex items-center justify-center shrink-0 shadow-sm border border-white/20 mt-0.5">
                       <Settings className="w-2.5 h-2.5 xs:w-3 xs:h-3 sm:w-4 sm:h-4 text-white" />
@@ -1133,7 +1176,6 @@ export default function StorefrontHomePage() {
                     </div>
                   </div>
 
-                  {/* Step 03 */}
                   <div className="flex items-start gap-1.5 sm:gap-2">
                     <div className="w-5 h-5 xs:w-6 xs:h-6 sm:w-8 sm:h-8 rounded-full bg-[#1EA74F] text-white flex items-center justify-center shrink-0 shadow-sm border border-white/20 mt-0.5">
                       <ChefHat className="w-2.5 h-2.5 xs:w-3 xs:h-3 sm:w-4 sm:h-4 text-white" />
@@ -1149,7 +1191,6 @@ export default function StorefrontHomePage() {
                     </div>
                   </div>
 
-                  {/* Step 04 */}
                   <div className="flex items-start gap-1.5 sm:gap-2">
                     <div className="w-5 h-5 xs:w-6 xs:h-6 sm:w-8 sm:h-8 rounded-full bg-[#1EA74F] text-white flex items-center justify-center shrink-0 shadow-sm border border-white/20 mt-0.5">
                       <Package className="w-2.5 h-2.5 xs:w-3 xs:h-3 sm:w-4 sm:h-4 text-white" />
@@ -1164,18 +1205,11 @@ export default function StorefrontHomePage() {
                       </p>
                     </div>
                   </div>
-
                 </div>
-
               </div>
 
-              {/* Right Side: Patty Cutout Graphic + Attached Doodle with Zero Gap */}
               <div className="relative shrink-0 flex items-center justify-center">
-                
-                {/* Patty Container */}
                 <div className="relative w-24 xs:w-28 sm:w-36 md:w-44 h-24 xs:h-28 sm:h-36 md:h-44 flex items-center justify-center">
-                  
-                  {/* Chalk Doodle Annotation directly positioned with arrow pointing into top patty */}
                   <div className="absolute top-0 -left-6 xs:-left-8 sm:-left-10 z-20 text-left pointer-events-none select-none">
                     <div className="font-serif italic leading-none space-y-0.5">
                       <span className="text-[#6EE7B7] text-[8px] xs:text-[9px] sm:text-[11px] font-bold block whitespace-nowrap drop-shadow-sm">
@@ -1185,43 +1219,27 @@ export default function StorefrontHomePage() {
                         Plant Power
                       </span>
                     </div>
-                    {/* Chalk arrow directly pointing into the top burger patty */}
                     <svg className="w-6 h-6 xs:w-7 xs:h-7 sm:w-9 sm:h-9 text-white stroke-current fill-none -rotate-6 mt-0.5 ml-1 drop-shadow-sm" viewBox="0 0 54 54">
-                      <path
-                        d="M 6 8 C 18 16, 24 32, 18 42 C 22 46, 34 44, 48 36"
-                        strokeWidth="3.2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M 36 32 L 48 36 L 42 48"
-                        strokeWidth="3.2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
+                      <path d="M 6 8 C 18 16, 24 32, 18 42 C 22 46, 34 44, 48 36" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M 36 32 L 48 36 L 42 48" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </div>
 
-                  {/* Patty Graphic */}
                   <TransparentPattyGraphic
                     src="/assets/sakthi-mock-meat-exact.jpg"
                     alt="Real Taste Plant Power Mock Meat Patties"
                     className="w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.5)] hover:scale-105 transition-transform duration-300"
                   />
                 </div>
-
               </div>
-
             </div>
-
           </div>
         </section>
 
         {/* ========================================================================= */}
-        {/* 6. "TASTY RECIPES" SECTION (Horizontal Mobile Slider) */}
+        {/* 6. TASTY RECIPES */}
         {/* ========================================================================= */}
         <section className="py-10 md:py-14 site-shell">
-          {/* Header Row */}
           <div className="flex items-end justify-between mb-6">
             <div>
               <h2 className="text-2xl sm:text-3xl font-black text-[#1E201D] tracking-tight font-display">
@@ -1233,7 +1251,7 @@ export default function StorefrontHomePage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <Link href="/shop" className="text-xs font-extrabold text-[#202D1B] hover:underline flex items-center gap-1">
+              <Link href="/shop" className="text-xs font-extrabold text-[#50563D] hover:underline flex items-center gap-1">
                 <span>View All Recipes</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
@@ -1254,7 +1272,6 @@ export default function StorefrontHomePage() {
             </div>
           </div>
 
-          {/* Recipes 4-Column Grid / Mobile Horizontal Scroll */}
           <div
             ref={recipeScrollRef}
             className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 overflow-x-auto pb-4 sm:pb-0 snap-x snap-mandatory scrollbar-hide"
@@ -1270,12 +1287,12 @@ export default function StorefrontHomePage() {
                     alt={recipe.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute top-2 left-2 px-2.5 py-0.5 rounded-md bg-[#202D1B]/90 backdrop-blur-xs text-white text-[10px] font-bold">
+                  <div className="absolute top-2 left-2 px-2.5 py-0.5 rounded-md bg-[#50563D]/90 backdrop-blur-xs text-white text-[10px] font-bold">
                     {recipe.category}
                   </div>
                 </div>
 
-                <h3 className="font-extrabold text-sm text-[#1E201D] group-hover:text-[#202D1B] transition-colors mb-1 line-clamp-1">
+                <h3 className="font-extrabold text-sm text-[#1E201D] group-hover:text-[#50563D] transition-colors mb-1 line-clamp-1">
                   {recipe.title}
                 </h3>
 
@@ -1296,17 +1313,14 @@ export default function StorefrontHomePage() {
         </section>
 
         {/* ========================================================================= */}
-        {/* 7. "LOVED BY CUSTOMERS" & "FAQS" 2-COLUMN SECTION (Exact Figma Connected Layout) */}
+        {/* 7. LOVED BY CUSTOMERS & FAQS */}
         {/* ========================================================================= */}
         <section className="py-10 md:py-14 site-shell">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
-            
-            {/* Left Column: Loved by Customers (Sage Container with Floating White Card) */}
+
             <div className="lg:col-span-5 bg-[#EAF3E7] rounded-[28px] sm:rounded-[36px] p-6 sm:p-8 border border-[#DFEBE0] shadow-xs flex flex-col justify-between text-left relative overflow-hidden">
-              
-              {/* Header */}
               <div className="space-y-1">
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-[#182B17] tracking-tight font-display">
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-[#50563D] tracking-tight font-display">
                   Loved by Customers
                 </h2>
                 <p className="text-xs sm:text-sm text-[#4E5E4C] font-medium">
@@ -1314,28 +1328,24 @@ export default function StorefrontHomePage() {
                 </p>
               </div>
 
-              {/* Floating White Review Card */}
               <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-7 shadow-xs border border-stone-200/80 my-5 relative">
-                {/* 5 Gold Stars */}
                 <div className="flex items-center gap-1 mb-3">
                   {[...Array(displayReviews[activeReviewIndex]?.rating || 5)].map((_, i) => (
                     <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
 
-                {/* Quote */}
                 <p className="text-xs sm:text-sm text-[#2C382A] font-medium leading-relaxed italic">
                   &ldquo;{displayReviews[activeReviewIndex]?.comment}&rdquo;
                 </p>
 
-                {/* Author Info & Navigation Arrows */}
                 <div className="flex items-center justify-between pt-4 mt-3 border-t border-stone-100">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-[#E0ECE0] text-[#2E7D32] font-black text-xs flex items-center justify-center border border-[#2E7D32]/30 overflow-hidden shadow-2xs shrink-0">
                       {displayReviews[activeReviewIndex]?.authorName?.charAt(0) || 'P'}
                     </div>
                     <div>
-                      <h4 className="font-extrabold text-xs sm:text-sm text-[#182B17] leading-tight">
+                      <h4 className="font-extrabold text-xs sm:text-sm text-[#50563D] leading-tight">
                         {displayReviews[activeReviewIndex]?.authorName}
                       </h4>
                       <p className="text-[11px] text-[#61665D]">
@@ -1344,7 +1354,6 @@ export default function StorefrontHomePage() {
                     </div>
                   </div>
 
-                  {/* Navigation Arrows */}
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() =>
@@ -1368,39 +1377,35 @@ export default function StorefrontHomePage() {
                 </div>
               </div>
 
-              {/* Carousel Dots */}
               <div className="flex items-center justify-center gap-1.5 pt-1">
                 {displayReviews.map((_, dotIdx) => (
                   <button
                     key={dotIdx}
                     onClick={() => setActiveReviewIndex(dotIdx)}
-                    className={`h-1.5 rounded-full transition-all ${
-                      activeReviewIndex === dotIdx ? 'w-5 bg-[#182B17]' : 'w-1.5 bg-stone-300'
-                    }`}
+                    className={`h-1.5 rounded-full transition-all ${activeReviewIndex === dotIdx ? 'w-5 bg-[#50563D]' : 'w-1.5 bg-stone-300'
+                      }`}
                     aria-label={`Go to slide ${dotIdx + 1}`}
                   />
                 ))}
               </div>
             </div>
 
-            {/* Right Column: Frequently Asked Questions */}
             <div className="lg:col-span-7 flex flex-col justify-between space-y-4">
               <div className="flex items-end justify-between">
                 <div className="text-left space-y-1">
-                  <h2 className="text-2xl sm:text-3xl font-extrabold text-[#182B17] tracking-tight font-display">
+                  <h2 className="text-2xl sm:text-3xl font-extrabold text-[#50563D] tracking-tight font-display">
                     Frequently Asked Questions
                   </h2>
                   <p className="text-xs sm:text-sm text-[#4E5E4C] font-medium">
                     Find answers to common questions.
                   </p>
                 </div>
-                <Link href="/shop" className="text-xs font-extrabold text-[#182B17] hover:text-[#2E7D32] flex items-center gap-1 transition-colors pb-1">
+                <Link href="/shop" className="text-xs font-extrabold text-[#50563D] hover:text-[#2E7D32] flex items-center gap-1 transition-colors pb-1">
                   <span>View All</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
 
-              {/* Accordion List */}
               <div className="space-y-3 flex-1 flex flex-col justify-between">
                 {FAQS.map((faq, idx) => {
                   const isOpen = openFaqIndex === idx;
@@ -1411,17 +1416,17 @@ export default function StorefrontHomePage() {
                     >
                       <button
                         onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
-                        className="w-full p-4 sm:p-4.5 text-left font-bold text-xs sm:text-sm text-[#182B17] flex items-center justify-between gap-3 group"
+                        className="w-full p-4 sm:p-4.5 text-left font-bold text-xs sm:text-sm text-[#50563D] flex items-center justify-between gap-3 group"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-5 h-5 rounded-full bg-[#182B17] text-white flex items-center justify-center shrink-0">
+                          <div className="w-5 h-5 rounded-full bg-[#50563D] text-white flex items-center justify-center shrink-0">
                             <Check className="w-3 h-3 text-[#4ADE80]" />
                           </div>
-                          <span className="font-extrabold text-[#182B17] group-hover:text-[#2E7D32] transition-colors">
+                          <span className="font-extrabold text-[#50563D] group-hover:text-[#2E7D32] transition-colors">
                             {faq.q}
                           </span>
                         </div>
-                        <span className="text-[#182B17] font-extrabold text-base shrink-0">
+                        <span className="text-[#50563D] font-extrabold text-base shrink-0">
                           {isOpen ? '−' : '+'}
                         </span>
                       </button>
@@ -1441,22 +1446,18 @@ export default function StorefrontHomePage() {
         </section>
 
         {/* ========================================================================= */}
-        {/* 8. "JOIN OUR SAKTHI WHATSAPP COMMUNITY" (Sleek Horizontal on Mobile & Desktop) */}
+        {/* 8. JOIN WHATSAPP COMMUNITY */}
         {/* ========================================================================= */}
         <section className="pb-10 md:pb-16 site-shell">
-          <div className="w-full rounded-[24px] sm:rounded-[36px] bg-[#182D18] text-white py-4 sm:py-5 px-4 sm:px-8 lg:px-10 border border-[#244224] shadow-2xl relative overflow-hidden flex flex-row items-center justify-between gap-3 sm:gap-6 lg:gap-8">
-            
-            {/* Background Ambient Glow & Subtle Leaf SVGs for organic texture */}
+          <div className="w-full rounded-[24px] sm:rounded-[36px] bg-[#50563D] text-white py-4 sm:py-5 px-4 sm:px-8 lg:px-10 border border-[#244224] shadow-2xl relative overflow-hidden flex flex-row items-center justify-between gap-3 sm:gap-6 lg:gap-8">
             <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
               <div className="absolute -left-16 -top-16 w-64 h-64 bg-[#34D399]/20 rounded-full blur-3xl" />
               <div className="absolute right-1/3 top-1/2 -translate-y-1/2 w-64 h-64 bg-[#25D366]/15 rounded-full blur-3xl" />
-              {/* Subtle decorative leaf silhouette paths */}
               <svg className="absolute left-1/4 -bottom-10 w-44 h-44 text-[#284926]/40 rotate-12" viewBox="0 0 200 200" fill="currentColor">
                 <path d="M44.5,150.8C-5.5,100.8,12.2,22.2,95.5,5.5c83.3-16.7,111.1,66.7,61.1,116.7C106.6,172.2,94.5,200.8,44.5,150.8z" />
               </svg>
             </div>
 
-            {/* Left Side: WhatsApp Logo + Headline & CTA Button in compact layout */}
             <div className="flex-1 min-w-0 z-10 text-left space-y-2">
               <div className="flex items-center gap-2.5 sm:gap-4">
                 <div className="w-8 h-8 sm:w-13 sm:h-13 rounded-xl sm:rounded-2xl bg-[#25D366] text-white flex items-center justify-center shrink-0 shadow-md shadow-[#25D366]/40 border border-white/20">
@@ -1472,21 +1473,19 @@ export default function StorefrontHomePage() {
                 </div>
               </div>
 
-              {/* Action Button */}
               <div className="pt-0.5 sm:pt-1">
                 <a
                   href="https://wa.me/919876543210?text=Hi%20Sakthi%20Plant%20Meats!%20I%20want%20to%20join%20the%20WhatsApp%20community."
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-6 sm:py-2.5 rounded-full bg-[#F4F7F2] hover:bg-white text-[#182D18] font-extrabold text-[11px] sm:text-xs transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 group"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 sm:px-6 sm:py-2.5 rounded-full bg-[#F4F7F2] hover:bg-white text-[#50563D] font-extrabold text-[11px] sm:text-xs transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 group"
                 >
                   <span>Join Group</span>
-                  <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#182D18] group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#50563D] group-hover:translate-x-1 transition-transform" />
                 </a>
               </div>
             </div>
 
-            {/* Right Side: Seamless Hand Holding Smartphone with Fresh Mint Leaves (Transparent Cutout) */}
             <div className="relative shrink-0 flex items-center justify-end z-10 -my-4 -mr-3 sm:-mr-6 lg:-mr-8">
               <div className="w-28 sm:w-44 md:w-56 lg:w-64 h-24 sm:h-36 md:h-40 overflow-visible flex items-center justify-end">
                 <img
@@ -1506,7 +1505,7 @@ export default function StorefrontHomePage() {
       {isReviewModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-stone-200">
-            <div className="bg-[#202D1B] px-6 py-4 text-white flex items-center justify-between">
+            <div className="bg-[#50563D] px-6 py-4 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Leaf className="w-5 h-5 text-[#4ADE80]" />
                 <h3 className="font-bold text-sm">Write a Customer Review</h3>
@@ -1525,7 +1524,7 @@ export default function StorefrontHomePage() {
                   placeholder="e.g. Ramesh Kumar"
                   value={reviewForm.authorName}
                   onChange={(e) => setReviewForm({ ...reviewForm, authorName: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 border border-stone-200 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#202D1B]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 border border-stone-200 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#50563D]"
                 />
               </div>
 
@@ -1536,7 +1535,7 @@ export default function StorefrontHomePage() {
                   placeholder="e.g. Chennai, Tamil Nadu"
                   value={reviewForm.location}
                   onChange={(e) => setReviewForm({ ...reviewForm, location: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 border border-stone-200 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#202D1B]"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 border border-stone-200 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#50563D]"
                 />
               </div>
 
@@ -1551,11 +1550,10 @@ export default function StorefrontHomePage() {
                       className="p-1"
                     >
                       <Star
-                        className={`w-5 h-5 ${
-                          star <= reviewForm.rating
-                            ? 'fill-amber-500 text-amber-500'
-                            : 'text-stone-300'
-                        }`}
+                        className={`w-5 h-5 ${star <= reviewForm.rating
+                          ? 'fill-amber-500 text-amber-500'
+                          : 'text-stone-300'
+                          }`}
                       />
                     </button>
                   ))}
@@ -1571,7 +1569,7 @@ export default function StorefrontHomePage() {
                   placeholder="Share your experience cooking Sakthi Plant-Based Meats..."
                   value={reviewForm.comment}
                   onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl bg-stone-50 border border-stone-200 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#202D1B]"
+                  className="w-full px-3.5 py-2 rounded-xl bg-stone-50 border border-stone-200 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#50563D]"
                 />
               </div>
 
@@ -1586,7 +1584,7 @@ export default function StorefrontHomePage() {
                 <button
                   type="submit"
                   disabled={isSubmittingReview}
-                  className="px-5 py-2.5 rounded-xl bg-[#202D1B] text-white font-bold text-xs hover:bg-[#151F12] transition-colors shadow-md disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-[#50563D] text-white font-bold text-xs hover:bg-[#151F12] transition-colors shadow-md disabled:opacity-50"
                 >
                   {isSubmittingReview ? 'Submitting...' : 'Post Review'}
                 </button>

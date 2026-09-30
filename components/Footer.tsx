@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Phone, Mail, MapPin, ShieldCheck, FileText, RefreshCw, Lock, MessageCircle, X, Snowflake, Leaf, Flame } from 'lucide-react';
+import { Phone, Mail, MapPin, ShieldCheck, FileText, RefreshCw, Lock, MessageCircle, X } from 'lucide-react';
 import { fetchApi } from '@/lib/apiConfig';
 import logo from '../logo.png';
 
@@ -26,51 +26,57 @@ export default function Footer() {
   }, []);
 
   return (
-    <div className="pt-8">
-      <footer className="relative z-20 bg-[#4D583F] text-[#FAFAF5] pt-16 md:pt-20 pb-10 md:pb-12 rounded-t-[3rem] md:rounded-t-[6rem] overflow-hidden shadow-[0_-10px_40px_rgba(0,0,0,0.15)]">
+    <div className="pt-5 sm:pt-7">
+      <footer className="relative z-20 bg-[#656B4F] text-[#FAFAF5] pt-6 sm:pt-8 lg:pt-10 pb-4 sm:pb-6 rounded-t-[1.25rem] sm:rounded-t-[1.75rem] lg:rounded-t-[2.5rem] overflow-hidden shadow-[0_-10px_40px_rgba(0,0,0,0.12)]">
         
-        {/* Background Floating Icons */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center">
-          <Snowflake className="absolute top-12 left-[15%] w-32 h-32 text-white/[0.04] -rotate-12 animate-pulse" style={{ animationDuration: '4s' }} />
-          <Leaf className="absolute bottom-16 right-[10%] w-48 h-48 text-white/[0.05] rotate-45 animate-pulse" style={{ animationDuration: '6s' }} />
-          <Flame className="absolute top-24 right-[45%] w-24 h-24 text-white/[0.03] rotate-12 animate-pulse" style={{ animationDuration: '5s' }} />
+        {/* Quiet decorative SVG accents */}
+        <div aria-hidden="true" className="absolute inset-0 overflow-hidden pointer-events-none">
+          <svg className="absolute -right-8 top-8 h-36 w-36 text-white/[0.045] sm:right-[8%] sm:top-10 sm:h-48 sm:w-48" viewBox="0 0 160 160" fill="none">
+            <path d="M20 112C44 94 57 68 60 30C95 49 121 72 126 103C130 127 111 143 87 141C61 139 39 123 20 112Z" fill="currentColor" />
+            <path d="M28 126C58 100 79 79 113 51" stroke="#656B4F" strokeWidth="3" strokeLinecap="round" />
+            <path d="M61 98L54 69M80 81L77 55M97 67L96 48" stroke="#656B4F" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          <svg className="absolute -bottom-10 left-[18%] h-28 w-28 text-white/[0.035] sm:left-[38%] sm:h-36 sm:w-36" viewBox="0 0 120 120" fill="none">
+            <path d="M60 15C72 31 93 39 93 64C93 84 78 100 59 100C39 100 25 85 25 66C25 46 42 34 60 15Z" fill="currentColor" />
+            <path d="M59 40V83M59 61L43 51M59 70L75 57" stroke="#656B4F" strokeWidth="2.5" strokeLinecap="round" />
+          </svg>
         </div>
 
-        <div className="site-shell relative z-10">
-          <div className="grid grid-cols-1 gap-10 border-b border-white/15 pb-12 sm:grid-cols-2 lg:grid-cols-[1.2fr_.8fr_.95fr_1.15fr]">
+        <div className="relative z-10 mx-auto w-[calc(100%-1.5rem)] max-w-[1500px] sm:w-[calc(100%-3rem)] lg:w-[calc(100%-4rem)]">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-5 border-b border-white/20 pb-5 sm:gap-x-7 sm:gap-y-7 sm:pb-7 lg:grid-cols-4 lg:gap-x-6">
           
           {/* Column 1: Brand Info */}
-          <div className="space-y-5">
+          <div className="col-span-2 space-y-2.5 sm:space-y-3 lg:col-span-1">
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="relative w-24 h-16 sm:w-28 sm:h-20 shrink-0 flex items-center justify-center">
+              <div className="relative w-14 h-10 sm:w-20 sm:h-14 shrink-0 flex items-center justify-center">
                 <Image src={logo} alt="Sakthi Frozen Foods" fill sizes="(max-width: 768px) 100vw, 200px" className="object-contain object-left" />
               </div>
               <div>
-                <span className="text-xl md:text-2xl font-extrabold tracking-tight text-white block leading-none font-display">
+                <span className="text-sm sm:text-lg font-extrabold tracking-tight text-white block leading-tight font-display">
                   MOCK MEAT & FROZEN FOODS
                 </span>
-                <span className="text-xs md:text-sm font-bold tracking-widest text-[#E8F1D2] uppercase block mt-1.5">
+                <span className="text-[8px] sm:text-[10px] font-bold tracking-wider text-white uppercase block mt-0.5">
                   SAKTHI FROZEN FOODS TRADERS
                 </span>
               </div>
             </Link>
 
-            <p className="max-w-sm text-base leading-relaxed text-[#F4F9ED]">
+            <p className="max-w-sm text-[11px] sm:text-sm leading-relaxed text-white/90">
               Premium plant-based frozen foods made for everyday cooking and authentic flavour.
             </p>
 
-            <div className="inline-flex items-center gap-2.5 rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-base text-white font-bold shadow-lg backdrop-blur-md">
-              <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-[#A9F2B7]" />
+            <div className="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/10 px-2.5 py-1.5 text-[10px] sm:text-xs text-white font-bold">
+              <ShieldCheck className="w-4 h-4 text-[#A9F2B7]" />
               <span>FSSAI & ISO 22000 Certified</span>
             </div>
           </div>
 
           {/* Column 2: Product Categories (Dynamic Backend Only) */}
           <div>
-            <h4 className="text-xs sm:text-sm md:text-base font-black text-white uppercase tracking-[0.15em] mb-4 md:mb-5">
+            <h4 className="text-[10px] sm:text-xs font-black text-white uppercase tracking-[0.1em] mb-2">
               Product Categories
             </h4>
-            <ul className="space-y-3 md:space-y-4 text-[13px] md:text-base text-[#E8F1D2] font-medium">
+            <ul className="space-y-1.5 text-[10px] leading-snug sm:space-y-2 sm:text-[13px] text-white font-medium">
               {categories.length > 0 ? (
                 categories.map((cat) => (
                   <li key={cat.id || cat.name}>
@@ -81,17 +87,17 @@ export default function Footer() {
                   </li>
                 ))
               ) : (
-                <li className="text-[#E8F1D2]/70 italic text-base">Loading categories...</li>
+                <li className="text-white/70 italic text-xs">Browse our product catalog for all categories.</li>
               )}
             </ul>
           </div>
 
           {/* Column 3: Quick Links & Legal Policies */}
           <div>
-            <h4 className="text-xs sm:text-sm md:text-base font-black text-white uppercase tracking-[0.15em] mb-4 md:mb-5">
+            <h4 className="text-[10px] sm:text-xs font-black text-white uppercase tracking-[0.1em] mb-2">
               Store & Policies
             </h4>
-            <ul className="space-y-3 md:space-y-4 text-[13px] md:text-base text-[#E8F1D2] font-medium">
+            <ul className="space-y-1.5 text-[10px] leading-snug sm:space-y-2 sm:text-[13px] text-white font-medium">
               <li>
                 <Link href="/" className="hover:text-white hover:translate-x-1 transition-all duration-300 inline-block">
                   Storefront Home
@@ -133,21 +139,22 @@ export default function Footer() {
           </div>
 
           {/* Column 4: Contact & WhatsApp Support */}
-          <div>
-            <h4 className="text-xs sm:text-sm md:text-base font-black text-white uppercase tracking-[0.15em] mb-4 md:mb-5">
+          <div className="col-span-2 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5 lg:col-span-1 lg:block">
+            <div>
+            <h4 className="text-[10px] sm:text-xs font-black text-white uppercase tracking-[0.1em] mb-2">
               Contact & Support
             </h4>
-            <ul className="space-y-4 md:space-y-5 text-[13px] md:text-base leading-relaxed text-[#E8F1D2] font-medium">
+            <ul className="grid grid-cols-1 gap-2 text-[10px] leading-snug sm:text-xs lg:text-[13px] text-white font-medium">
               <li className="flex items-start gap-3">
                 <div className="p-2 bg-white/10 rounded-lg mt-0.5">
-                  <MapPin className="w-5 h-5 text-[#A9F2B7] shrink-0" />
+                  <MapPin className="w-4 h-4 text-[#A9F2B7] shrink-0" />
                 </div>
                 <span>Sakthi Frozen Foods Industrial Park, Guindy, Chennai - 600032</span>
               </li>
               <li>
                 <a href="tel:+919876543210" className="inline-flex items-center gap-3 transition-colors hover:text-white group">
                   <div className="p-2 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors">
-                    <Phone className="w-5 h-5 shrink-0 text-[#A9F2B7]" />
+                    <Phone className="w-4 h-4 shrink-0 text-[#A9F2B7]" />
                   </div>
                   <span>+91 98765 43210 / 044-24567890</span>
                 </a>
@@ -155,22 +162,23 @@ export default function Footer() {
               <li>
                 <a href="mailto:orders@sakthifrozenfoods.com" className="inline-flex items-center gap-3 transition-colors hover:text-white group">
                   <div className="p-2 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors">
-                    <Mail className="w-5 h-5 shrink-0 text-[#A9F2B7]" />
+                    <Mail className="w-4 h-4 shrink-0 text-[#A9F2B7]" />
                   </div>
                   <span>orders@sakthifrozenfoods.com</span>
                 </a>
               </li>
             </ul>
 
-            <div className="mt-8">
+            </div>
+            <div className="mt-0 sm:self-end lg:mt-4">
               <a
                 href="https://wa.me/919876543210"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Chat with Sakthi Frozen Foods on WhatsApp"
-                className="inline-flex min-h-[52px] w-full sm:w-auto items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#25D366] to-[#128C7E] px-7 py-3.5 text-base font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366]"
+                className="inline-flex min-h-9 w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#25D366] to-[#128C7E] px-4 py-2 text-xs font-bold text-white shadow-md transition-all hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366]"
               >
-                <MessageCircle className="h-6 w-6 shrink-0" aria-hidden="true" />
+                <MessageCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>Chat on WhatsApp</span>
               </a>
             </div>
@@ -178,23 +186,23 @@ export default function Footer() {
 
         </div>
 
-        <div className="pt-8 text-center text-xs md:text-sm font-medium text-white/60 sm:text-left flex flex-col lg:flex-row justify-between items-center gap-6">
-          <div className="flex flex-col items-center sm:items-start gap-1.5">
+        <div className="pt-4 text-center text-[9px] sm:text-xs font-medium text-white/85 sm:text-left flex flex-col sm:flex-row justify-between items-center gap-2">
+          <div className="flex flex-col items-center sm:items-start gap-0.5">
             <p>© 2026 Sakthi Frozen Foods Traders. All rights reserved.</p>
-            <p className="text-white/40">
+            <p className="text-white/70">
               Developed by <a href="https://akwebflairtechnologies.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-[#A9F2B7]/70 hover:text-[#A9F2B7] transition-colors underline underline-offset-2">akwebflairtechnologies</a>
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
             <button onClick={() => setActivePolicyModal('refund')} className="hover:text-white transition-colors">
               Refund Policy
             </button>
-            <span className="text-white/30">•</span>
+            <span className="text-white/55">•</span>
             <button onClick={() => setActivePolicyModal('terms')} className="hover:text-white transition-colors">
               Terms & Conditions
             </button>
-            <span className="text-white/30">•</span>
+            <span className="text-white/55">•</span>
             <button onClick={() => setActivePolicyModal('privacy')} className="hover:text-white transition-colors">
               Privacy Policy
             </button>
@@ -283,12 +291,12 @@ export default function Footer() {
 
             {/* Modal Footer */}
             <div className="p-4 bg-[#E8EEE0] border-t border-[#4F534C]/15 flex items-center justify-between text-xs text-[#61665D]">
-              <span className="font-bold text-[#4D583F] flex items-center gap-1">
+              <span className="font-bold text-[#656B4F] flex items-center gap-1">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" /> Sakthi Frozen Foods Official Policy
               </span>
               <button
                 onClick={() => setActivePolicyModal(null)}
-                className="px-5 py-2 rounded-xl bg-[#1E201D] text-white font-bold text-xs hover:bg-[#4D583F] transition-colors shadow-sm"
+                className="px-5 py-2 rounded-xl bg-[#1E201D] text-white font-bold text-xs hover:bg-[#656B4F] transition-colors shadow-sm"
               >
                 Close Window
               </button>

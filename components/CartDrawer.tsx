@@ -1,10 +1,12 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { X, Trash2, Plus, Minus, ArrowRight, ShoppingCart } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 
 export default function CartDrawer() {
+  const router = useRouter();
   const {
     cart,
     isCartOpen,
@@ -12,12 +14,11 @@ export default function CartDrawer() {
     removeFromCart,
     updateQuantity,
     totalPrice,
-    setIsCheckoutOpen,
   } = useCart();
 
   if (!isCartOpen) return null;
 
-  const deliveryFee = totalPrice >= 999 || totalPrice === 0 ? 0 : 60;
+  const deliveryFee = totalPrice >= 2999 || totalPrice === 0 ? 0 : 40;
   const grandTotal = totalPrice + deliveryFee;
 
   return (
@@ -31,7 +32,7 @@ export default function CartDrawer() {
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
         <div className="w-screen max-w-md bg-[#FAFAF5] shadow-2xl flex flex-col border-l border-[#4F534C]/20">
           {/* Header */}
-          <div className="px-6 py-5 bg-[#4D583F] text-white flex items-center justify-between shadow-sm">
+          <div className="px-6 py-5 bg-[#656B4F] text-white flex items-center justify-between shadow-sm">
             <div className="flex items-center gap-3">
               <ShoppingCart className="w-5 h-5" />
               <h2 className="text-lg font-bold">Your Cart ({cart.length})</h2>
@@ -49,7 +50,7 @@ export default function CartDrawer() {
             {cart.length === 0 ? (
               <div className="text-center py-16 text-[#61665D]">
                 <div className="w-16 h-16 rounded-full bg-[#E8EEE0] flex items-center justify-center mx-auto mb-4 border border-[#4F534C]/15">
-                  <ShoppingCart className="w-8 h-8 text-[#4D583F]" />
+                  <ShoppingCart className="w-8 h-8 text-[#656B4F]" />
                 </div>
                 <h3 className="text-base font-bold text-[#1E201D]">Your cart is empty</h3>
                 <p className="text-xs mt-1 text-[#61665D]">
@@ -64,12 +65,12 @@ export default function CartDrawer() {
                 >
                   <div className="flex-1 min-w-0 pr-3">
                     <h4 className="text-sm font-bold text-[#1E201D] truncate">{item.name}</h4>
-                    <span className="inline-block text-[11px] font-semibold text-[#4D583F] bg-[#EAF0E5] px-2 py-0.5 rounded mt-1">
+                    <span className="inline-block text-[11px] font-semibold text-[#656B4F] bg-[#EAF0E5] px-2 py-0.5 rounded mt-1">
                       {item.weight}
                     </span>
                     <div className="text-xs font-semibold text-[#1E201D] mt-1.5">
                       ₹{item.price} × {item.quantity} ={' '}
-                      <span className="text-[#4D583F] font-bold">₹{item.price * item.quantity}</span>
+                      <span className="text-[#656B4F] font-bold">₹{item.price * item.quantity}</span>
                     </div>
                   </div>
 
@@ -118,30 +119,30 @@ export default function CartDrawer() {
                   <span>Estimated Delivery</span>
                   <span className="font-bold text-[#1E201D]">
                     {deliveryFee === 0 ? (
-                      <span className="text-[#4D583F]">FREE</span>
+                      <span className="text-[#656B4F]">FREE</span>
                     ) : (
                       `₹${deliveryFee}`
                     )}
                   </span>
                 </div>
                 {deliveryFee > 0 && (
-                  <div className="text-[11px] text-[#4D583F] font-medium">
-                    Add ₹{999 - totalPrice} more for free delivery!
+                  <div className="text-[11px] text-[#656B4F] font-medium">
+                    Add ₹{2999 - totalPrice} more for free delivery!
                   </div>
                 )}
               </div>
 
               <div className="pt-2 border-t border-[#4F534C]/15 flex justify-between items-center">
                 <span className="text-sm font-bold text-[#1E201D]">Grand Total</span>
-                <span className="text-xl font-extrabold text-[#4D583F]">₹{grandTotal}</span>
+                <span className="text-xl font-extrabold text-[#656B4F]">₹{grandTotal}</span>
               </div>
 
               <button
                 onClick={() => {
                   setIsCartOpen(false);
-                  setIsCheckoutOpen(true);
+                  router.push('/checkout');
                 }}
-                className="w-full py-3 px-4 rounded-xl bg-[#4D583F] text-white font-bold text-sm hover:bg-[#414b35] transition-all shadow-lg flex items-center justify-center gap-2 group mt-2"
+                className="w-full py-3 px-4 rounded-xl bg-[#656B4F] text-white font-bold text-sm hover:bg-[#50563D] transition-all shadow-lg flex items-center justify-center gap-2 group mt-2"
               >
                 <span>Proceed to Checkout</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

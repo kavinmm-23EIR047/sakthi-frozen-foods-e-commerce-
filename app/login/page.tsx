@@ -83,7 +83,7 @@ function LoginForm() {
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-[#4D583F] uppercase tracking-wide">
+                <label className="block text-xs font-bold text-[#656B4F] uppercase tracking-wide">
                   Mobile Number or Email
                 </label>
                 <span className="text-[10px] text-[#61665D] font-semibold">
@@ -103,7 +103,7 @@ function LoginForm() {
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   required
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F] focus:border-transparent transition-all shadow-sm placeholder:text-[#A7ADA9]"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] focus:border-transparent transition-all shadow-sm placeholder:text-[#A7ADA9]"
                   placeholder="9876543210 or you@example.com"
                   autoComplete="username"
                 />
@@ -111,7 +111,7 @@ function LoginForm() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#4D583F] mb-1.5 uppercase tracking-wide">
+              <label className="block text-xs font-bold text-[#656B4F] mb-1.5 uppercase tracking-wide">
                 Password
               </label>
               <div className="relative">
@@ -123,10 +123,10 @@ function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full pl-10 pr-12 py-3 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F] focus:border-transparent transition-all shadow-sm placeholder:text-[#A7ADA9]"
+                  className="w-full pl-10 pr-12 py-3 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] focus:border-transparent transition-all shadow-sm placeholder:text-[#A7ADA9]"
                   placeholder="••••••••"
                 />
-                <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-[#61665D] hover:text-[#4D583F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4D583F]" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword}>
+                <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-[#61665D] hover:text-[#656B4F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#656B4F]" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword}>
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
@@ -135,7 +135,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-[#4D583F] text-[#FAFAF5] font-bold rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-[#414b35] transition-all shadow-md active:scale-[0.98] mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full py-3.5 bg-[#656B4F] text-[#FAFAF5] font-bold rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-[#50563D] transition-all shadow-md active:scale-[0.98] mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
@@ -152,16 +152,16 @@ function LoginForm() {
             Don&apos;t have an account?{' '}
             <Link
               href={targetRedirect !== '/' ? `/register?redirect=${encodeURIComponent(targetRedirect)}` : '/register'}
-              className="text-[#4D583F] font-bold hover:underline"
+              className="text-[#656B4F] font-bold hover:underline"
             >
               Create Account
             </Link>
           </p>
-          <Link href="/forgot-password" className="mt-3 block text-center text-xs font-bold text-[#4D583F] hover:underline">
+          <Link href="/forgot-password" className="mt-3 block text-center text-xs font-bold text-[#656B4F] hover:underline">
             Forgot password?
           </Link>
           <div className="mt-4 pt-4 border-t border-[#4F534C]/10 text-center">
-            <Link href="/" className="text-[11px] text-[#A7ADA9] hover:text-[#4D583F] font-bold">
+            <Link href="/" className="text-[11px] text-[#A7ADA9] hover:text-[#656B4F] font-bold">
               &larr; Back to Store
             </Link>
           </div>
@@ -173,7 +173,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#E8EEE0] flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#4D583F] border-t-transparent rounded-full animate-spin"></div></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[#E8EEE0] flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#656B4F] border-t-transparent rounded-full animate-spin"></div></div>}>
       <LoginForm />
     </Suspense>
   );

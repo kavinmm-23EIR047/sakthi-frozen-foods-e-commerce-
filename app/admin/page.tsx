@@ -646,7 +646,7 @@ export default function AdminPortalPage() {
     <div className="min-h-screen bg-[#E8EEE0] text-[#1E201D] font-sans">
       {/* Real-time Order Alert Banner */}
       {newOrderAlert && (
-        <div className="bg-[#4D583F] text-white px-4 py-2.5 shadow-lg flex items-center justify-between gap-3 text-xs sm:text-sm font-bold animate-pulse z-40 sticky top-0">
+        <div className="bg-[#656B4F] text-white px-4 py-2.5 shadow-lg flex items-center justify-between gap-3 text-xs sm:text-sm font-bold animate-pulse z-40 sticky top-0">
           <div className="flex items-center gap-2 min-w-0">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping shrink-0" />
             <span className="truncate">{newOrderAlert}</span>
@@ -684,7 +684,7 @@ export default function AdminPortalPage() {
       <header className="bg-[#1E201D] text-white sticky top-0 z-30 shadow-md">
         <div className="mx-auto flex min-h-16 w-full max-w-[1600px] items-center justify-between gap-2 px-3 py-2 sm:min-h-20 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#4D583F] text-white shadow-md sm:h-10 sm:w-10 sm:rounded-xl">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#656B4F] text-white shadow-md sm:h-10 sm:w-10 sm:rounded-xl">
               <LayoutDashboard className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <div className="min-w-0">
@@ -743,7 +743,7 @@ export default function AdminPortalPage() {
 
             <Link
               href="/"
-              className="flex min-h-9 items-center gap-1 rounded-lg bg-[#4D583F] px-2.5 py-2 text-[10px] font-bold text-white shadow transition-all hover:bg-[#414b35] sm:gap-2 sm:rounded-xl sm:px-4 sm:text-xs"
+              className="flex min-h-9 items-center gap-1 rounded-lg bg-[#656B4F] px-2.5 py-2 text-[10px] font-bold text-white shadow transition-all hover:bg-[#50563D] sm:gap-2 sm:rounded-xl sm:px-4 sm:text-xs"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Storefront</span>
@@ -774,12 +774,12 @@ export default function AdminPortalPage() {
                   key={id as string}
                   onClick={() => setActiveTab(id as typeof activeTab)}
                   className={`flex min-h-11 min-w-0 items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs font-bold transition-colors lg:w-full lg:px-3 ${
-                    isActive ? 'bg-[#4D583F] text-white shadow-sm' : 'text-[#52574E] hover:bg-[#EAF0E5] hover:text-[#1E201D]'
+                    isActive ? 'bg-[#656B4F] text-white shadow-sm' : 'text-[#52574E] hover:bg-[#EAF0E5] hover:text-[#1E201D]'
                   }`}
                 >
                   <NavIcon className={`h-4 w-4 shrink-0 ${id === 'reviews' && !isActive ? 'fill-amber-500 text-amber-500' : ''}`} />
                   <span className="truncate">{String(label)}</span>
-                  {count !== null && <span className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] ${isActive ? 'bg-white/20' : 'bg-[#EAF0E5] text-[#4D583F]'}`}>{count as number}</span>}
+                  {count !== null && <span className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] ${isActive ? 'bg-white/20' : 'bg-[#EAF0E5] text-[#656B4F]'}`}>{count as number}</span>}
                 </button>
               );
             })}
@@ -794,7 +794,7 @@ export default function AdminPortalPage() {
         {/* Metric Cards */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:gap-5">
           <div className="flex items-center gap-3 rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm sm:p-5">
-            <div className="w-12 h-12 rounded-xl bg-[#4D583F] text-white flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-xl bg-[#656B4F] text-white flex items-center justify-center shrink-0">
               <DollarSign className="w-6 h-6" />
             </div>
             <div>
@@ -840,7 +840,7 @@ export default function AdminPortalPage() {
             onClick={() => setActiveTab('analytics')}
             className={`py-3 px-5 font-extrabold text-sm border-b-2 flex items-center gap-2 transition-all ${
               activeTab === 'analytics'
-                ? 'border-[#4D583F] text-[#4D583F]'
+                ? 'border-[#656B4F] text-[#656B4F]'
                 : 'border-transparent text-[#61665D] hover:text-[#1E201D]'
             }`}
           >
@@ -851,7 +851,7 @@ export default function AdminPortalPage() {
             onClick={() => setActiveTab('products')}
             className={`py-3 px-5 font-extrabold text-sm border-b-2 flex items-center gap-2 transition-all ${
               activeTab === 'products'
-                ? 'border-[#4D583F] text-[#4D583F]'
+                ? 'border-[#656B4F] text-[#656B4F]'
                 : 'border-transparent text-[#61665D] hover:text-[#1E201D]'
             }`}
           >
@@ -863,7 +863,7 @@ export default function AdminPortalPage() {
             onClick={() => setActiveTab('categories')}
             className={`py-3 px-5 font-extrabold text-sm border-b-2 flex items-center gap-2 transition-all ${
               activeTab === 'categories'
-                ? 'border-[#4D583F] text-[#4D583F]'
+                ? 'border-[#656B4F] text-[#656B4F]'
                 : 'border-transparent text-[#61665D] hover:text-[#1E201D]'
             }`}
           >
@@ -875,7 +875,7 @@ export default function AdminPortalPage() {
             onClick={() => setActiveTab('orders')}
             className={`py-3 px-5 font-extrabold text-sm border-b-2 flex items-center gap-2 transition-all ${
               activeTab === 'orders'
-                ? 'border-[#4D583F] text-[#4D583F]'
+                ? 'border-[#656B4F] text-[#656B4F]'
                 : 'border-transparent text-[#61665D] hover:text-[#1E201D]'
             }`}
           >
@@ -887,7 +887,7 @@ export default function AdminPortalPage() {
             onClick={() => setActiveTab('users')}
             className={`py-3 px-5 font-extrabold text-sm border-b-2 flex items-center gap-2 transition-all ${
               activeTab === 'users'
-                ? 'border-[#4D583F] text-[#4D583F]'
+                ? 'border-[#656B4F] text-[#656B4F]'
                 : 'border-transparent text-[#61665D] hover:text-[#1E201D]'
             }`}
           >
@@ -899,7 +899,7 @@ export default function AdminPortalPage() {
             onClick={() => setActiveTab('reviews')}
             className={`py-3 px-5 font-extrabold text-sm border-b-2 flex items-center gap-2 transition-all ${
               activeTab === 'reviews'
-                ? 'border-[#4D583F] text-[#4D583F]'
+                ? 'border-[#656B4F] text-[#656B4F]'
                 : 'border-transparent text-[#61665D] hover:text-[#1E201D]'
             }`}
           >
@@ -923,7 +923,7 @@ export default function AdminPortalPage() {
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                     formatter={(value: any) => [`₹${value}`, 'Revenue']}
                   />
-                  <Bar dataKey="value" fill="#4D583F" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="value" fill="#656B4F" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -940,14 +940,14 @@ export default function AdminPortalPage() {
                   placeholder="Search products by name or code..."
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-[#4F534C]/20 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F]"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-[#4F534C]/20 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
                 />
                 <Search className="w-4 h-4 text-[#61665D] absolute left-3.5 top-3" />
               </div>
 
               <button
                 onClick={openAddModal}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#4D583F] text-white font-bold text-xs hover:bg-[#414b35] transition-all flex items-center justify-center gap-2 shadow"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#656B4F] text-white font-bold text-xs hover:bg-[#50563D] transition-all flex items-center justify-center gap-2 shadow"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add New Product</span>
@@ -958,7 +958,7 @@ export default function AdminPortalPage() {
             <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm xl:block">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-[#1E201D]">
-                  <thead className="bg-[#EAF0E5] text-[#4D583F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
+                  <thead className="bg-[#EAF0E5] text-[#656B4F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
                     <tr>
                       <th className="py-3.5 px-4">Code</th>
                       <th className="py-3.5 px-4">Product Name</th>
@@ -990,7 +990,7 @@ export default function AdminPortalPage() {
                           </tr>
                         )}
                       <tr className="hover:bg-[#EAF0E5]/30 transition-colors">
-                        <td className="py-3 px-4 font-bold text-[#4D583F]">#{p.code}</td>
+                        <td className="py-3 px-4 font-bold text-[#656B4F]">#{p.code}</td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
                             <OptimizedImage
@@ -1008,7 +1008,7 @@ export default function AdminPortalPage() {
                         <td className="py-3 px-4 font-semibold text-[#61665D]">{p.category}</td>
                         <td className="py-3 px-4">
                           <div className="flex flex-wrap items-center gap-1">
-                            <span className="bg-[#EAF0E5] text-[#4D583F] font-bold px-2 py-0.5 rounded text-[11px]" title="Base Weight">
+                            <span className="bg-[#EAF0E5] text-[#656B4F] font-bold px-2 py-0.5 rounded text-[11px]" title="Base Weight">
                               {p.weight}
                             </span>
                             {p.variants?.map((v, idx) => (
@@ -1021,7 +1021,7 @@ export default function AdminPortalPage() {
                         <td className="py-3 px-4 text-sm text-[#61665D] line-through">
                           ₹{p.mrp ?? p.price}
                         </td>
-                        <td className="py-3 px-4 font-black text-sm text-[#4D583F]">
+                        <td className="py-3 px-4 font-black text-sm text-[#656B4F]">
                           ₹{p.price}
                           {p.variants && p.variants.length > 0 && (
                             <span className="block text-[10px] text-[#61665D] font-normal">
@@ -1102,15 +1102,15 @@ export default function AdminPortalPage() {
                   <div className="flex gap-3">
                     <OptimizedImage src={p.image} alt={p.name} width={160} className="h-16 w-16 shrink-0 rounded-xl object-cover" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#4D583F]">#{p.code} · {p.category}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#656B4F]">#{p.code} · {p.category}</p>
                       <h3 className="truncate text-sm font-black text-[#1E201D]">{p.name}</h3>
                       <p className="mt-1 line-clamp-2 text-xs text-[#61665D]">{p.description}</p>
                     </div>
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#4F534C]/10 pt-3 text-xs">
-                    <span className="rounded bg-[#EAF0E5] px-2 py-1 font-bold text-[#4D583F]">{p.weight}</span>
+                    <span className="rounded bg-[#EAF0E5] px-2 py-1 font-bold text-[#656B4F]">{p.weight}</span>
                     <span className="text-[#61665D] line-through">MRP ₹{p.mrp ?? p.price}</span>
-                    <span className="font-black text-[#4D583F]">₹{p.price}</span>
+                    <span className="font-black text-[#656B4F]">₹{p.price}</span>
                     <span className="rounded bg-amber-100 px-2 py-1 font-bold text-amber-800">{p.stock} in stock</span>
                     <div className="ml-auto flex items-center gap-1">
                       <button onClick={() => openEditModal(p)} className="rounded-lg p-2 text-blue-700 hover:bg-blue-50" aria-label={`Edit ${p.name}`}><Edit className="h-4 w-4" /></button>
@@ -1131,7 +1131,7 @@ export default function AdminPortalPage() {
               <h2 className="text-xl font-bold text-[#1E201D] font-poppins">Manage Categories</h2>
               <button
                 onClick={openAddCategoryModal}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#4D583F] text-white font-bold text-xs hover:bg-[#414b35] transition-all flex items-center justify-center gap-2 shadow"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#656B4F] text-white font-bold text-xs hover:bg-[#50563D] transition-all flex items-center justify-center gap-2 shadow"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Category</span>
@@ -1141,7 +1141,7 @@ export default function AdminPortalPage() {
             <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm xl:block">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-[#1E201D]">
-                  <thead className="bg-[#EAF0E5] text-[#4D583F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
+                  <thead className="bg-[#EAF0E5] text-[#656B4F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
                     <tr>
                       <th className="py-3.5 px-4">Category Name</th>
                       <th className="py-3.5 px-4">Description</th>
@@ -1212,7 +1212,7 @@ export default function AdminPortalPage() {
                 <span className="text-[10px] uppercase font-bold text-[#61665D] block tracking-wider">All Orders</span>
                 <div className="flex items-baseline justify-between mt-1">
                   <span className="text-xl sm:text-2xl font-black text-[#1E201D]">{orders.length}</span>
-                  <span className="text-[11px] font-bold text-[#4D583F]">₹{totalRevenue.toLocaleString()}</span>
+                  <span className="text-[11px] font-bold text-[#656B4F]">₹{totalRevenue.toLocaleString()}</span>
                 </div>
               </div>
 
@@ -1276,7 +1276,7 @@ export default function AdminPortalPage() {
                     placeholder="Search by Order #, Customer Name, Phone, Address, Dish name..."
                     value={orderSearch}
                     onChange={(e) => setOrderSearch(e.target.value)}
-                    className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-[#E8EEE0]/60 border border-[#4F534C]/20 text-xs text-[#1E201D] font-medium placeholder:text-[#61665D]/70 focus:outline-none focus:ring-2 focus:ring-[#4D583F] focus:bg-white transition-all"
+                    className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-[#E8EEE0]/60 border border-[#4F534C]/20 text-xs text-[#1E201D] font-medium placeholder:text-[#61665D]/70 focus:outline-none focus:ring-2 focus:ring-[#656B4F] focus:bg-white transition-all"
                   />
                   {orderSearch && (
                     <button
@@ -1294,7 +1294,7 @@ export default function AdminPortalPage() {
                   <select
                     value={orderPaymentFilter}
                     onChange={(e) => setOrderPaymentFilter(e.target.value as any)}
-                    className="px-3 py-2 rounded-xl bg-[#E8EEE0]/60 border border-[#4F534C]/20 text-xs font-bold text-[#1E201D] outline-none focus:ring-2 focus:ring-[#4D583F]"
+                    className="px-3 py-2 rounded-xl bg-[#E8EEE0]/60 border border-[#4F534C]/20 text-xs font-bold text-[#1E201D] outline-none focus:ring-2 focus:ring-[#656B4F]"
                   >
                     <option value="All">All Payments</option>
                     <option value="Paid">Paid Only</option>
@@ -1306,7 +1306,7 @@ export default function AdminPortalPage() {
                   <select
                     value={orderSort}
                     onChange={(e) => setOrderSort(e.target.value as any)}
-                    className="px-3 py-2 rounded-xl bg-[#E8EEE0]/60 border border-[#4F534C]/20 text-xs font-bold text-[#1E201D] outline-none focus:ring-2 focus:ring-[#4D583F]"
+                    className="px-3 py-2 rounded-xl bg-[#E8EEE0]/60 border border-[#4F534C]/20 text-xs font-bold text-[#1E201D] outline-none focus:ring-2 focus:ring-[#656B4F]"
                   >
                     <option value="newest">Newest First</option>
                     <option value="oldest">Oldest First</option>
@@ -1321,7 +1321,7 @@ export default function AdminPortalPage() {
                     className="px-3.5 py-2 rounded-xl bg-white hover:bg-[#EAF0E5] border border-[#4F534C]/20 text-xs font-bold text-[#1E201D] transition-colors flex items-center gap-1.5 shadow-xs disabled:opacity-50"
                     title="Export Filtered Orders to Excel/CSV"
                   >
-                    <Download className="w-3.5 h-3.5 text-[#4D583F]" />
+                    <Download className="w-3.5 h-3.5 text-[#656B4F]" />
                     <span className="hidden sm:inline">Export CSV</span>
                   </button>
                 </div>
@@ -1344,13 +1344,13 @@ export default function AdminPortalPage() {
                       onClick={() => setOrderStatusFilter(tab.id as any)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 ${
                         isActive
-                          ? 'bg-[#4D583F] text-white shadow-xs'
+                          ? 'bg-[#656B4F] text-white shadow-xs'
                           : 'bg-[#E8EEE0]/60 text-[#52574E] hover:bg-[#E8EEE0] hover:text-[#1E201D]'
                       }`}
                     >
                       <span>{tab.label}</span>
                       <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                        isActive ? 'bg-white/20 text-white' : 'bg-[#4D583F]/10 text-[#4D583F]'
+                        isActive ? 'bg-white/20 text-white' : 'bg-[#656B4F]/10 text-[#656B4F]'
                       }`}>
                         {tab.count}
                       </span>
@@ -1368,7 +1368,7 @@ export default function AdminPortalPage() {
             <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm xl:block">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-[#1E201D]">
-                  <thead className="bg-[#EAF0E5] text-[#4D583F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
+                  <thead className="bg-[#EAF0E5] text-[#656B4F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
                     <tr>
                       <th className="py-3.5 px-4">Order ID & Date</th>
                       <th className="py-3.5 px-4">Customer & Contact</th>
@@ -1393,9 +1393,9 @@ export default function AdminPortalPage() {
                         <tr key={ord.id} className="hover:bg-[#EAF0E5]/30 transition-colors">
                           {/* Order ID & Time */}
                           <td className="py-3.5 px-4 align-top">
-                            <div className="font-black text-sm text-[#4D583F]">{ord.orderNumber}</div>
+                            <div className="font-black text-sm text-[#656B4F]">{ord.orderNumber}</div>
                             <div className="text-[11px] text-[#61665D] mt-0.5">{formatOrderDate(ord.createdAt)}</div>
-                            <span className="inline-block mt-1 px-2 py-0.5 rounded-md bg-[#E8EEE0] text-[#4D583F] text-[10px] font-bold">
+                            <span className="inline-block mt-1 px-2 py-0.5 rounded-md bg-[#E8EEE0] text-[#656B4F] text-[10px] font-bold">
                               {getTimeAgo(ord.createdAt)}
                             </span>
                           </td>
@@ -1487,7 +1487,7 @@ export default function AdminPortalPage() {
                                 </div>
                               ))}
                               {(ord.items?.length || 0) > 2 && (
-                                <div className="text-[10px] font-bold text-[#4D583F]">
+                                <div className="text-[10px] font-bold text-[#656B4F]">
                                   +{(ord.items?.length || 0) - 2} more item(s)
                                 </div>
                               )}
@@ -1496,7 +1496,7 @@ export default function AdminPortalPage() {
 
                           {/* Total Amount & Payment Details */}
                           <td className="py-3.5 px-4 align-top">
-                            <div className="font-black text-base text-[#4D583F]">₹{ord.totalAmount}</div>
+                            <div className="font-black text-base text-[#656B4F]">₹{ord.totalAmount}</div>
                             <div className="mt-1 flex flex-col items-start gap-1">
                               <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider ${
                                 ord.paymentStatus === 'Paid' ? 'bg-emerald-100 text-emerald-800' :
@@ -1598,7 +1598,7 @@ export default function AdminPortalPage() {
                               {/* View Details Button */}
                               <button
                                 onClick={() => setSelectedOrderModal(ord)}
-                                className="px-2.5 py-1.5 bg-[#EAF0E5] text-[#4D583F] hover:bg-[#4D583F] hover:text-white rounded-xl font-bold transition-all inline-flex items-center gap-1 shadow-2xs"
+                                className="px-2.5 py-1.5 bg-[#EAF0E5] text-[#656B4F] hover:bg-[#656B4F] hover:text-white rounded-xl font-bold transition-all inline-flex items-center gap-1 shadow-2xs"
                                 title="View Full Order Breakdown"
                               >
                                 <Eye className="w-3.5 h-3.5" />
@@ -1653,8 +1653,8 @@ export default function AdminPortalPage() {
                     <div className="flex items-start justify-between gap-3 border-b border-[#4F534C]/10 pb-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-black text-[#4D583F]">{ord.orderNumber}</span>
-                          <span className="px-2 py-0.5 rounded-md bg-[#E8EEE0] text-[#4D583F] text-[10px] font-bold">
+                          <span className="text-sm font-black text-[#656B4F]">{ord.orderNumber}</span>
+                          <span className="px-2 py-0.5 rounded-md bg-[#E8EEE0] text-[#656B4F] text-[10px] font-bold">
                             {getTimeAgo(ord.createdAt)}
                           </span>
                         </div>
@@ -1662,7 +1662,7 @@ export default function AdminPortalPage() {
                       </div>
 
                       <div className="text-right">
-                        <span className="text-lg font-black text-[#4D583F] block">₹{ord.totalAmount}</span>
+                        <span className="text-lg font-black text-[#656B4F] block">₹{ord.totalAmount}</span>
                         <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-md font-bold text-[9px] uppercase tracking-wider ${
                           ord.paymentStatus === 'Paid' ? 'bg-emerald-100 text-emerald-800' :
                           ord.paymentStatus === 'Failed' ? 'bg-red-100 text-red-800' :
@@ -1749,7 +1749,7 @@ export default function AdminPortalPage() {
                             <span className="text-[#1E201D] font-medium truncate max-w-[200px]">
                               {item.name} ({item.weight})
                             </span>
-                            <span className="font-bold text-[#4D583F]">×{item.quantity}</span>
+                            <span className="font-bold text-[#656B4F]">×{item.quantity}</span>
                           </div>
                         ))}
                       </div>
@@ -1766,7 +1766,7 @@ export default function AdminPortalPage() {
 
                           <button
                             onClick={() => setSelectedOrderModal(ord)}
-                            className="min-h-11 px-3.5 rounded-xl bg-[#EAF0E5] text-[#4D583F] font-bold text-xs flex items-center gap-1.5 shadow-2xs hover:bg-[#4D583F] hover:text-white transition-all"
+                            className="min-h-11 px-3.5 rounded-xl bg-[#EAF0E5] text-[#656B4F] font-bold text-xs flex items-center gap-1.5 shadow-2xs hover:bg-[#656B4F] hover:text-white transition-all"
                           >
                             <Eye className="w-4 h-4" />
                             <span>View</span>
@@ -1790,7 +1790,7 @@ export default function AdminPortalPage() {
 
                             <button
                               onClick={() => setSelectedOrderModal(ord)}
-                              className="min-h-11 px-3.5 rounded-xl bg-[#EAF0E5] text-[#4D583F] font-bold text-xs flex items-center gap-1.5 shadow-2xs hover:bg-[#4D583F] hover:text-white transition-all"
+                              className="min-h-11 px-3.5 rounded-xl bg-[#EAF0E5] text-[#656B4F] font-bold text-xs flex items-center gap-1.5 shadow-2xs hover:bg-[#656B4F] hover:text-white transition-all"
                             >
                               <Eye className="w-4 h-4" />
                               <span>View</span>
@@ -1831,7 +1831,7 @@ export default function AdminPortalPage() {
 
                             <button
                               onClick={() => setSelectedOrderModal(ord)}
-                              className="min-h-11 px-3.5 rounded-xl bg-[#EAF0E5] text-[#4D583F] font-bold text-xs flex items-center gap-1.5 shadow-2xs hover:bg-[#4D583F] hover:text-white transition-all"
+                              className="min-h-11 px-3.5 rounded-xl bg-[#EAF0E5] text-[#656B4F] font-bold text-xs flex items-center gap-1.5 shadow-2xs hover:bg-[#656B4F] hover:text-white transition-all"
                             >
                               <Eye className="w-4 h-4" />
                               <span>View</span>
@@ -1922,7 +1922,7 @@ export default function AdminPortalPage() {
                     onClick={() => setLogSubTab('working')}
                     className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
                       logSubTab === 'working'
-                        ? 'bg-[#4D583F] text-white shadow-xs'
+                        ? 'bg-[#656B4F] text-white shadow-xs'
                         : 'text-[#52574E] hover:text-[#1E201D]'
                     }`}
                   >
@@ -1968,10 +1968,10 @@ export default function AdminPortalPage() {
                     <span className="text-[11px] text-emerald-700">In preparation or transit</span>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-[#EAF0E5] border border-[#4D583F]/20">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#4D583F] block">Active Processing Value</span>
+                  <div className="p-3.5 rounded-xl bg-[#EAF0E5] border border-[#656B4F]/20">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#656B4F] block">Active Processing Value</span>
                     <span className="text-2xl font-black text-[#1E201D] mt-1 block">₹{totalWorkingRevenue.toLocaleString()}</span>
-                    <span className="text-[11px] text-[#4D583F] font-semibold">Total confirmed revenue</span>
+                    <span className="text-[11px] text-[#656B4F] font-semibold">Total confirmed revenue</span>
                   </div>
 
                   <div className="p-3.5 rounded-xl bg-purple-50 border border-purple-200">
@@ -1992,7 +1992,7 @@ export default function AdminPortalPage() {
                   placeholder="Filter logs by customer name, order #, phone, address, or item name..."
                   value={logSearch}
                   onChange={(e) => setLogSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#E8EEE0]/60 border border-[#4F534C]/20 text-xs font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F] focus:bg-white transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#E8EEE0]/60 border border-[#4F534C]/20 text-xs font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] focus:bg-white transition-all"
                 />
               </div>
             </div>
@@ -2104,8 +2104,8 @@ export default function AdminPortalPage() {
                         </div>
 
                         {/* Items Breakdown */}
-                        <div className="p-3.5 rounded-xl bg-[#FBFDF2] border border-[#4D583F]/20 space-y-2">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#4D583F] block">
+                        <div className="p-3.5 rounded-xl bg-[#FBFDF2] border border-[#656B4F]/20 space-y-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#656B4F] block">
                             Reserved Items ({ord.items?.length || 0})
                           </span>
                           <div className="space-y-1.5 max-h-28 overflow-y-auto">
@@ -2114,13 +2114,13 @@ export default function AdminPortalPage() {
                                 <span className="text-[#1E201D] font-medium truncate max-w-[160px]">
                                   {item.name} ({item.weight})
                                 </span>
-                                <span className="font-bold text-[#4D583F]">×{item.quantity} (₹{item.price * item.quantity})</span>
+                                <span className="font-bold text-[#656B4F]">×{item.quantity} (₹{item.price * item.quantity})</span>
                               </div>
                             ))}
                           </div>
-                          <div className="border-t border-[#4D583F]/15 pt-1.5 flex justify-between text-xs font-bold text-[#1E201D]">
+                          <div className="border-t border-[#656B4F]/15 pt-1.5 flex justify-between text-xs font-bold text-[#1E201D]">
                             <span>Total Attempted Amount:</span>
-                            <span className="font-black text-[#4D583F]">₹{ord.totalAmount}</span>
+                            <span className="font-black text-[#656B4F]">₹{ord.totalAmount}</span>
                           </div>
                         </div>
                       </div>
@@ -2182,11 +2182,11 @@ export default function AdminPortalPage() {
                   filteredLogOrders.map((ord) => (
                     <article
                       key={ord.id}
-                      className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 sm:p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-[#4D583F]/40 transition-all"
+                      className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 sm:p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-[#656B4F]/40 transition-all"
                     >
                       <div className="space-y-1.5 min-w-0 flex-1">
                         <div className="flex items-center gap-2.5">
-                          <span className="font-mono font-black text-sm text-[#4D583F]">#{ord.orderNumber}</span>
+                          <span className="font-mono font-black text-sm text-[#656B4F]">#{ord.orderNumber}</span>
                           <span className={`px-2.5 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider ${
                             ord.status === 'Processing' ? 'bg-blue-100 text-blue-900' :
                             ord.status === 'Shipped' ? 'bg-purple-100 text-purple-900' :
@@ -2211,7 +2211,7 @@ export default function AdminPortalPage() {
 
                       <div className="flex items-center gap-2 shrink-0">
                         <div className="text-right mr-3 hidden sm:block">
-                          <span className="text-lg font-black text-[#4D583F] block">₹{ord.totalAmount}</span>
+                          <span className="text-lg font-black text-[#656B4F] block">₹{ord.totalAmount}</span>
                           <span className="text-[10px] text-emerald-700 font-bold uppercase">{ord.paymentStatus || 'Paid'}</span>
                         </div>
 
@@ -2235,7 +2235,7 @@ export default function AdminPortalPage() {
 
                         <button
                           onClick={() => setSelectedOrderModal(ord)}
-                          className="px-3.5 py-2 rounded-xl bg-[#EAF0E5] text-[#4D583F] font-bold text-xs hover:bg-[#4D583F] hover:text-white transition-all shadow-2xs flex items-center gap-1"
+                          className="px-3.5 py-2 rounded-xl bg-[#EAF0E5] text-[#656B4F] font-bold text-xs hover:bg-[#656B4F] hover:text-white transition-all shadow-2xs flex items-center gap-1"
                         >
                           <Eye className="w-3.5 h-3.5" />
                           <span>View Details</span>
@@ -2259,7 +2259,7 @@ export default function AdminPortalPage() {
                   placeholder="Search users by name or email..."
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-[#4F534C]/20 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F]"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-[#4F534C]/20 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
                 />
                 <Search className="w-4 h-4 text-[#61665D] absolute left-3.5 top-3" />
               </div>
@@ -2268,7 +2268,7 @@ export default function AdminPortalPage() {
             <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm xl:block">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-[#1E201D]">
-                  <thead className="bg-[#EAF0E5] text-[#4D583F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
+                  <thead className="bg-[#EAF0E5] text-[#656B4F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
                     <tr>
                       <th className="py-3.5 px-4">User Name</th>
                       <th className="py-3.5 px-4">Email</th>
@@ -2290,7 +2290,7 @@ export default function AdminPortalPage() {
                             className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
                               usr.role === 'Admin'
                                 ? 'bg-purple-100 text-purple-800'
-                                : 'bg-[#FFF3E0] text-[#4D583F]'
+                                : 'bg-[#FFF3E0] text-[#656B4F]'
                             }`}
                           >
                             {usr.role}
@@ -2298,7 +2298,7 @@ export default function AdminPortalPage() {
                         </td>
                         <td className="py-3.5 px-4 text-[#61665D]">{usr.joinedDate}</td>
                         <td className="py-3.5 px-4 font-bold text-center sm:text-left">{usr.totalOrders}</td>
-                        <td className="py-3.5 px-4 font-black text-[#4D583F]">₹{usr.totalSpent}</td>
+                        <td className="py-3.5 px-4 font-black text-[#656B4F]">₹{usr.totalSpent}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -2308,8 +2308,8 @@ export default function AdminPortalPage() {
             <div className="grid gap-3 xl:hidden">
               {filteredUsers.map((usr) => (
                 <article key={usr.id} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-sm font-black">{usr.name}</h3><p className="truncate text-xs text-[#61665D]">{usr.email}</p></div><span className="rounded-full bg-[#EAF0E5] px-2 py-1 text-[10px] font-bold text-[#4D583F]">{usr.role}</span></div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[#4F534C]/10 pt-3 text-xs"><p><span className="block text-[#61665D]">Phone</span>{usr.phone}</p><p><span className="block text-[#61665D]">Total spent</span><strong className="text-[#4D583F]">₹{usr.totalSpent}</strong></p></div>
+                  <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-sm font-black">{usr.name}</h3><p className="truncate text-xs text-[#61665D]">{usr.email}</p></div><span className="rounded-full bg-[#EAF0E5] px-2 py-1 text-[10px] font-bold text-[#656B4F]">{usr.role}</span></div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[#4F534C]/10 pt-3 text-xs"><p><span className="block text-[#61665D]">Phone</span>{usr.phone}</p><p><span className="block text-[#61665D]">Total spent</span><strong className="text-[#656B4F]">₹{usr.totalSpent}</strong></p></div>
                 </article>
               ))}
             </div>
@@ -2329,7 +2329,7 @@ export default function AdminPortalPage() {
             <div className="hidden overflow-hidden rounded-2xl border border-[#4F534C]/15 bg-white shadow-sm xl:block">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-[#1E201D]">
-                  <thead className="bg-[#EAF0E5] text-[#4D583F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
+                  <thead className="bg-[#EAF0E5] text-[#656B4F] uppercase font-bold text-[11px] tracking-wider border-b border-[#4F534C]/15">
                     <tr>
                       <th className="py-3.5 px-4">Author</th>
                       <th className="py-3.5 px-4">Location</th>
@@ -2343,7 +2343,7 @@ export default function AdminPortalPage() {
                     {reviews.map((rev) => (
                       <tr key={rev._id || rev.id} className="hover:bg-[#FAFAF5] transition-colors">
                         <td className="py-3.5 px-4 font-bold text-[#1E201D] flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-[#4D583F] text-white flex items-center justify-center text-xs font-black shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-[#656B4F] text-white flex items-center justify-center text-xs font-black shrink-0">
                             {rev.authorName.slice(0, 1)}
                           </div>
                           <span>{rev.authorName}</span>
@@ -2376,7 +2376,7 @@ export default function AdminPortalPage() {
             <div className="grid gap-3 xl:hidden">
               {reviews.map((rev) => (
                 <article key={rev._id || rev.id} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-3"><div className="flex min-w-0 items-center gap-2"><div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4D583F] text-xs font-black text-white">{rev.authorName.slice(0, 1)}</div><div className="min-w-0"><h3 className="truncate text-sm font-black">{rev.authorName}</h3><p className="text-xs text-[#61665D]">{rev.location || 'India'} · {rev.dateText || 'Recently'}</p></div></div><button onClick={async () => { if (!confirm(`Delete review from "${rev.authorName}"?`)) return; await fetchApi(`/reviews/${rev._id || rev.id}`, { method: 'DELETE' }); fetchData(); }} className="rounded-lg p-2 text-red-600 hover:bg-red-50" aria-label={`Delete review from ${rev.authorName}`}><Trash2 className="h-4 w-4" /></button></div>
+                  <div className="flex items-start justify-between gap-3"><div className="flex min-w-0 items-center gap-2"><div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#656B4F] text-xs font-black text-white">{rev.authorName.slice(0, 1)}</div><div className="min-w-0"><h3 className="truncate text-sm font-black">{rev.authorName}</h3><p className="text-xs text-[#61665D]">{rev.location || 'India'} · {rev.dateText || 'Recently'}</p></div></div><button onClick={async () => { if (!confirm(`Delete review from "${rev.authorName}"?`)) return; await fetchApi(`/reviews/${rev._id || rev.id}`, { method: 'DELETE' }); fetchData(); }} className="rounded-lg p-2 text-red-600 hover:bg-red-50" aria-label={`Delete review from ${rev.authorName}`}><Trash2 className="h-4 w-4" /></button></div>
                   <p className="mt-3 text-sm font-bold text-amber-600">{rev.rating} ★</p><p className="mt-1 text-xs leading-relaxed text-[#61665D]">{rev.comment}</p>
                 </article>
               ))}
@@ -2390,7 +2390,7 @@ export default function AdminPortalPage() {
       {(isAddModalOpen || editingProduct) && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-xl w-full my-auto shadow-2xl border border-[#4F534C]/20 max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="bg-[#4D583F] px-6 py-4 text-white flex items-center justify-between shrink-0">
+            <div className="bg-[#656B4F] px-6 py-4 text-white flex items-center justify-between shrink-0">
               <h3 className="font-bold text-base">
                 {editingProduct ? 'Edit Product Details' : 'Add New Vegan Product'}
               </h3>
@@ -2415,7 +2415,7 @@ export default function AdminPortalPage() {
                     required
                     value={formData.code}
                     onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#4D583F] outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#656B4F] outline-none"
                   />
                 </div>
 
@@ -2426,7 +2426,7 @@ export default function AdminPortalPage() {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#4D583F] outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#656B4F] outline-none"
                   />
                 </div>
               </div>
@@ -2440,7 +2440,7 @@ export default function AdminPortalPage() {
                     min="0"
                     value={formData.mrp}
                     onChange={(e) => setFormData({ ...formData, mrp: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#4D583F] outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#656B4F] outline-none"
                   />
                 </div>
 
@@ -2452,7 +2452,7 @@ export default function AdminPortalPage() {
                     min="0"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#4D583F] outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#656B4F] outline-none"
                   />
                 </div>
 
@@ -2461,7 +2461,7 @@ export default function AdminPortalPage() {
                   <select
                     value={formData.weight || '1 KG'}
                     onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#4D583F] outline-none font-medium text-xs sm:text-sm"
+                    className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#656B4F] outline-none font-medium text-xs sm:text-sm"
                   >
                     <option value="300 G">300 G</option>
                     <option value="1 KG">1 KG</option>
@@ -2475,7 +2475,7 @@ export default function AdminPortalPage() {
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#4D583F] outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#656B4F] outline-none"
                   >
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.name}>{cat.name}</option>
@@ -2490,7 +2490,7 @@ export default function AdminPortalPage() {
                     required
                     value={formData.stock}
                     onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#4D583F] outline-none"
+                    className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#656B4F] outline-none"
                   />
                 </div>
               </div>
@@ -2512,12 +2512,12 @@ export default function AdminPortalPage() {
                   rows={2}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#4D583F] outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#656B4F] outline-none"
                 />
               </div>
 
               {/* Best Seller Checkbox Toggle */}
-              <div className="p-3.5 rounded-2xl bg-[#EAF0E5]/60 border border-[#4D583F]/20 flex items-center justify-between">
+              <div className="p-3.5 rounded-2xl bg-[#EAF0E5]/60 border border-[#656B4F]/20 flex items-center justify-between">
                 <div>
                   <label className="font-extrabold text-xs text-[#1E201D] flex items-center gap-1.5 cursor-pointer">
                     <Flame className="w-4 h-4 text-amber-600 fill-amber-500" />
@@ -2529,7 +2529,7 @@ export default function AdminPortalPage() {
                   type="checkbox"
                   checked={formData.isPopular}
                   onChange={(e) => setFormData({ ...formData, isPopular: e.target.checked })}
-                  className="w-5 h-5 accent-[#4D583F] cursor-pointer shrink-0"
+                  className="w-5 h-5 accent-[#656B4F] cursor-pointer shrink-0"
                 />
               </div>
 
@@ -2543,7 +2543,7 @@ export default function AdminPortalPage() {
                   <button
                     type="button"
                     onClick={() => setFormData(prev => ({ ...prev, variants: [...prev.variants, { weight: '300 G', price: 220 }] }))}
-                    className="px-3 py-1.5 rounded-xl bg-[#4D583F] text-white font-bold text-xs hover:bg-[#3D4732] transition-colors flex items-center gap-1 shrink-0"
+                    className="px-3 py-1.5 rounded-xl bg-[#656B4F] text-white font-bold text-xs hover:bg-[#656B4F] transition-colors flex items-center gap-1 shrink-0"
                   >
                     <Plus className="w-3.5 h-3.5" /> Add Weight Option
                   </button>
@@ -2604,7 +2604,7 @@ export default function AdminPortalPage() {
                 </button>
                 <button
                   disabled={uploadingImage}
-                  className="px-5 py-2 rounded-xl bg-[#4D583F] text-white font-bold hover:bg-[#bf3a11] disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-[#656B4F] text-white font-bold hover:bg-[#bf3a11] disabled:opacity-50"
                 >
                   {uploadingImage ? 'Uploading...' : 'Save Product'}
                 </button>
@@ -2618,7 +2618,7 @@ export default function AdminPortalPage() {
       {(isCategoryModalOpen || editingCategory) && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-lg w-full my-auto shadow-2xl border border-[#4F534C]/20 max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="bg-[#4D583F] px-6 py-4 text-white flex items-center justify-between shrink-0">
+            <div className="bg-[#656B4F] px-6 py-4 text-white flex items-center justify-between shrink-0">
               <h3 className="font-bold text-base">
                 {editingCategory ? 'Edit Category' : 'Add New Category'}
               </h3>
@@ -2641,7 +2641,7 @@ export default function AdminPortalPage() {
                   required
                   value={categoryFormData.name}
                   onChange={(e) => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#4D583F] outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#656B4F] outline-none"
                 />
               </div>
 
@@ -2662,7 +2662,7 @@ export default function AdminPortalPage() {
                   rows={2}
                   value={categoryFormData.description}
                   onChange={(e) => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#4D583F] outline-none"
+                  className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#656B4F] outline-none"
                 />
               </div>
 
@@ -2679,7 +2679,7 @@ export default function AdminPortalPage() {
                 </button>
                 <button
                   disabled={uploadingImage}
-                  className="px-5 py-2 rounded-xl bg-[#4D583F] text-white font-bold hover:bg-[#bf3a11] disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-[#656B4F] text-white font-bold hover:bg-[#bf3a11] disabled:opacity-50"
                 >
                   {uploadingImage ? 'Uploading...' : 'Save Category'}
                 </button>
@@ -2696,7 +2696,7 @@ export default function AdminPortalPage() {
             {/* Modal Header */}
             <div className="bg-[#1E201D] text-white px-5 sm:px-6 py-4 flex items-center justify-between shrink-0 border-b border-white/10">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-[#4D583F] flex items-center justify-center text-white">
+                <div className="w-9 h-9 rounded-xl bg-[#656B4F] flex items-center justify-center text-white">
                   <ShoppingBag className="w-5 h-5" />
                 </div>
                 <div>
@@ -2745,7 +2745,7 @@ export default function AdminPortalPage() {
               <div className="p-3.5 rounded-2xl bg-[#FBFDF2] border border-[#4F534C]/15 space-y-2">
                 <div className="flex items-center justify-between text-[11px] font-bold text-[#1E201D]">
                   <span>Order Progress Stepper:</span>
-                  <span className="text-[#4D583F]">{selectedOrderModal.status}</span>
+                  <span className="text-[#656B4F]">{selectedOrderModal.status}</span>
                 </div>
                 <div className="grid grid-cols-4 gap-1 sm:gap-2 text-center text-[10px] font-bold">
                   {['Pending', 'Processing', 'Shipped', 'Delivered'].map((step, idx) => {
@@ -2760,7 +2760,7 @@ export default function AdminPortalPage() {
                         onClick={() => handleUpdateOrderStatus(selectedOrderModal.id, step)}
                         className={`py-2 px-1 rounded-xl transition-all border ${
                           isCurrent
-                            ? 'bg-[#4D583F] text-white border-[#4D583F] shadow-xs'
+                            ? 'bg-[#656B4F] text-white border-[#656B4F] shadow-xs'
                             : isDone
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
                             : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
@@ -2780,7 +2780,7 @@ export default function AdminPortalPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 {/* Customer Details & Instant Contact */}
                 <div className="p-4 rounded-2xl bg-[#EAF0E5]/60 border border-[#4F534C]/15 space-y-3">
-                  <div className="flex items-center gap-2 text-[#4D583F] font-bold text-xs">
+                  <div className="flex items-center gap-2 text-[#656B4F] font-bold text-xs">
                     <Users className="w-4 h-4" />
                     <span>Customer & Contact</span>
                   </div>
@@ -2814,7 +2814,7 @@ export default function AdminPortalPage() {
 
                 {/* Delivery Address & Google Maps Navigation */}
                 <div className="p-4 rounded-2xl bg-white border border-[#4F534C]/15 shadow-2xs space-y-3">
-                  <div className="flex items-center gap-2 text-[#4D583F] font-bold text-xs">
+                  <div className="flex items-center gap-2 text-[#656B4F] font-bold text-xs">
                     <MapPin className="w-4 h-4 text-rose-600" />
                     <span>Delivery Destination</span>
                   </div>
@@ -2864,7 +2864,7 @@ export default function AdminPortalPage() {
               <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-gray-700 flex items-center gap-1.5">
-                    <CreditCard className="w-4 h-4 text-[#4D583F]" />
+                    <CreditCard className="w-4 h-4 text-[#656B4F]" />
                     <span>Payment Information</span>
                   </span>
                   <span className={`px-2.5 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider ${
@@ -2922,7 +2922,7 @@ export default function AdminPortalPage() {
               <div>
                 <h4 className="font-black text-sm text-[#1E201D] mb-2.5 flex items-center justify-between">
                   <span>Purchased Frozen Items ({selectedOrderModal.items?.length || 0})</span>
-                  <span className="text-xs font-bold text-[#4D583F]">Total: ₹{selectedOrderModal.totalAmount}</span>
+                  <span className="text-xs font-bold text-[#656B4F]">Total: ₹{selectedOrderModal.totalAmount}</span>
                 </h4>
 
                 <div className="rounded-2xl border border-[#4F534C]/15 overflow-hidden divide-y divide-[#4F534C]/10">
@@ -2931,7 +2931,7 @@ export default function AdminPortalPage() {
                       <div className="min-w-0 flex-1">
                         <span className="font-extrabold text-sm text-[#1E201D] block truncate">{item.name}</span>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="px-2 py-0.5 rounded-md bg-[#E8EEE0] text-[#4D583F] font-bold text-[10px]">
+                          <span className="px-2 py-0.5 rounded-md bg-[#E8EEE0] text-[#656B4F] font-bold text-[10px]">
                             {item.weight}
                           </span>
                           <span className="text-[#61665D] text-xs">₹{item.price} each</span>
@@ -2940,7 +2940,7 @@ export default function AdminPortalPage() {
 
                       <div className="text-right shrink-0">
                         <div className="font-bold text-xs text-[#61665D]">Qty: ×{item.quantity}</div>
-                        <div className="font-black text-sm text-[#4D583F] mt-0.5">₹{item.price * item.quantity}</div>
+                        <div className="font-black text-sm text-[#656B4F] mt-0.5">₹{item.price * item.quantity}</div>
                       </div>
                     </div>
                   ))}
@@ -2970,7 +2970,7 @@ export default function AdminPortalPage() {
                         handleUpdateOrderStatus(selectedOrderModal.id, e.target.value);
                         setSelectedOrderModal({ ...selectedOrderModal, status: e.target.value as any });
                       }}
-                      className="px-3 py-1.5 rounded-xl border border-[#4F534C]/20 bg-white font-bold text-xs text-[#1E201D] outline-none focus:ring-2 focus:ring-[#4D583F]"
+                      className="px-3 py-1.5 rounded-xl border border-[#4F534C]/20 bg-white font-bold text-xs text-[#1E201D] outline-none focus:ring-2 focus:ring-[#656B4F]"
                     >
                       <option value="Pending">Pending</option>
                       <option value="Processing">Processing</option>
@@ -2987,13 +2987,13 @@ export default function AdminPortalPage() {
                   onClick={() => setInvoiceOrder(selectedOrderModal)}
                   className="px-4 py-2 rounded-xl bg-white hover:bg-[#EAF0E5] border border-[#4F534C]/20 text-[#1E201D] font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors"
                 >
-                  <Printer className="w-3.5 h-3.5 text-[#4D583F]" />
+                  <Printer className="w-3.5 h-3.5 text-[#656B4F]" />
                   <span>Print Bill</span>
                 </button>
 
                 <button
                   onClick={() => setSelectedOrderModal(null)}
-                  className="px-5 py-2 rounded-xl bg-[#4D583F] hover:bg-[#3d4732] text-white font-bold text-xs shadow-xs transition-colors"
+                  className="px-5 py-2 rounded-xl bg-[#656B4F] hover:bg-[#3d4732] text-white font-bold text-xs shadow-xs transition-colors"
                 >
                   Close
                 </button>
@@ -3035,7 +3035,7 @@ export default function AdminPortalPage() {
               {/* Brand Header */}
               <div className="flex items-start justify-between border-b border-gray-300 pb-4">
                 <div>
-                  <h2 className="text-xl font-black text-[#4D583F] font-poppins">SAKTHI FROZEN FOODS</h2>
+                  <h2 className="text-xl font-black text-[#656B4F] font-poppins">SAKTHI FROZEN FOODS</h2>
                   <p className="text-[11px] text-[#61665D] font-medium mt-0.5">100% Plant-Based Meat & Vegan Delicacies</p>
                   <p className="text-[10px] text-gray-500 mt-1">FSSAI Lic No: 12421008000456 • Cold Chain Dispatch</p>
                 </div>
@@ -3106,15 +3106,15 @@ export default function AdminPortalPage() {
                   <span>Payment Method:</span>
                   <span className="font-semibold">{invoiceOrder.paymentMethod}</span>
                 </div>
-                <div className="flex justify-between text-base font-black text-[#4D583F] border-t-2 border-gray-400 pt-2">
+                <div className="flex justify-between text-base font-black text-[#656B4F] border-t-2 border-gray-400 pt-2">
                   <span>Grand Total:</span>
                   <span>₹{invoiceOrder.totalAmount}</span>
                 </div>
               </div>
 
               {/* Cold Storage & Delivery Instructions */}
-              <div className="p-3 rounded-xl bg-[#FBFDF2] border border-[#4D583F]/20 text-[10px] text-[#4F534C] space-y-1">
-                <p className="font-bold text-[#4D583F]">❄️ Cold Storage Guidelines:</p>
+              <div className="p-3 rounded-xl bg-[#FBFDF2] border border-[#656B4F]/20 text-[10px] text-[#4F534C] space-y-1">
+                <p className="font-bold text-[#656B4F]">❄️ Cold Storage Guidelines:</p>
                 <p>Store immediately at -18°C upon delivery. Keep sealed until cooking. Do not refreeze once thawed.</p>
                 <p className="text-gray-500 pt-1">For support or queries, contact us on WhatsApp or call +91 98765 43210.</p>
               </div>

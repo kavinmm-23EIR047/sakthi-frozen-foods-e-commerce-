@@ -14,7 +14,7 @@ export default function CartPage() {
   const { cart, removeFromCart, updateQuantity, totalPrice } = useCart();
 
   const subtotal = totalPrice;
-  const deliveryFee = subtotal >= 999 || subtotal === 0 ? 0 : 60;
+  const deliveryFee = subtotal >= 2999 || subtotal === 0 ? 0 : 40;
   const convenienceFee = Number((subtotal * 0.025).toFixed(2));
   const grandTotal = Number((subtotal + deliveryFee + convenienceFee).toFixed(2));
 
@@ -35,7 +35,7 @@ export default function CartPage() {
           {/* Cart Items List */}
           <div className="w-full md:w-2/3 p-5 sm:p-6 md:p-8 border-b md:border-b-0 md:border-r border-[#4F534C]/15 flex flex-col">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-[#4D583F] text-white flex items-center justify-center shadow-md">
+              <div className="w-10 h-10 rounded-xl bg-[#656B4F] text-white flex items-center justify-center shadow-md">
                 <ShoppingCart className="w-5 h-5" />
               </div>
               <h1 className="text-xl sm:text-2xl font-black text-[#1A1E16] font-poppins">Your Cart ({cart.length})</h1>
@@ -45,7 +45,7 @@ export default function CartPage() {
               {cart.length === 0 ? (
                 <div className="text-center py-16 text-[#3E4536] bg-[#EAF0E5] rounded-2xl border border-[#4F534C]/15">
                   <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center mx-auto mb-4 border border-[#4F534C]/15 shadow-sm">
-                    <ShoppingCart className="w-8 h-8 text-[#4D583F]" />
+                    <ShoppingCart className="w-8 h-8 text-[#656B4F]" />
                   </div>
                   <h3 className="text-lg font-black text-[#1A1E16]">Your cart is empty</h3>
                   <p className="text-sm mt-1 text-[#3E4536] font-semibold">
@@ -53,7 +53,7 @@ export default function CartPage() {
                   </p>
                   <button 
                     onClick={() => router.push('/shop')}
-                    className="mt-6 px-6 py-3 bg-[#4D583F] text-white font-black rounded-xl shadow-md hover:bg-[#414b35] transition-colors"
+                    className="mt-6 px-6 py-3 bg-[#656B4F] text-white font-black rounded-xl shadow-md hover:bg-[#50563D] transition-colors"
                   >
                     Browse Shop
                   </button>
@@ -66,12 +66,12 @@ export default function CartPage() {
                   >
                     <div className="flex-1 min-w-0">
                       <h4 className="text-base font-extrabold text-[#1A1E16] truncate">{item.name}</h4>
-                      <span className="inline-block text-xs font-bold text-[#4D583F] bg-[#EAF0E5] px-2.5 py-1 rounded-md mt-1.5 uppercase tracking-wide">
+                      <span className="inline-block text-xs font-bold text-[#656B4F] bg-[#EAF0E5] px-2.5 py-1 rounded-md mt-1.5 uppercase tracking-wide">
                         {item.weight}
                       </span>
                       <div className="text-sm font-bold text-[#3E4536] mt-2">
                         ₹{item.price} × {item.quantity} ={' '}
-                        <span className="text-[#26311A] font-black text-base">₹{item.price * item.quantity}</span>
+                        <span className="text-[#50563D] font-black text-base">₹{item.price * item.quantity}</span>
                       </div>
                     </div>
 
@@ -122,25 +122,25 @@ export default function CartPage() {
               <div className="flex justify-between items-center">
                 <span className="flex items-center gap-1">
                   <span>Convenience Fee</span>
-                  <span className="bg-[#4D583F]/10 text-[#4D583F] text-[10px] px-1.5 py-0.5 rounded font-bold">2.5%</span>
+                  <span className="bg-[#656B4F]/10 text-[#656B4F] text-[10px] px-1.5 py-0.5 rounded font-bold">2.5%</span>
                 </span>
                 <span className="font-black text-[#1A1E16]">₹{convenienceFee}</span>
               </div>
 
-              <div className="flex justify-between items-center">
-                <span>Estimated Delivery</span>
-                <span className="font-black text-[#1A1E16]">
-                  {deliveryFee === 0 ? (
-                    <span className="text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded text-xs font-black">FREE</span>
-                  ) : (
-                    `₹${deliveryFee}`
-                  )}
-                </span>
-              </div>
+                <div className="flex justify-between items-center">
+                  <span>Estimated Delivery</span>
+                  <span className="font-black text-[#1A1E16]">
+                    {deliveryFee === 0 ? (
+                      <span className="text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded text-xs font-black">FREE</span>
+                    ) : (
+                      <span>₹{deliveryFee} <span className="text-[10px] text-[#4F5547] font-normal">(Base Rate)</span></span>
+                    )}
+                  </span>
+                </div>
               
               {deliveryFee > 0 && cart.length > 0 && (
                 <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 font-bold mt-2">
-                  Add ₹{999 - subtotal} more to your order for <span className="font-black">FREE Delivery!</span>
+                  Add ₹{2999 - subtotal} more to your order for <span className="font-black">FREE Delivery!</span>
                 </div>
               )}
             </div>
@@ -150,11 +150,11 @@ export default function CartPage() {
                 <span className="text-sm font-black text-[#1A1E16] block">Grand Total</span>
                 <span className="text-[10px] text-[#4F5547] font-semibold">Incl. all taxes & fees</span>
               </div>
-              <span className="text-2xl font-black text-[#26311A]">₹{grandTotal}</span>
+              <span className="text-2xl font-black text-[#50563D]">₹{grandTotal}</span>
             </div>
 
             {user ? (
-              <div className="mb-4 p-2.5 bg-white/80 rounded-xl border border-[#4F534C]/15 flex items-center gap-2 text-xs text-[#26311A] font-bold">
+              <div className="mb-4 p-2.5 bg-white/80 rounded-xl border border-[#4F534C]/15 flex items-center gap-2 text-xs text-[#50563D] font-bold">
                 <UserCheck className="w-4 h-4 text-emerald-700 shrink-0" />
                 <span className="truncate">Checking out as: <strong className="text-[#1A1E16]">{user.name}</strong></span>
               </div>
@@ -177,7 +177,7 @@ export default function CartPage() {
               }}
               className={`w-full py-4 px-6 rounded-2xl font-black text-base transition-all shadow-lg flex items-center justify-center gap-2 group whitespace-nowrap ${
                 cart.length > 0 
-                  ? 'bg-[#4D583F] text-white hover:bg-[#414b35] hover:shadow-xl' 
+                  ? 'bg-[#656B4F] text-white hover:bg-[#50563D] hover:shadow-xl' 
                   : 'bg-[#D3D8CF] text-[#8F968B] cursor-not-allowed'
               }`}
             >

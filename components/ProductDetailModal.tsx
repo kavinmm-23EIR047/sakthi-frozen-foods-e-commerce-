@@ -77,7 +77,7 @@ export default function ProductDetailModal() {
                 alt={product.name}
                 className="w-full h-full object-cover rounded-xl shadow-sm border border-[#4F534C]/15"
               />
-              <span className="absolute top-4 left-4 bg-[#4D583F] text-white text-xs font-bold px-3 py-1 rounded-full shadow">
+              <span className="absolute top-4 left-4 bg-[#656B4F] text-white text-xs font-bold px-3 py-1 rounded-full shadow">
                 {currentWeight.label}
               </span>
             </div>
@@ -86,7 +86,7 @@ export default function ProductDetailModal() {
           <div className="p-5 sm:p-6 md:p-7 flex flex-col justify-between space-y-5">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-bold text-[#4D583F] bg-[#EAF0E5] px-2.5 py-1 rounded-md uppercase tracking-wider">
+                <span className="text-xs font-bold text-[#656B4F] bg-[#EAF0E5] px-2.5 py-1 rounded-md uppercase tracking-wider">
                   {product.category}
                 </span>
               </div>
@@ -100,7 +100,7 @@ export default function ProductDetailModal() {
               {/* Badges */}
               <div className="grid grid-cols-2 gap-2 mt-4">
                 <div className="flex items-center gap-1.5 p-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/10 text-[11px] font-semibold text-[#1E201D]">
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#4D583F]" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#656B4F]" />
                   <span>100% Plant-Based</span>
                 </div>
                 <div className="flex items-center gap-1.5 p-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/10 text-[11px] font-semibold text-[#1E201D]">
@@ -108,11 +108,11 @@ export default function ProductDetailModal() {
                   <span>Rich Protein & Fiber</span>
                 </div>
                 <div className="flex items-center gap-1.5 p-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/10 text-[11px] font-semibold text-[#1E201D]">
-                  <Sparkles className="w-3.5 h-3.5 text-[#4D583F]" />
+                  <Sparkles className="w-3.5 h-3.5 text-[#656B4F]" />
                   <span>Zero Cholesterol</span>
                 </div>
                 <div className="flex items-center gap-1.5 p-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/10 text-[11px] font-semibold text-[#1E201D]">
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#4D583F]" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#656B4F]" />
                   <span>Keep Frozen (-18°C)</span>
                 </div>
               </div>
@@ -131,8 +131,8 @@ export default function ProductDetailModal() {
                       onClick={() => setSelectedWeightIdx(idx)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
                         selectedWeightIdx === idx
-                          ? 'bg-[#4D583F] text-white border-[#4D583F] shadow-md'
-                          : 'bg-[#E8EEE0] text-[#61665D] border-[#4F534C]/20 hover:border-[#4D583F] hover:text-[#1E201D]'
+                          ? 'bg-[#656B4F] text-white border-[#656B4F] shadow-md'
+                          : 'bg-[#E8EEE0] text-[#61665D] border-[#4F534C]/20 hover:border-[#656B4F] hover:text-[#1E201D]'
                       }`}
                     >
                       {opt.label} {weightOptions.length > 1 ? `(₹${opt.price})` : ''}
@@ -144,7 +144,7 @@ export default function ProductDetailModal() {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-xs text-[#61665D] block">Calculated Price</span>
-                  <span className="text-2xl font-black text-[#4D583F]">₹{dynamicPrice}</span>
+                  <span className="text-2xl font-black text-[#656B4F]">₹{dynamicPrice}</span>
                 </div>
 
                 {/* Quantity Control */}
@@ -167,7 +167,7 @@ export default function ProductDetailModal() {
 
               <button
                 onClick={handleAdd}
-                className="w-full min-h-11 py-3 px-4 rounded-lg bg-[#4D583F] text-white font-bold text-sm hover:bg-[#414b35] transition-all shadow-sm flex items-center justify-center gap-2 group whitespace-nowrap"
+                className="w-full min-h-11 py-3 px-4 rounded-lg bg-[#656B4F] text-white font-bold text-sm hover:bg-[#50563D] transition-all shadow-sm flex items-center justify-center gap-2 group whitespace-nowrap"
               >
                 <ShoppingBag className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span>Add {quantity} to Cart • ₹{dynamicPrice * quantity}</span>

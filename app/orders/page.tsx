@@ -107,7 +107,7 @@ export default function OrdersPage() {
           contact: order.customerPhone,
         },
         theme: {
-          color: '#4D583F',
+          color: '#656B4F',
         },
         handler: async function (response: any) {
           try {
@@ -166,10 +166,10 @@ export default function OrdersPage() {
       <div className="min-h-screen bg-[#EAF0E5] flex flex-col font-sans">
         <Navbar />
         <main className="flex-1 flex items-center justify-center p-4">
-          <div className="text-center p-8 bg-white rounded-3xl shadow-md border border-[#4D583F]/20 max-w-md w-full">
+          <div className="text-center p-8 bg-white rounded-3xl shadow-md border border-[#656B4F]/20 max-w-md w-full">
             <h2 className="text-2xl font-bold text-[#1E201D] mb-2 font-poppins">Please Login</h2>
             <p className="text-sm text-[#61665D] mb-6">You need to be logged in to view your orders.</p>
-            <Link href="/login" className="inline-block px-6 py-3 bg-[#4D583F] text-white font-bold rounded-xl hover:bg-[#414b35] transition-all shadow-md">
+            <Link href="/login" className="inline-block px-6 py-3 bg-[#656B4F] text-white font-bold rounded-xl hover:bg-[#50563D] transition-all shadow-md">
               Go to Login
             </Link>
           </div>
@@ -247,12 +247,12 @@ export default function OrdersPage() {
           </div>
         ) : orders.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl border border-[#4F534C]/15 shadow-sm max-w-md mx-auto">
-            <div className="w-20 h-20 rounded-full bg-[#EAF0E5] flex items-center justify-center mx-auto mb-4 text-[#4D583F]">
+            <div className="w-20 h-20 rounded-full bg-[#EAF0E5] flex items-center justify-center mx-auto mb-4 text-[#656B4F]">
               <Package className="w-10 h-10" />
             </div>
             <h3 className="text-xl font-black text-[#1A1E16] font-poppins">No Orders Found</h3>
             <p className="text-sm font-semibold text-[#3C4136] mt-2 mb-6">Looks like you haven&apos;t placed any orders yet.</p>
-            <Link href="/shop" className="inline-block px-6 py-3 bg-[#4D583F] text-white font-extrabold rounded-xl hover:bg-[#414b35] transition-all shadow-md">
+            <Link href="/shop" className="inline-block px-6 py-3 bg-[#656B4F] text-white font-extrabold rounded-xl hover:bg-[#50563D] transition-all shadow-md">
               Start Shopping
             </Link>
           </div>
@@ -270,7 +270,7 @@ export default function OrdersPage() {
 
               return (
                 <div key={order.id} className="bg-white rounded-2xl border border-[#4F534C]/20 shadow-sm overflow-hidden transition-shadow hover:shadow-md">
-                  <div className="bg-[#EAF0E5] px-5 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#4D583F]/20">
+                  <div className="bg-[#EAF0E5] px-5 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#656B4F]/20">
                     <div>
                       <span className="text-xs font-black text-[#262E1F] uppercase tracking-wider block mb-1 font-mono">
                         Order {order.orderNumber}
@@ -289,7 +289,7 @@ export default function OrdersPage() {
                       <span className="text-xs font-extrabold uppercase tracking-wider text-[#3E4536]">Total Amount</span>
                       <span className="text-xl font-black text-[#1A1E16]">₹{order.totalAmount}</span>
                       {order.convenienceFee ? (
-                        <span className="text-[10px] font-bold text-[#4D583F]">
+                        <span className="text-[10px] font-bold text-[#656B4F]">
                           (Incl. ₹{order.convenienceFee} fee)
                         </span>
                       ) : null}
@@ -315,7 +315,7 @@ export default function OrdersPage() {
                         <button
                           onClick={() => handleRetryPayment(order)}
                           disabled={retryingOrderId === order.id}
-                          className="px-4 py-2 bg-[#4D583F] hover:bg-[#3b4430] text-white rounded-xl font-black text-xs flex items-center justify-center gap-1.5 shadow-md transition-all disabled:opacity-50 shrink-0"
+                          className="px-4 py-2 bg-[#656B4F] hover:bg-[#3b4430] text-white rounded-xl font-black text-xs flex items-center justify-center gap-1.5 shadow-md transition-all disabled:opacity-50 shrink-0"
                         >
                           <CreditCard className="w-3.5 h-3.5" />
                           <span>{retryingOrderId === order.id ? 'Connecting...' : 'Pay Now / Retry'}</span>
@@ -340,7 +340,7 @@ export default function OrdersPage() {
                       <div className="flex-1 space-y-4">
                         {order.items.map((item, idx) => (
                           <div key={idx} className="flex items-start gap-3.5 sm:gap-4">
-                            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-[#4D583F] text-white flex items-center justify-center font-black text-sm shadow-xs flex-shrink-0">
+                            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-[#656B4F] text-white flex items-center justify-center font-black text-sm shadow-xs flex-shrink-0">
                               {item.quantity}x
                             </div>
                             <div>
@@ -411,7 +411,7 @@ export default function OrdersPage() {
                           {isExpiredFailed && (
                             <Link
                               href="/shop"
-                              className="w-full rounded-xl bg-[#4D583F] hover:bg-[#3b4430] px-3.5 py-2.5 text-xs font-black text-white text-center transition-colors block shadow-xs"
+                              className="w-full rounded-xl bg-[#656B4F] hover:bg-[#3b4430] px-3.5 py-2.5 text-xs font-black text-white text-center transition-colors block shadow-xs"
                             >
                               Place Fresh Order
                             </Link>

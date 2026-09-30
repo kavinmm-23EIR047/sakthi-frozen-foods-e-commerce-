@@ -89,7 +89,7 @@ function RegisterForm() {
 
           <form onSubmit={handleRegister} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-[#4D583F] mb-1.5 uppercase tracking-wide">
+              <label className="block text-xs font-bold text-[#656B4F] mb-1.5 uppercase tracking-wide">
                 Full Name
               </label>
               <div className="relative">
@@ -102,14 +102,14 @@ function RegisterForm() {
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F] shadow-sm"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] shadow-sm"
                   placeholder="John Doe"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#4D583F] mb-1.5 uppercase tracking-wide">
+              <label className="block text-xs font-bold text-[#656B4F] mb-1.5 uppercase tracking-wide">
                 Email Address
               </label>
               <div className="relative">
@@ -122,7 +122,7 @@ function RegisterForm() {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F] shadow-sm"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] shadow-sm"
                   placeholder="you@example.com"
                 />
               </div>
@@ -130,7 +130,7 @@ function RegisterForm() {
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-[#4D583F] uppercase tracking-wide">
+                <label className="block text-xs font-bold text-[#656B4F] uppercase tracking-wide">
                   Mobile Number <span className="text-red-500">*</span>
                 </label>
                 <span className="text-[10px] text-[#61665D] font-semibold">Required for Login & Delivery</span>
@@ -138,7 +138,7 @@ function RegisterForm() {
               <div className="relative flex items-center">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none gap-1.5">
                   <Phone className="h-4 w-4 text-[#61665D]" />
-                  <span className="text-xs font-bold text-[#4D583F] border-r border-[#4F534C]/30 pr-2">+91</span>
+                  <span className="text-xs font-bold text-[#656B4F] border-r border-[#4F534C]/30 pr-2">+91</span>
                 </div>
                 <input
                   type="tel"
@@ -150,14 +150,14 @@ function RegisterForm() {
                     setFormData({ ...formData, phone: onlyNums });
                   }}
                   required
-                  className="w-full pl-20 pr-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-bold text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F] shadow-sm tracking-wider"
+                  className="w-full pl-20 pr-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-bold text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] shadow-sm tracking-wider"
                   placeholder="98765 43210"
                 />
               </div>
             </div>
             
             <div>
-              <label className="block text-xs font-bold text-[#4D583F] mb-1.5 uppercase tracking-wide">
+              <label className="block text-xs font-bold text-[#656B4F] mb-1.5 uppercase tracking-wide">
                 Shipping Address
               </label>
               <div className="relative">
@@ -169,14 +169,14 @@ function RegisterForm() {
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F] shadow-sm"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] shadow-sm"
                   placeholder="123 Main St, City, Zip"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-[#4D583F] mb-1.5 uppercase tracking-wide">
+              <label className="block text-xs font-bold text-[#656B4F] mb-1.5 uppercase tracking-wide">
                 Password
               </label>
               <div className="relative">
@@ -189,10 +189,10 @@ function RegisterForm() {
                   value={formData.password}
                   onChange={handleChange}
                   required
-                  className="w-full pl-10 pr-12 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F] shadow-sm"
+                  className="w-full pl-10 pr-12 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] shadow-sm"
                   placeholder="••••••••"
                 />
-                <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-[#61665D] hover:text-[#4D583F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4D583F]" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword}>
+                <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-[#61665D] hover:text-[#656B4F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#656B4F]" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword}>
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
@@ -201,7 +201,7 @@ function RegisterForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-[#4D583F] text-[#FAFAF5] font-bold rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-[#414b35] transition-all shadow-md active:scale-[0.98] mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full py-3.5 bg-[#656B4F] text-[#FAFAF5] font-bold rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-[#50563D] transition-all shadow-md active:scale-[0.98] mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
@@ -218,7 +218,7 @@ function RegisterForm() {
             Already have an account?{' '}
             <Link
               href={targetRedirect !== '/' ? `/login?redirect=${encodeURIComponent(targetRedirect)}` : '/login'}
-              className="text-[#4D583F] font-bold hover:underline"
+              className="text-[#656B4F] font-bold hover:underline"
             >
               Sign In
             </Link>
@@ -231,7 +231,7 @@ function RegisterForm() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#E8EEE0] flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#4D583F] border-t-transparent rounded-full animate-spin"></div></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[#E8EEE0] flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#656B4F] border-t-transparent rounded-full animate-spin"></div></div>}>
       <RegisterForm />
     </Suspense>
   );

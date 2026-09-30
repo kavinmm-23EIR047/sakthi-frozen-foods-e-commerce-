@@ -16,6 +16,9 @@ const orderSchema = new mongoose.Schema(
       lat: { type: Number },
       lng: { type: Number },
     },
+    deliveryZoneId: { type: String },
+    deliveryMode: { type: String, enum: ['BIKE', 'BUS', 'TRAVELS'] },
+    distanceKm: { type: Number },
     items: [
       {
         productId: { type: String, required: true },

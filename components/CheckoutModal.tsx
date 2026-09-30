@@ -21,7 +21,7 @@ export default function CheckoutModal() {
 
   if (!isCheckoutOpen) return null;
 
-  const deliveryFee = totalPrice >= 999 ? 0 : 60;
+  const deliveryFee = totalPrice >= 2999 ? 0 : 60;
   const grandTotal = totalPrice + deliveryFee;
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
@@ -69,7 +69,7 @@ export default function CheckoutModal() {
     <div className="fixed inset-0 z-50 overflow-y-auto bg-[#1E201D]/70 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-[#FAFAF5] rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-[#4F534C]/20 relative">
         {/* Header */}
-        <div className="bg-[#4D583F] px-6 py-4 text-[#FAFAF5] flex items-center justify-between">
+        <div className="bg-[#656B4F] px-6 py-4 text-[#FAFAF5] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-5 h-5" />
             <h3 className="font-bold text-lg">
@@ -84,12 +84,12 @@ export default function CheckoutModal() {
         {orderConfirmed ? (
           /* Confirmation View */
           <div className="p-8 text-center space-y-4">
-            <div className="w-16 h-16 bg-[#EAF0E5] text-[#4D583F] rounded-full flex items-center justify-center mx-auto border border-[#4D583F]/20 shadow-md">
+            <div className="w-16 h-16 bg-[#EAF0E5] text-[#656B4F] rounded-full flex items-center justify-center mx-auto border border-[#656B4F]/20 shadow-md">
               <CheckCircle2 className="w-10 h-10" />
             </div>
             <h4 className="text-xl font-extrabold text-[#1E201D]">Thank You for Your Order!</h4>
             <p className="text-xs text-[#61665D]">
-              Your order <span className="font-bold text-[#4D583F]">{orderConfirmed.orderNumber}</span> has been placed successfully.
+              Your order <span className="font-bold text-[#656B4F]">{orderConfirmed.orderNumber}</span> has been placed successfully.
             </p>
 
             <div className="bg-[#E8EEE0] p-4 rounded-xl text-left border border-[#4F534C]/15 space-y-2 text-xs">
@@ -103,11 +103,11 @@ export default function CheckoutModal() {
               </div>
               <div className="flex justify-between">
                 <span className="text-[#61665D]">Payment Method:</span>
-                <span className="font-bold text-[#4D583F]">{orderConfirmed.paymentMethod}</span>
+                <span className="font-bold text-[#656B4F]">{orderConfirmed.paymentMethod}</span>
               </div>
               <div className="flex justify-between border-t border-[#4F534C]/15 pt-2 font-bold text-sm">
                 <span>Total Amount:</span>
-                <span className="text-[#4D583F]">₹{orderConfirmed.totalAmount}</span>
+                <span className="text-[#656B4F]">₹{orderConfirmed.totalAmount}</span>
               </div>
             </div>
 
@@ -120,7 +120,7 @@ export default function CheckoutModal() {
                 handleClose();
                 router.push('/orders');
               }}
-              className="w-full py-3 bg-[#4D583F] text-white font-bold rounded-xl hover:bg-[#414b35] transition-all shadow-md text-sm"
+              className="w-full py-3 bg-[#656B4F] text-white font-bold rounded-xl hover:bg-[#50563D] transition-all shadow-md text-sm"
             >
               View My Orders
             </button>
@@ -137,7 +137,7 @@ export default function CheckoutModal() {
                   placeholder="e.g. Rajesh Kumar"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F]"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
                 />
               </div>
 
@@ -150,7 +150,7 @@ export default function CheckoutModal() {
                     placeholder="+91 98765 43210"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F]"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
                   />
                 </div>
 
@@ -161,7 +161,7 @@ export default function CheckoutModal() {
                     placeholder="name@example.com"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F]"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
                   />
                 </div>
               </div>
@@ -174,7 +174,7 @@ export default function CheckoutModal() {
                   placeholder="House / Flat No., Street, Landmark, City & Pincode"
                   value={shippingAddress}
                   onChange={(e) => setShippingAddress(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F]"
+                  className="w-full px-3.5 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
                 />
               </div>
 
@@ -186,8 +186,8 @@ export default function CheckoutModal() {
                     onClick={() => setPaymentMethod('UPI / Online')}
                     className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
                       paymentMethod === 'UPI / Online'
-                        ? 'bg-[#4D583F] text-[#FAFAF5] border-[#4D583F] shadow-sm'
-                        : 'bg-[#E8EEE0] text-[#61665D] border-[#4F534C]/20 hover:border-[#4D583F]'
+                        ? 'bg-[#656B4F] text-[#FAFAF5] border-[#656B4F] shadow-sm'
+                        : 'bg-[#E8EEE0] text-[#61665D] border-[#4F534C]/20 hover:border-[#656B4F]'
                     }`}
                   >
                     <CreditCard className="w-4 h-4" />
@@ -199,8 +199,8 @@ export default function CheckoutModal() {
                     onClick={() => setPaymentMethod('Cash on Delivery')}
                     className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
                       paymentMethod === 'Cash on Delivery'
-                        ? 'bg-[#4D583F] text-[#FAFAF5] border-[#4D583F] shadow-sm'
-                        : 'bg-[#E8EEE0] text-[#61665D] border-[#4F534C]/20 hover:border-[#4D583F]'
+                        ? 'bg-[#656B4F] text-[#FAFAF5] border-[#656B4F] shadow-sm'
+                        : 'bg-[#E8EEE0] text-[#61665D] border-[#4F534C]/20 hover:border-[#656B4F]'
                     }`}
                   >
                     <Truck className="w-4 h-4" />
@@ -213,13 +213,13 @@ export default function CheckoutModal() {
             <div className="pt-3 border-t border-[#4F534C]/15 flex items-center justify-between">
               <div>
                 <span className="block text-[11px] text-[#61665D]">Total Payables ({cart.length} items)</span>
-                <span className="text-lg font-extrabold text-[#4D583F]">₹{grandTotal}</span>
+                <span className="text-lg font-extrabold text-[#656B4F]">₹{grandTotal}</span>
               </div>
 
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="py-3 px-6 bg-[#4D583F] text-[#FAFAF5] font-bold rounded-xl hover:bg-[#414b35] transition-all shadow-md text-sm disabled:opacity-50"
+                className="py-3 px-6 bg-[#656B4F] text-[#FAFAF5] font-bold rounded-xl hover:bg-[#50563D] transition-all shadow-md text-sm disabled:opacity-50"
               >
                 {isSubmitting ? 'Placing Order...' : 'Confirm & Place Order'}
               </button>

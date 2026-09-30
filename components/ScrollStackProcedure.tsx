@@ -276,7 +276,7 @@ export default function ScrollStackProcedure() {
                     {s.tags.map((t, tIdx) => (
                       <span
                         key={tIdx}
-                        className="px-2.5 py-0.5 rounded-md bg-stone-50 text-[#3D4732] text-[10px] sm:text-[11px] font-bold border border-stone-200 shadow-2xs"
+                        className="px-2.5 py-0.5 rounded-md bg-stone-50 text-[#656B4F] text-[10px] sm:text-[11px] font-bold border border-stone-200 shadow-2xs"
                       >
                         {t}
                       </span>

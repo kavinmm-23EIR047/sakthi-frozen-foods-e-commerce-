@@ -218,7 +218,7 @@ function ShopContent() {
 
       <main className="mx-auto w-full max-w-[1180px] px-3 py-5 sm:px-4 sm:py-8 md:py-10 flex-1">
         <div className="mb-6 max-w-2xl sm:mb-10">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EAF0E5] border border-[#4D583F]/20 text-[#4D583F] text-xs font-black uppercase tracking-wider mb-3 shadow-xs">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EAF0E5] border border-[#656B4F]/20 text-[#656B4F] text-xs font-black uppercase tracking-wider mb-3 shadow-xs">
             <ChefHat className="w-4 h-4 text-emerald-600 animate-float-subtle" />
             <span>Master Chef Grade Collection</span>
           </div>
@@ -239,7 +239,7 @@ function ShopContent() {
               <select
                 value={sortBy}
                 onChange={(e: any) => setSortBy(e.target.value)}
-                className="px-3.5 py-2 rounded-xl bg-white border border-[#4F534C]/20 text-xs font-bold text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#4D583F] shadow-xs min-h-[44px]"
+                className="px-3.5 py-2 rounded-xl bg-white border border-[#4F534C]/20 text-xs font-bold text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] shadow-xs min-h-[44px]"
               >
                 <option value="default">Sort: Default Code Order</option>
                 <option value="price-low">Price: Low to High</option>
@@ -250,12 +250,12 @@ function ShopContent() {
             <button
               type="button"
               onClick={() => setIsFilterOpen(true)}
-              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[#4F534C]/20 bg-white px-3 py-2 text-xs font-black text-[#4D583F] shadow-xs transition-colors hover:bg-[#EAF0E5]"
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[#4F534C]/20 bg-white px-3 py-2 text-xs font-black text-[#656B4F] shadow-xs transition-colors hover:bg-[#EAF0E5]"
               aria-label="Open product filters"
             >
               <SlidersHorizontal className="h-4 w-4" />
               <span>Filters</span>
-              {activeFilterCount > 0 && <span className="rounded-full bg-[#4D583F] px-1.5 py-0.5 text-[10px] text-white">{activeFilterCount}</span>}
+              {activeFilterCount > 0 && <span className="rounded-full bg-[#656B4F] px-1.5 py-0.5 text-[10px] text-white">{activeFilterCount}</span>}
             </button>
           </div>
 
@@ -269,7 +269,7 @@ function ShopContent() {
                   onClick={() => setSelectedCategory(cat)}
                   className={`shrink-0 px-3 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap transition-all shadow-xs min-h-[40px] sm:px-4 sm:py-2.5 sm:text-xs sm:min-h-[44px] ${
                     active
-                      ? 'bg-[#4D583F] text-white shadow-md scale-105'
+                      ? 'bg-[#656B4F] text-white shadow-md scale-105'
                       : 'bg-white text-[#61665D] hover:bg-[#EAF0E5] hover:text-[#1E201D] border border-[#4F534C]/15'
                   }`}
                 >
@@ -306,7 +306,7 @@ function ShopContent() {
                         key={category}
                         type="button"
                         onClick={() => setSelectedCategory(category)}
-                        className={`flex min-h-11 w-full items-center justify-between rounded-xl border px-3 text-left text-sm font-bold ${selectedCategory === category ? 'border-[#4D583F] bg-[#EAF0E5] text-[#4D583F]' : 'border-[#4F534C]/15 text-[#61665D]'}`}
+                        className={`flex min-h-11 w-full items-center justify-between rounded-xl border px-3 text-left text-sm font-bold ${selectedCategory === category ? 'border-[#656B4F] bg-[#EAF0E5] text-[#656B4F]' : 'border-[#4F534C]/15 text-[#61665D]'}`}
                       >
                         <span>{category}</span>
                         {selectedCategory === category && <span className="text-xs">Selected</span>}
@@ -319,22 +319,22 @@ function ShopContent() {
                   <h3 className="mb-3 text-sm font-black text-[#1E201D]">Price range</h3>
                   <div className="grid grid-cols-2 gap-3">
                     <label className="text-xs font-bold text-[#61665D]">Minimum
-                      <input type="number" min="0" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} placeholder="₹ 0" className="mt-1 min-h-11 w-full rounded-xl border border-[#4F534C]/20 px-3 text-sm text-[#1E201D] outline-none focus:border-[#4D583F]" />
+                      <input type="number" min="0" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} placeholder="₹ 0" className="mt-1 min-h-11 w-full rounded-xl border border-[#4F534C]/20 px-3 text-sm text-[#1E201D] outline-none focus:border-[#656B4F]" />
                     </label>
                     <label className="text-xs font-bold text-[#61665D]">Maximum
-                      <input type="number" min="0" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder="₹ 2000" className="mt-1 min-h-11 w-full rounded-xl border border-[#4F534C]/20 px-3 text-sm text-[#1E201D] outline-none focus:border-[#4D583F]" />
+                      <input type="number" min="0" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder="₹ 2000" className="mt-1 min-h-11 w-full rounded-xl border border-[#4F534C]/20 px-3 text-sm text-[#1E201D] outline-none focus:border-[#656B4F]" />
                     </label>
                   </div>
                 </div>
 
                 <label className="flex min-h-11 items-center justify-between rounded-xl border border-[#4F534C]/15 px-3 text-sm font-bold text-[#1E201D]">
                   Only show in-stock items
-                  <input type="checkbox" checked={inStockOnly} onChange={(event) => setInStockOnly(event.target.checked)} className="h-5 w-5 accent-[#4D583F]" />
+                  <input type="checkbox" checked={inStockOnly} onChange={(event) => setInStockOnly(event.target.checked)} className="h-5 w-5 accent-[#656B4F]" />
                 </label>
 
                 <div>
                   <h3 className="mb-3 text-sm font-black text-[#1E201D]">Sort by</h3>
-                  <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)} className="min-h-11 w-full rounded-xl border border-[#4F534C]/20 px-3 text-sm font-bold text-[#1E201D] outline-none focus:border-[#4D583F]">
+                  <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)} className="min-h-11 w-full rounded-xl border border-[#4F534C]/20 px-3 text-sm font-bold text-[#1E201D] outline-none focus:border-[#656B4F]">
                     <option value="default">Default code order</option>
                     <option value="price-low">Price: low to high</option>
                     <option value="price-high">Price: high to low</option>
@@ -345,7 +345,7 @@ function ShopContent() {
 
               <div className="flex gap-3 border-t border-[#4F534C]/15 pt-4">
                 <button type="button" onClick={resetFilters} className="min-h-11 flex-1 rounded-xl border border-[#4F534C]/20 px-3 text-sm font-bold text-[#61665D]">Reset</button>
-                <button type="button" onClick={() => setIsFilterOpen(false)} className="min-h-11 flex-1 rounded-xl bg-[#4D583F] px-3 text-sm font-black text-white">Show {sortedProducts.length} items</button>
+                <button type="button" onClick={() => setIsFilterOpen(false)} className="min-h-11 flex-1 rounded-xl bg-[#656B4F] px-3 text-sm font-black text-white">Show {sortedProducts.length} items</button>
               </div>
             </aside>
           </div>
@@ -367,7 +367,7 @@ function ShopContent() {
           </div>
         ) : sortedProducts.length === 0 ? (
           <div className="text-center py-20 bg-[#FAFAF5] rounded-3xl border border-[#4F534C]/15 shadow-sm max-w-md mx-auto">
-            <div className="w-16 h-16 rounded-full bg-[#EAF0E5] flex items-center justify-center mx-auto mb-4 text-[#4D583F]">
+            <div className="w-16 h-16 rounded-full bg-[#EAF0E5] flex items-center justify-center mx-auto mb-4 text-[#656B4F]">
               <Filter className="w-8 h-8" />
             </div>
             <h3 className="text-lg font-bold text-[#1E201D]">No products found</h3>
@@ -377,7 +377,7 @@ function ShopContent() {
                 setSearchTerm('');
                 setSelectedCategory('All');
               }}
-              className="mt-4 px-4 py-2 rounded-xl bg-[#4D583F] text-[#FAFAF5] text-xs font-bold hover:bg-[#414b35]"
+              className="mt-4 px-4 py-2 rounded-xl bg-[#656B4F] text-[#FAFAF5] text-xs font-bold hover:bg-[#50563D]"
             >
               Reset Filters
             </button>
@@ -415,7 +415,7 @@ function ShopContent() {
               return (
                 <article
                   key={product.id}
-                  className="group flex min-w-0 flex-col justify-between overflow-hidden rounded-2xl sm:rounded-3xl border border-[#4F534C]/12 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-[#4D583F]/35"
+                  className="group flex min-w-0 flex-col justify-between overflow-hidden rounded-2xl sm:rounded-3xl border border-[#4F534C]/12 bg-white shadow-[0_2px_10px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-[#656B4F]/35"
                 >
                   {/* Image Container */}
                   <div className="relative aspect-[4/3] bg-[#EAF0E5] overflow-hidden">
@@ -447,7 +447,7 @@ function ShopContent() {
                       href={`/product/${product.id}`}
                       className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-xs gap-2"
                     >
-                      <span className="bg-[#4D583F] px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-lg transform translate-y-1 group-hover:translate-y-0 transition-transform">
+                      <span className="bg-[#656B4F] px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-lg transform translate-y-1 group-hover:translate-y-0 transition-transform">
                         <Eye className="w-4 h-4" /> Quick View
                       </span>
                     </Link>
@@ -487,7 +487,7 @@ function ShopContent() {
 
                       <Link
                         href={`/product/${product.id}`}
-                        className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl bg-[#4D583F] hover:bg-[#3B4430] text-white font-black text-xs flex items-center gap-1.5 shadow-xs transition-all active:scale-95 shrink-0"
+                        className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl bg-[#656B4F] hover:bg-[#50563D] text-white font-black text-xs flex items-center gap-1.5 shadow-xs transition-all active:scale-95 shrink-0"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         <span>Options</span>
@@ -519,7 +519,7 @@ function ShopContent() {
                       type="button"
                       onClick={() => handlePageChange(1)}
                       disabled={page === 1 || loading}
-                      className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-[#4F534C]/20 bg-white text-[#1E201D] shadow-xs transition-all hover:bg-[#EAF0E5] hover:text-[#4D583F] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[#1E201D]"
+                      className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-[#4F534C]/20 bg-white text-[#1E201D] shadow-xs transition-all hover:bg-[#EAF0E5] hover:text-[#656B4F] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[#1E201D]"
                       aria-label="First page"
                       title="First page"
                     >
@@ -532,7 +532,7 @@ function ShopContent() {
                     type="button"
                     onClick={() => handlePageChange(page - 1)}
                     disabled={page === 1 || loading}
-                    className="flex h-9 min-w-[36px] sm:h-10 sm:min-w-[40px] items-center justify-center gap-1 rounded-xl border border-[#4F534C]/20 bg-white px-2.5 sm:px-3 text-xs font-bold text-[#1E201D] shadow-xs transition-all hover:bg-[#EAF0E5] hover:text-[#4D583F] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[#1E201D]"
+                    className="flex h-9 min-w-[36px] sm:h-10 sm:min-w-[40px] items-center justify-center gap-1 rounded-xl border border-[#4F534C]/20 bg-white px-2.5 sm:px-3 text-xs font-bold text-[#1E201D] shadow-xs transition-all hover:bg-[#EAF0E5] hover:text-[#656B4F] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[#1E201D]"
                     aria-label="Previous page"
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -564,8 +564,8 @@ function ShopContent() {
                           disabled={loading}
                           className={`flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl text-xs font-bold transition-all shadow-xs ${
                             isActive
-                              ? 'bg-[#4D583F] text-white shadow-md scale-105 pointer-events-none ring-2 ring-[#4D583F]/30'
-                              : 'border border-[#4F534C]/20 bg-white text-[#1E201D] hover:border-[#4D583F]/40 hover:bg-[#EAF0E5] hover:text-[#4D583F]'
+                              ? 'bg-[#656B4F] text-white shadow-md scale-105 pointer-events-none ring-2 ring-[#656B4F]/30'
+                              : 'border border-[#4F534C]/20 bg-white text-[#1E201D] hover:border-[#656B4F]/40 hover:bg-[#EAF0E5] hover:text-[#656B4F]'
                           }`}
                           aria-current={isActive ? 'page' : undefined}
                           aria-label={`Page ${pageNum}`}
@@ -581,7 +581,7 @@ function ShopContent() {
                     type="button"
                     onClick={() => handlePageChange(page + 1)}
                     disabled={page === totalPages || loading}
-                    className="flex h-9 min-w-[36px] sm:h-10 sm:min-w-[40px] items-center justify-center gap-1 rounded-xl border border-[#4F534C]/20 bg-white px-2.5 sm:px-3 text-xs font-bold text-[#1E201D] shadow-xs transition-all hover:bg-[#EAF0E5] hover:text-[#4D583F] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[#1E201D]"
+                    className="flex h-9 min-w-[36px] sm:h-10 sm:min-w-[40px] items-center justify-center gap-1 rounded-xl border border-[#4F534C]/20 bg-white px-2.5 sm:px-3 text-xs font-bold text-[#1E201D] shadow-xs transition-all hover:bg-[#EAF0E5] hover:text-[#656B4F] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[#1E201D]"
                     aria-label="Next page"
                   >
                     <span className="hidden sm:inline">Next</span>
@@ -594,7 +594,7 @@ function ShopContent() {
                       type="button"
                       onClick={() => handlePageChange(totalPages)}
                       disabled={page === totalPages || loading}
-                      className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-[#4F534C]/20 bg-white text-[#1E201D] shadow-xs transition-all hover:bg-[#EAF0E5] hover:text-[#4D583F] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[#1E201D]"
+                      className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-[#4F534C]/20 bg-white text-[#1E201D] shadow-xs transition-all hover:bg-[#EAF0E5] hover:text-[#656B4F] disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white disabled:hover:text-[#1E201D]"
                       aria-label="Last page"
                       title="Last page"
                     >
@@ -612,7 +612,7 @@ function ShopContent() {
                     onChange={(e) => {
                       setPageSize(Number(e.target.value));
                     }}
-                    className="rounded-xl border border-[#4F534C]/20 bg-white px-2.5 py-1.5 text-xs font-bold text-[#1E201D] shadow-xs outline-none focus:border-[#4D583F] focus:ring-1 focus:ring-[#4D583F]"
+                    className="rounded-xl border border-[#4F534C]/20 bg-white px-2.5 py-1.5 text-xs font-bold text-[#1E201D] shadow-xs outline-none focus:border-[#656B4F] focus:ring-1 focus:ring-[#656B4F]"
                   >
                     <option value={8}>8</option>
                     <option value={12}>12</option>

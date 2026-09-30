@@ -167,7 +167,7 @@ export default function LocationMapPicker({ onLocationSelect, initialLocation }:
       className: 'custom-map-pin',
       html: `
         <div style="
-          background-color: #4D583F;
+          background-color: #656B4F;
           width: 36px;
           height: 36px;
           border-radius: 50% 50% 50% 0;
@@ -392,15 +392,15 @@ export default function LocationMapPicker({ onLocationSelect, initialLocation }:
       <div className="flex flex-col sm:flex-row gap-2">
         {/* Search Input */}
         <div className="relative flex-1">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#4D583F]">
-            {isSearching ? <Loader2 className="w-4 h-4 animate-spin text-[#4D583F]" /> : <Search className="w-4 h-4 text-[#4D583F]" />}
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#656B4F]">
+            {isSearching ? <Loader2 className="w-4 h-4 animate-spin text-[#656B4F]" /> : <Search className="w-4 h-4 text-[#656B4F]" />}
           </div>
           <input
             type="text"
             placeholder="Search area, landmark, street, city, or pincode..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-[#4F534C]/25 text-xs font-bold text-[#1A1E16] placeholder:text-[#676E60] focus:outline-none focus:ring-2 focus:ring-[#4D583F] shadow-xs"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-[#4F534C]/25 text-xs font-bold text-[#1A1E16] placeholder:text-[#676E60] focus:outline-none focus:ring-2 focus:ring-[#656B4F] shadow-xs"
           />
 
           {/* Autocomplete Dropdown */}
@@ -413,7 +413,7 @@ export default function LocationMapPicker({ onLocationSelect, initialLocation }:
                   onClick={() => handleSelectSuggestion(item)}
                   className="w-full text-left px-3.5 py-2.5 hover:bg-[#EAF0E5] transition-colors border-b last:border-0 border-[#4F534C]/10 flex items-start gap-2.5"
                 >
-                  <MapPin className="w-4 h-4 text-[#4D583F] mt-0.5 shrink-0" />
+                  <MapPin className="w-4 h-4 text-[#656B4F] mt-0.5 shrink-0" />
                   <span className="text-xs font-bold text-[#1A1E16] line-clamp-2 leading-snug">
                     {item.display_name}
                   </span>
@@ -428,7 +428,7 @@ export default function LocationMapPicker({ onLocationSelect, initialLocation }:
           type="button"
           onClick={handleCurrentLocation}
           disabled={isGeolocating}
-          className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#4D583F] hover:bg-[#3D4732] text-white text-xs font-black transition-all shadow-xs shrink-0 disabled:opacity-60 cursor-pointer active:scale-95"
+          className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#656B4F] hover:bg-[#656B4F] text-white text-xs font-black transition-all shadow-xs shrink-0 disabled:opacity-60 cursor-pointer active:scale-95"
         >
           {isGeolocating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Navigation className="w-3.5 h-3.5" />}
           <span>{isGeolocating ? 'Locating...' : 'Use Live Location'}</span>
@@ -465,11 +465,11 @@ export default function LocationMapPicker({ onLocationSelect, initialLocation }:
         <div className="absolute bottom-2 left-2 right-2 z-20 pointer-events-none">
           <div className="bg-white/95 backdrop-blur-xs px-3 py-1.5 rounded-lg border border-[#4F534C]/20 shadow-md text-[11px] font-bold text-[#2A3123] flex items-center justify-between">
             <span className="flex items-center gap-1.5 truncate">
-              <MapPin className="w-3.5 h-3.5 text-[#4D583F] shrink-0" />
+              <MapPin className="w-3.5 h-3.5 text-[#656B4F] shrink-0" />
               <span>Tap map or drag pin to exact doorstep</span>
             </span>
             {selectedLocation?.pincode && (
-              <span className="bg-[#4D583F] text-white text-[10px] px-2 py-0.5 rounded-md font-mono shrink-0 ml-2">
+              <span className="bg-[#656B4F] text-white text-[10px] px-2 py-0.5 rounded-md font-mono shrink-0 ml-2">
                 PIN: {selectedLocation.pincode}
               </span>
             )}
@@ -479,14 +479,14 @@ export default function LocationMapPicker({ onLocationSelect, initialLocation }:
 
       {/* Location Selected Confirmation Notice */}
       {selectedLocation && (
-        <div className="p-2.5 bg-[#EAF0E5] border border-[#4D583F]/20 rounded-xl flex items-center justify-between text-xs font-bold text-[#1A1E16]">
+        <div className="p-2.5 bg-[#EAF0E5] border border-[#656B4F]/20 rounded-xl flex items-center justify-between text-xs font-bold text-[#1A1E16]">
           <div className="flex items-center gap-2 truncate">
-            <CheckCircle2 className="w-4 h-4 text-[#4D583F] shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-[#656B4F] shrink-0" />
             <span className="truncate">
-              Selected: <span className="font-extrabold text-[#26311A]">{selectedLocation.displayName.split(',').slice(0, 3).join(',')}</span>
+              Selected: <span className="font-extrabold text-[#50563D]">{selectedLocation.displayName.split(',').slice(0, 3).join(',')}</span>
             </span>
           </div>
-          <span className="text-[10px] uppercase font-mono tracking-wider text-[#4D583F] shrink-0 ml-2 bg-white px-2 py-0.5 rounded font-bold shadow-2xs">
+          <span className="text-[10px] uppercase font-mono tracking-wider text-[#656B4F] shrink-0 ml-2 bg-white px-2 py-0.5 rounded font-bold shadow-2xs">
             Auto-filled below
           </span>
         </div>

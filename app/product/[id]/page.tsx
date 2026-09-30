@@ -60,7 +60,7 @@ export default function ProductPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F3FBEE] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#4D583F]/20 border-t-[#4D583F]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#656B4F]/20 border-t-[#656B4F]"></div>
       </div>
     );
   }
@@ -71,7 +71,7 @@ export default function ProductPage() {
         <Navbar />
         <div className="flex-1 flex flex-col items-center justify-center p-4">
           <h2 className="text-2xl font-bold text-[#1E201D] mb-4">Product not found</h2>
-          <button onClick={() => router.push('/shop')} className="px-6 py-2 bg-[#4D583F] text-white rounded-xl">
+          <button onClick={() => router.push('/shop')} className="px-6 py-2 bg-[#656B4F] text-white rounded-xl">
             Back to Shop
           </button>
         </div>
@@ -166,7 +166,7 @@ export default function ProductPage() {
         {/* Breadcrumb / Back button */}
         <button 
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-[#61665D] hover:text-[#4D583F] font-bold text-sm mb-6 transition-colors"
+          className="flex items-center gap-2 text-[#61665D] hover:text-[#656B4F] font-bold text-sm mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Catalog
         </button>
@@ -181,7 +181,7 @@ export default function ProductPage() {
               priority
               className="w-full aspect-square max-h-[480px] object-cover rounded-xl shadow-sm border border-[#4F534C]/15"
             />
-            <span className="absolute top-6 left-6 bg-[#4D583F] text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-md">
+            <span className="absolute top-6 left-6 bg-[#656B4F] text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-md">
               {currentOption.label}
             </span>
             {product.isPopular && (
@@ -195,7 +195,7 @@ export default function ProductPage() {
           <div className="w-full md:w-1/2 p-6 md:p-12 flex flex-col">
             <div className="flex-1 space-y-6">
               <div>
-                <div className="inline-block text-xs font-bold text-[#4D583F] bg-[#EAF0E5] px-3 py-1.5 rounded-md uppercase tracking-wider mb-3">
+                <div className="inline-block text-xs font-bold text-[#656B4F] bg-[#EAF0E5] px-3 py-1.5 rounded-md uppercase tracking-wider mb-3">
                   {product.category}
                 </div>
                 <h1 className="text-3xl md:text-4xl font-black text-[#1E201D] leading-tight font-poppins">{product.name}</h1>
@@ -208,7 +208,7 @@ export default function ProductPage() {
               {/* Badges */}
               <div className="grid grid-cols-2 gap-3 mt-6">
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-[#E8EEE0] border border-[#4F534C]/10 text-xs font-semibold text-[#1E201D]">
-                  <ShieldCheck className="w-4 h-4 text-[#4D583F]" />
+                  <ShieldCheck className="w-4 h-4 text-[#656B4F]" />
                   <span>100% Plant-Based</span>
                 </div>
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-[#E8EEE0] border border-[#4F534C]/10 text-xs font-semibold text-[#1E201D]">
@@ -216,11 +216,11 @@ export default function ProductPage() {
                   <span>Rich Protein & Fiber</span>
                 </div>
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-[#E8EEE0] border border-[#4F534C]/10 text-xs font-semibold text-[#1E201D]">
-                  <Sparkles className="w-4 h-4 text-[#4D583F]" />
+                  <Sparkles className="w-4 h-4 text-[#656B4F]" />
                   <span>Zero Cholesterol</span>
                 </div>
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-[#E8EEE0] border border-[#4F534C]/10 text-xs font-semibold text-[#1E201D]">
-                  <ShieldCheck className="w-4 h-4 text-[#4D583F]" />
+                  <ShieldCheck className="w-4 h-4 text-[#656B4F]" />
                   <span>Keep Frozen (-18°C)</span>
                 </div>
               </div>
@@ -249,8 +249,8 @@ export default function ProductPage() {
                       onClick={() => setSelectedWeightIdx(idx)}
                       className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border ${
                         selectedWeightIdx === idx
-                          ? 'bg-[#4D583F] text-white border-[#4D583F] shadow-md scale-105'
-                          : 'bg-[#E8EEE0] text-[#61665D] border-[#4F534C]/20 hover:border-[#4D583F] hover:text-[#1E201D]'
+                          ? 'bg-[#656B4F] text-white border-[#656B4F] shadow-md scale-105'
+                          : 'bg-[#E8EEE0] text-[#61665D] border-[#4F534C]/20 hover:border-[#656B4F] hover:text-[#1E201D]'
                       }`}
                     >
                       {opt.label} {weightOptions.length > 1 ? `(₹${opt.price})` : ''}
@@ -263,7 +263,7 @@ export default function ProductPage() {
                 <div>
                   <span className="text-sm text-[#61665D] block font-medium">Calculated Price</span>
                   <span className="text-sm text-[#61665D] line-through block">MRP ₹{product.mrp ?? dynamicPrice}</span>
-                  <span className="text-3xl font-black text-[#4D583F]">₹{dynamicPrice}</span>
+                  <span className="text-3xl font-black text-[#656B4F]">₹{dynamicPrice}</span>
                 </div>
 
                 {/* Quantity Control */}
@@ -286,7 +286,7 @@ export default function ProductPage() {
 
               <button
                 onClick={handleAdd}
-                className="w-full py-4 px-6 rounded-2xl bg-[#4D583F] text-white font-black text-lg hover:bg-[#414b35] transition-all shadow-xl flex items-center justify-center gap-2 group whitespace-nowrap"
+                className="w-full py-4 px-6 rounded-2xl bg-[#656B4F] text-white font-black text-lg hover:bg-[#50563D] transition-all shadow-xl flex items-center justify-center gap-2 group whitespace-nowrap"
               >
                 <ShoppingBag className="w-6 h-6 shrink-0 group-hover:scale-110 transition-transform" />
                 <span className="truncate">Add {quantity} to Cart • ₹{dynamicPrice * quantity}</span>

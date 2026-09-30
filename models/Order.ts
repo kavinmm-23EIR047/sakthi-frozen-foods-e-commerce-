@@ -19,6 +19,9 @@ export interface IOrder extends Document {
   city?: string;
   state?: string;
   coordinates?: { lat: number; lng: number };
+  deliveryZoneId?: string;
+  deliveryMode?: 'BIKE' | 'BUS' | 'TRAVELS';
+  distanceKm?: number;
   items: IOrderItem[];
   subtotal?: number;
   deliveryFee?: number;
@@ -43,6 +46,9 @@ const OrderSchema: Schema = new Schema(
       lat: { type: Number },
       lng: { type: Number },
     },
+    deliveryZoneId: { type: String },
+    deliveryMode: { type: String },
+    distanceKm: { type: Number },
     items: [
       {
         productId: { type: String, required: true },

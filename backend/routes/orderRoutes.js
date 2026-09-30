@@ -7,6 +7,7 @@ const Product = require('../models/Product');
 const { protect, optionalProtect, admin } = require('../middleware/authMiddleware');
 const rateLimit = require('express-rate-limit');
 const { queueOrderNotifications } = require('../services/notificationService');
+const { getDeliveryCalculation } = require('../utils/deliveryRates');
 
 const router = express.Router();
 const createOrderLimiter = rateLimit({ windowMs: 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
@@ -259,7 +260,13 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
       if (quantity > (product?.stock ?? 0)) return res.status(409).json({ success: false, error: `Insufficient stock for ${product?.name || 'product'}` });
     }
 
-    const deliveryFee = subtotal >= 999 ? 0 : 60;
+    const calc = getDeliveryCalculation({
+      subtotal,
+      coordinates: body.coordinates ? { lat: Number(body.coordinates.lat), lng: Number(body.coordinates.lng) } : undefined,
+      selectedZoneId: body.deliveryZoneId || body.zoneId,
+      cityOrDistrictText: [body.city, body.state, body.shippingAddress].filter(Boolean).join(', '),
+    });
+    const deliveryFee = calc.fee;
     const convenienceFee = Math.round(subtotal * 0.025 * 100) / 100;
     const totalAmount = Math.round((subtotal + deliveryFee + convenienceFee) * 100) / 100;
     const paymentMethod = body.paymentMethod === 'Cash on Delivery' ? 'Cash on Delivery' : 'Razorpay (Online)';
@@ -275,6 +282,9 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
       city: body.city ? String(body.city).trim() : undefined,
       state: body.state ? String(body.state).trim() : undefined,
       coordinates: body.coordinates ? { lat: Number(body.coordinates.lat), lng: Number(body.coordinates.lng) } : undefined,
+      deliveryZoneId: calc.zoneId,
+      deliveryMode: calc.mode,
+      distanceKm: calc.distanceKm,
       subtotal,
       deliveryFee,
       convenienceFee,
