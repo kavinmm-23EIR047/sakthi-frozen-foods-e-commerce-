@@ -17,6 +17,7 @@ export interface IOrder extends Document {
   landmark?: string;
   pincode?: string;
   city?: string;
+  district?: string;
   state?: string;
   coordinates?: { lat: number; lng: number };
   deliveryZoneId?: string;
@@ -41,6 +42,7 @@ const OrderSchema: Schema = new Schema(
     landmark: { type: String },
     pincode: { type: String },
     city: { type: String },
+    district: { type: String },
     state: { type: String },
     coordinates: {
       lat: { type: Number },

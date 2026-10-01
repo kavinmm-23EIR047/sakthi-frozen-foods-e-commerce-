@@ -13,12 +13,20 @@ export async function POST(request: Request) {
       headers: { 'Content-Type': 'application/json' },
       body: rawBody,
     });
-    const data = await response.json();
+    const text = await response.text();
+    let data: any = { success: true, message: 'If an account exists, a 6-digit OTP has been sent to your email.' };
+    if (text && text.trim()) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        // Fallback to default message
+      }
+    }
     return NextResponse.json(data, { status: response.status });
   } catch (error: any) {
     return NextResponse.json({
       success: true,
-      message: 'If an account exists with that email, a password reset link has been sent.',
+      message: 'If an account exists, a 6-digit OTP has been sent to your email.',
     });
   }
 }

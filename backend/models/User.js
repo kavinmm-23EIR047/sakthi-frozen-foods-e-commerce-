@@ -14,8 +14,12 @@ const userSchema = new mongoose.Schema(
     joinedDate: { type: String, default: () => new Date().toISOString().split('T')[0] },
     address: { type: String, default: '' },
     sessionVersion: { type: Number, default: 0 },
+    wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
     passwordResetTokenHash: { type: String, select: false },
     passwordResetExpiresAt: { type: Date, select: false },
+    otpHash: { type: String, select: false },
+    otpExpiresAt: { type: Date, select: false },
+    otpAttempts: { type: Number, default: 0, select: false },
   },
   { timestamps: true }
 );

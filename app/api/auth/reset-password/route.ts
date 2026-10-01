@@ -13,7 +13,15 @@ export async function POST(request: Request) {
       headers: { 'Content-Type': 'application/json' },
       body: rawBody,
     });
-    const data = await response.json();
+    const text = await response.text();
+    let data: any = { success: false, error: 'Password reset service error' };
+    if (text && text.trim()) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { success: false, error: 'Invalid response from server' };
+      }
+    }
     return NextResponse.json(data, { status: response.status });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: 'Password reset service unavailable' }, { status: 503 });

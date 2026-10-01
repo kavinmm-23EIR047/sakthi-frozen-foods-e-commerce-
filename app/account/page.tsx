@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { fetchApi } from '@/lib/apiConfig';
 import { OrderType } from '@/lib/types';
 import { UserRound, Mail, Phone, MapPin, Package, ArrowRight, LogIn, LogOut, Clock3 } from 'lucide-react';
+import FoodLoadingScreen from '@/components/FoodLoadingScreen';
 
 export default function AccountPage() {
   const { user, loading: authLoading, logout } = useAuth();
@@ -27,6 +28,15 @@ export default function AccountPage() {
     return () => { active = false; };
   }, [user]);
 
+  if (authLoading) {
+    return (
+      <FoodLoadingScreen
+        message="Loading Account..."
+        subMessage="Fetching your profile and account information"
+      />
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-[#F5F8F1] text-[#1E201D]">
       <Navbar />
@@ -37,12 +47,10 @@ export default function AccountPage() {
           <p className="mt-1 text-sm text-[#687263]">Account details and your recent orders in one place.</p>
         </div>
 
-        {authLoading ? (
-          <div className="h-48 animate-pulse rounded-3xl bg-white shadow-sm" />
-        ) : user ? (
+        {user ? (
           <>
             <section className="overflow-hidden rounded-3xl border border-[#e1e9dd] bg-white shadow-sm">
-              <div className="flex items-center gap-4 bg-[#173425] px-5 py-5 text-white sm:px-7">
+              <div className="flex items-center gap-4 bg-[#656B4F] px-5 py-5 text-white sm:px-7">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10"><UserRound className="h-7 w-7" /></div>
                 <div className="min-w-0"><h2 className="truncate text-xl font-extrabold">{user.name}</h2><p className="mt-0.5 text-xs text-white/70">{user.role} account</p></div>
               </div>
@@ -51,9 +59,9 @@ export default function AccountPage() {
                 <div className="flex min-w-0 items-start gap-3 bg-white p-4 sm:p-5"><Phone className="mt-0.5 h-4 w-4 shrink-0 text-[#656B4F]" /><div><p className="text-[10px] font-bold uppercase tracking-wider text-[#7a8275]">Phone</p><p className="mt-1 text-sm font-semibold">{user.phone || 'Not added'}</p></div></div>
                 <div className="flex min-w-0 items-start gap-3 bg-white p-4 sm:p-5 sm:col-span-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#656B4F]" /><div><p className="text-[10px] font-bold uppercase tracking-wider text-[#7a8275]">Address</p><p className="mt-1 text-sm font-semibold">{user.address || 'No saved address'}</p></div></div>
               </div>
-              <div className="flex flex-wrap gap-3 border-t border-[#edf1ea] p-4 sm:px-5">
-                <button onClick={logout} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#ead8d4] px-4 text-sm font-bold text-[#9a3e32] hover:bg-[#fff7f5]"><LogOut className="h-4 w-4" />Log out</button>
-                <Link href="/shop" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#173425] px-4 text-sm font-bold text-white hover:bg-[#244c35]">Continue shopping<ArrowRight className="h-4 w-4" /></Link>
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3 border-t border-[#edf1ea] p-4 sm:px-5">
+                <button onClick={logout} className="inline-flex min-h-11 items-center justify-center gap-1.5 sm:gap-2 rounded-xl border border-[#ead8d4] px-2 sm:px-4 text-xs sm:text-sm font-bold text-[#9a3e32] hover:bg-[#fff7f5] text-center"><LogOut className="h-4 w-4 shrink-0" /><span className="truncate">Log out</span></button>
+                <Link href="/shop" className="inline-flex min-h-11 items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-[#656B4F] px-2 sm:px-4 text-xs sm:text-sm font-bold text-white hover:bg-[#50563D] text-center"><span className="truncate">Shop</span><ArrowRight className="h-4 w-4 shrink-0" /></Link>
               </div>
             </section>
 
@@ -76,7 +84,7 @@ export default function AccountPage() {
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#edf4e9] text-[#656B4F]"><UserRound className="h-7 w-7" /></div>
             <h2 className="mt-4 text-xl font-black text-[#50563D]">Sign in to your account</h2>
             <p className="mx-auto mt-2 max-w-sm text-sm text-[#687263]">View your account details and track orders after signing in.</p>
-            <Link href="/login" className="mx-auto mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#173425] px-5 text-sm font-bold text-white"><LogIn className="h-4 w-4" />Sign in / Create account</Link>
+            <Link href="/login" className="mx-auto mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#656B4F] hover:bg-[#50563D] px-5 text-sm font-bold text-white"><LogIn className="h-4 w-4" />Sign in / Create account</Link>
           </section>
         )}
       </main>

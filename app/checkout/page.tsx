@@ -3,27 +3,28 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
-import { CheckCircle2, ShoppingBag, CreditCard, Truck, ArrowLeft, ShieldCheck, MapPin, Building, Home, HelpCircle, Lock, UserCheck, LogIn, ArrowRight, Navigation, Info } from 'lucide-react';
+import { CheckCircle2, ShoppingBag, CreditCard, Truck, ArrowLeft, ShieldCheck, Lock, UserCheck, LogIn, ArrowRight, Search, ChevronDown, Package, Sparkles } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { fetchApi } from '@/lib/apiConfig';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import LocationMapPicker, { LocationData } from '@/components/LocationMapPicker';
-import { getDeliveryCalculation } from '@/lib/deliveryRates';
+import AddressSearch from '@/components/AddressSearch';
+import type { LocationData } from '@/components/AddressSearch';
+import { DELIVERY_STATES, DELIVERY_ZONES, getDeliveryCalculation, getDeliveryDistrictsForState, getDeliveryZonesForDistrict } from '@/lib/deliveryRates';
 import Link from 'next/link';
+import DeliveryLoadingScreen from '@/components/DeliveryLoadingScreen';
 
 declare global {
   interface Window {
     Razorpay: any;
-    L: any;
   }
 }
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { cart, totalPrice, clearCart } = useCart();
+  const { cart, totalPrice, clearCart, isCartLoading } = useCart();
 
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -33,12 +34,17 @@ export default function CheckoutPage() {
   const [flatHouse, setFlatHouse] = useState('');
   const [streetArea, setStreetArea] = useState('');
   const [landmark, setLandmark] = useState('');
-  const [city, setCity] = useState('Coimbatore');
   const [state, setState] = useState('Tamil Nadu');
+  const [district, setDistrict] = useState('Coimbatore');
+  const [destinationZoneId, setDestinationZoneId] = useState('coimbatore');
+  const [destinationQuery, setDestinationQuery] = useState('Coimbatore');
+  const [destinationOpen, setDestinationOpen] = useState(false);
   const [pincode, setPincode] = useState('');
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
+  const [paymentMessage, setPaymentMessage] = useState('');
   const [orderConfirmed, setOrderConfirmed] = useState<any>(null);
 
   // Auto-populate logged-in customer info
@@ -50,17 +56,23 @@ export default function CheckoutPage() {
         const cleanP = user.phone.replace(/\D/g, '').slice(-10);
         setCustomerPhone((prev) => prev || cleanP);
       }
-      if (user.address && !flatHouse && !streetArea) {
-        setFlatHouse(user.address);
-      }
     }
   }, [user, flatHouse, streetArea]);
 
   useEffect(() => {
-    if (cart.length === 0 && !orderConfirmed) {
+    if (!isCartLoading && cart.length === 0 && !orderConfirmed) {
       router.push('/cart');
     }
-  }, [cart, orderConfirmed, router]);
+  }, [cart, isCartLoading, orderConfirmed, router]);
+
+  const selectedDestination = DELIVERY_ZONES.find((zone) => zone.id === destinationZoneId) || null;
+  const city = selectedDestination
+    ? selectedDestination.id === 'coimbatore'
+      ? 'Coimbatore'
+      : selectedDestination.name.split(' (')[0]
+    : '';
+  const availableDistricts = getDeliveryDistrictsForState(state);
+  const availableDestinations = getDeliveryZonesForDistrict(state, district);
 
   // Pricing Calculations: Subtotal, Distance/District-based Delivery Fee, Convenience Fee (2.5%)
   const subtotal = totalPrice;
@@ -68,7 +80,8 @@ export default function CheckoutPage() {
     return getDeliveryCalculation({
       subtotal,
       coordinates,
-      cityOrDistrictText: `${city}, ${state}`,
+      cityOrDistrictText: city,
+      state,
     });
   }, [subtotal, coordinates, city, state]);
 
@@ -76,7 +89,7 @@ export default function CheckoutPage() {
   const convenienceFee = Number((subtotal * 0.025).toFixed(2));
   const grandTotal = Number((subtotal + deliveryFee + convenienceFee).toFixed(2));
 
-  // Handle location selected from Map
+  // Address search fills the street, coordinates, and PIN for Coimbatore pricing.
   const handleLocationSelect = (loc: LocationData) => {
     setCoordinates({ lat: loc.lat, lng: loc.lng });
     
@@ -93,17 +106,10 @@ export default function CheckoutPage() {
       setLandmark(loc.landmark || loc.neighbourhood || loc.suburb || '');
     }
 
-    // Auto-fill City, State, Pincode
-    if (loc.city) {
-      setCity(loc.city);
-    }
-    if (loc.state) {
-      setState(loc.state);
-    }
+    // The selected delivery dropdown controls the destination and pricing zone.
     if (loc.pincode) {
       setPincode(loc.pincode.replace(/\D/g, '').slice(0, 6));
     }
-
   };
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
@@ -115,7 +121,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!customerName || !customerPhone || !flatHouse || !streetArea || !city || !pincode) {
+    if (!customerName || !customerPhone || !flatHouse || !streetArea || !city || !district || !state || !pincode) {
       alert('Please fill in all required fields: Name, Phone, House/Flat No, Street/Area, City, and 6-digit Pincode.');
       return;
     }
@@ -125,9 +131,18 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (!deliveryCalc.isServiceable) {
+      alert(!selectedDestination
+        ? 'Select one of the listed delivery destinations first.'
+        : selectedDestination.id === 'coimbatore'
+          ? 'Search and select your Coimbatore street or PIN so we can calculate the distance from the shop.'
+          : 'This destination is not currently serviceable. Choose a destination with a listed delivery rate.');
+      return;
+    }
+
     const fullShippingAddress = `${flatHouse.trim()}, ${streetArea.trim()}${
       landmark.trim() ? `, Landmark: ${landmark.trim()}` : ''
-    }, ${city.trim()}, ${state.trim()} - ${pincode.trim()}${
+    }, ${city.trim()}, ${district.trim()}, ${state.trim()} - ${pincode.trim()}${
       coordinates ? ` [GPS: ${coordinates.lat.toFixed(5)}, ${coordinates.lng.toFixed(5)}]` : ''
     }`;
 
@@ -144,6 +159,7 @@ export default function CheckoutPage() {
           landmark: landmark.trim(),
           pincode: pincode.trim(),
           city: city.trim(),
+          district: district.trim(),
           state: state.trim(),
           coordinates,
           items: cart,
@@ -170,6 +186,8 @@ export default function CheckoutPage() {
         order_id: orderData.razorpayOrderId,
         handler: async function (response: any) {
           // 3. Verify Payment
+          setIsVerifyingPayment(true);
+          setPaymentMessage('');
           try {
             const verifyData = await fetchApi('/payment/verify', {
               method: 'POST',
@@ -185,11 +203,13 @@ export default function CheckoutPage() {
               setOrderConfirmed(verifyData.data);
               clearCart();
             } else {
-              alert('Payment Verification Failed!');
+              setPaymentMessage('Payment could not be verified yet. Your cart is saved; please check your Orders before trying again.');
             }
           } catch (err) {
             console.error('Verification Error:', err);
-            alert('Error verifying payment. Please contact support.');
+            setPaymentMessage('We could not confirm the payment response. Your cart is saved; please check your Orders or contact support before paying again.');
+          } finally {
+            setIsVerifyingPayment(false);
           }
         },
         prefill: {
@@ -203,8 +223,8 @@ export default function CheckoutPage() {
       };
 
       const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function (response: any) {
-        alert('Payment Failed: ' + (response.error?.description || 'Transaction was not completed.'));
+      rzp.on('payment.failed', function () {
+        setPaymentMessage('Payment was not confirmed. Your cart is still saved; you can try again.');
       });
       rzp.open();
     } catch (err: any) {
@@ -215,20 +235,13 @@ export default function CheckoutPage() {
     }
   };
 
+  if (isCartLoading || isSubmitting || isVerifyingPayment) {
+    return <DeliveryLoadingScreen message={isVerifyingPayment ? 'Confirming your payment securely' : isSubmitting ? 'Preparing secure checkout' : 'Loading your checkout'} />;
+  }
+
   // Auth Loading Skeleton
   if (authLoading) {
-    return (
-      <div className="min-h-screen bg-[#F3FBEE] text-[#1E201D] flex flex-col font-sans">
-        <Navbar />
-        <main className="mx-auto w-full max-w-[1180px] px-4 py-16 flex-1 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-10 h-10 border-4 border-[#656B4F] border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-sm font-bold text-[#656B4F]">Preparing secure checkout session...</p>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
+    return <DeliveryLoadingScreen message="Preparing secure checkout" />;
   }
 
   // Auth Guard: If not logged in and order is not confirmed, show dedicated auth prompt
@@ -309,7 +322,7 @@ export default function CheckoutPage() {
             </div>
             {user && !orderConfirmed && (
               <div className="hidden sm:flex items-center gap-2 text-xs font-bold bg-white/15 px-3 py-1.5 rounded-xl border border-white/20">
-                <UserCheck className="w-4 h-4 text-emerald-300" />
+                <UserCheck className="w-4 h-4 text-[#E8F0E5]" />
                 <span>Account: {user.name}</span>
               </div>
             )}
@@ -380,6 +393,12 @@ export default function CheckoutPage() {
             /* Checkout Form */
             <div className="p-4 sm:p-6 md:p-8 flex flex-col md:flex-row gap-6 lg:gap-8">
               <form onSubmit={handleSubmitOrder} className="flex-1 space-y-6">
+                {paymentMessage && (
+                  <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold leading-relaxed text-amber-950">
+                    {paymentMessage}{' '}
+                    <button type="button" onClick={() => router.push('/orders')} className="underline underline-offset-2">Check order status</button>
+                  </div>
+                )}
                 
                 {/* 1. Contact Info */}
                 <div className="space-y-4">
@@ -389,7 +408,7 @@ export default function CheckoutPage() {
                       <h3 className="text-base font-black text-[#1A1E16]">Customer Information</h3>
                     </div>
                     {user && (
-                      <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                      <span className="text-[11px] font-bold text-[#50563D] bg-[#EAF0E5] border border-[#656B4F]/20 px-2 py-0.5 rounded-md flex items-center gap-1">
                         <UserCheck className="w-3.5 h-3.5" /> Verified Customer
                       </span>
                     )}
@@ -447,35 +466,145 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* 2. Interactive Map & Delivery Location */}
+                {/* 2. Select a serviceable delivery destination */}
                 <div className="space-y-4 pt-2">
                   <div className="flex items-center justify-between border-b border-[#4F534C]/15 pb-2">
                     <div className="flex items-center gap-2">
                       <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#656B4F] text-[11px] font-black text-white">2</span>
-                      <h3 className="text-base font-black text-[#1A1E16]">Find Your Delivery Address</h3>
+                      <h3 className="text-base font-black text-[#1A1E16]">Where should we deliver?</h3>
                     </div>
                     <span className="text-[11px] font-bold text-[#656B4F] bg-[#EAF0E5] px-2 py-0.5 rounded-md">
-                      Search street, area or PIN
+                      Rates are matched automatically
                     </span>
                   </div>
 
-                  {/* Location Map & Search Picker */}
-                  <LocationMapPicker onLocationSelect={handleLocationSelect} />
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label htmlFor="delivery-state" className="mb-1 block text-xs font-bold text-[#1A1E16]">State *</label>
+                      <select
+                        id="delivery-state"
+                        value={state}
+                        onChange={(event) => {
+                          setState(event.target.value);
+                          setDistrict('');
+                          setDestinationZoneId('');
+                          setDestinationQuery('');
+                          setCoordinates(null);
+                        }}
+                        className="w-full rounded-xl border border-[#4F534C]/25 bg-white px-3.5 py-3 text-sm font-semibold text-[#1A1E16] outline-none focus:ring-2 focus:ring-[#656B4F]"
+                      >
+                        {DELIVERY_STATES.map((item) => <option key={item} value={item}>{item}</option>)}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label htmlFor="delivery-district" className="mb-1 block text-xs font-bold text-[#1A1E16]">District *</label>
+                      <select
+                        id="delivery-district"
+                        value={district}
+                        disabled={availableDistricts.length === 0}
+                        onChange={(event) => {
+                          setDistrict(event.target.value);
+                          setDestinationZoneId('');
+                          setDestinationQuery('');
+                          setCoordinates(null);
+                        }}
+                        className="w-full rounded-xl border border-[#4F534C]/25 bg-white px-3.5 py-3 text-sm font-semibold text-[#1A1E16] outline-none focus:ring-2 focus:ring-[#656B4F] disabled:bg-gray-50"
+                      >
+                        <option value="">Choose district</option>
+                        {availableDistricts.map((item) => <option key={item} value={item}>{item}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="relative">
+                      <label htmlFor="delivery-destination" className="mb-1 block text-xs font-bold text-[#1A1E16]">Search destination city *</label>
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#656B4F]" />
+                        <input
+                          id="delivery-destination"
+                          type="text"
+                          role="combobox"
+                          aria-expanded={destinationOpen}
+                          aria-controls="delivery-destination-options"
+                          autoComplete="off"
+                          placeholder="Type a city or destination"
+                          value={destinationQuery}
+                          onFocus={() => {
+                            setDestinationQuery('');
+                            setDestinationOpen(true);
+                          }}
+                          onChange={(event) => {
+                            setDestinationQuery(event.target.value);
+                            setDestinationZoneId('');
+                            setCoordinates(null);
+                            setDestinationOpen(true);
+                          }}
+                          onBlur={() => setTimeout(() => setDestinationOpen(false), 150)}
+                          className="w-full rounded-xl border border-[#4F534C]/25 bg-white py-3 pl-10 pr-3 text-sm font-semibold text-[#1A1E16] outline-none focus:ring-2 focus:ring-[#656B4F]"
+                        />
+                        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#656B4F]" />
+                      </div>
+                      {destinationOpen && (
+                        <div id="delivery-destination-options" role="listbox" className="absolute left-0 z-40 mt-1 max-h-64 w-max min-w-full max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border border-[#4F534C]/20 bg-white shadow-xl">
+                          {availableDestinations
+                            .filter((zone) => `${zone.name} ${zone.aliases.join(' ')}`.toLowerCase().includes(destinationQuery.toLowerCase()))
+                            .map((zone) => (
+                              <button
+                                key={zone.id}
+                                type="button"
+                                role="option"
+                                aria-selected={destinationZoneId === zone.id}
+                                onMouseDown={(event) => event.preventDefault()}
+                                onClick={() => {
+                                  setDestinationZoneId(zone.id);
+                                  setDestinationQuery(zone.id === 'coimbatore' ? 'Coimbatore' : zone.name);
+                                  setCoordinates(null);
+                                  setDestinationOpen(false);
+                                }}
+                                className="flex w-full min-w-0 items-center justify-between gap-3 border-b border-[#4F534C]/10 px-3.5 py-3 text-left last:border-0 hover:bg-[#EAF0E5]"
+                              >
+                                <span className="text-sm font-semibold text-[#1A1E16]">{zone.id === 'coimbatore' ? 'Coimbatore (local)' : zone.name}</span>
+                                <span className="shrink-0 text-xs font-bold text-[#656B4F]">{zone.id === 'coimbatore' ? '₹40–₹250 by distance' : `₹${zone.price}`}</span>
+                              </button>
+                            ))}
+                          {availableDestinations.length === 0 && (
+                            <p className="px-3.5 py-3 text-sm text-[#59604F]">No delivery destinations are listed for this state yet.</p>
+                          )}
+                          {availableDestinations.length > 0 && !availableDestinations.some((zone) => `${zone.name} ${zone.aliases.join(' ')}`.toLowerCase().includes(destinationQuery.toLowerCase())) && (
+                            <p className="px-3.5 py-3 text-sm text-[#59604F]">No matching destination. Try another spelling.</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {state === 'Andhra Pradesh' && (
+                    <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-900">Delivery to Andhra Pradesh is coming soon. Charges will appear once a route is added.</p>
+                  )}
                 </div>
 
-                {/* 3. Detailed Address & Delivery Hub Selection */}
+                {/* 3. Structured Delivery Address */}
                 <div className="space-y-4 pt-2">
                   <div className="flex items-center justify-between border-b border-[#4F534C]/15 pb-2">
                     <div className="flex items-center gap-2">
                       <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#656B4F] text-[11px] font-black text-white">3</span>
-                      <h3 className="text-base font-black text-[#1A1E16]">Delivery Address & District Selection</h3>
+                      <h3 className="text-base font-black text-[#1A1E16]">Delivery Address Details</h3>
                     </div>
                     <span className="text-[11px] font-bold text-[#656B4F] bg-[#EAF0E5] px-2 py-0.5 rounded-md">
-                      Accurate Delivery Matching
+                      {selectedDestination ? 'Destination selected above' : 'Choose a destination above'}
                     </span>
                   </div>
 
-                  {/* Destination Hub / District Selector Dropdown */}
+                  {selectedDestination?.id === 'coimbatore' && (
+                    <div className="rounded-2xl border border-[#656B4F]/25 bg-white p-4">
+                      <AddressSearch
+                        onLocationSelect={handleLocationSelect}
+                        onLocationSearchChange={() => setCoordinates(null)}
+                      />
+                    </div>
+                  )}
+
+                  {/* Automatically matched destination and delivery rate */}
                   <div className="p-4 rounded-2xl bg-[#EAF0E5] border border-[#656B4F]/25 space-y-2.5">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <label className="text-xs font-black text-[#1A1E16] flex items-center gap-1.5">
@@ -483,7 +612,7 @@ export default function CheckoutPage() {
                         <span>Delivery route and charge</span>
                       </label>
                       <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-white text-[#656B4F] border border-[#656B4F]/20 w-fit">
-                        {deliveryCalc.mode === 'BIKE' ? '🛵 Doorstep Bike' : deliveryCalc.mode === 'BUS' ? '🚌 Bus Parcel' : '🚐 Travels Parcel'}
+                        {!deliveryCalc.isServiceable ? 'Destination required' : deliveryCalc.mode === 'BIKE' ? 'Local delivery' : deliveryCalc.mode === 'BUS' ? 'Bus parcel' : 'Travels parcel'}
                       </span>
                     </div>
 
@@ -492,22 +621,31 @@ export default function CheckoutPage() {
                     {/* Active Calculation Banner */}
                     <div className="p-3 bg-white rounded-xl border border-[#656B4F]/20 flex items-start gap-2.5 text-xs">
                       <div className="w-7 h-7 rounded-lg bg-[#EAF0E5] text-[#656B4F] flex items-center justify-center shrink-0 mt-0.5 font-bold text-sm">
-                        {deliveryCalc.mode === 'BIKE' ? '🛵' : deliveryCalc.mode === 'BUS' ? '🚌' : '🚐'}
+                        <Truck className="h-4 w-4" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-black text-[#1A1E16] flex items-center justify-between gap-2">
                           <span>{deliveryCalc.details}</span>
                           <span className="font-black text-sm text-[#50563D]">
-                            {deliveryCalc.isFree ? (
-                              <span className="text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded text-[11px] font-black">FREE</span>
+                            {!deliveryCalc.isServiceable ? (
+                              <span className="text-amber-800 bg-amber-100 px-2 py-0.5 rounded text-[11px] font-black">{selectedDestination?.id === 'coimbatore' ? 'SEARCH ADDRESS' : 'SELECT CITY'}</span>
+                            ) : deliveryCalc.isFree ? (
+                              <span className="text-[#50563D] bg-[#EAF0E5] border border-[#656B4F]/20 px-2 py-0.5 rounded text-[11px] font-black">FREE</span>
                             ) : (
                               `₹${deliveryCalc.fee}`
                             )}
                           </span>
                         </div>
                         <div className="text-[11px] text-[#52594B] mt-0.5">
-                          {deliveryCalc.isFree ? (
-                            <span className="text-emerald-700 font-extrabold">🎉 FREE Delivery applied for order over ₹2999!</span>
+                          {!deliveryCalc.isServiceable ? (
+                            selectedDestination?.id === 'coimbatore'
+                              ? 'Search a street or PIN to calculate the distance from the shop.'
+                              : 'Choose a listed delivery city to see its charge.'
+                          ) : deliveryCalc.isFree ? (
+                            <span className="text-[#50563D] font-extrabold flex items-center gap-1">
+                              <Sparkles className="w-3.5 h-3.5 text-[#656B4F] inline shrink-0" />
+                              <span>FREE Delivery applied for order over ₹2999!</span>
+                            </span>
                           ) : deliveryCalc.mode === 'BIKE' ? (
                             `Coimbatore rate: ₹10 per km from Sakthi store (minimum ₹40, maximum ₹250)`
                           ) : (
@@ -561,31 +699,19 @@ export default function CheckoutPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                       <div>
-                        <label className="block text-xs font-bold text-[#1A1E16] mb-1">City / Town *</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="e.g. Coimbatore"
-                          value={city}
-                          onChange={(e) => setCity(e.target.value)}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#EAF0E5] border border-[#4F534C]/25 text-xs font-bold text-[#1A1E16] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
-                        />
+                        <label className="block text-xs font-bold text-[#1A1E16] mb-1">City / Destination</label>
+                        <input readOnly value={city} placeholder="Choose destination above" className="w-full rounded-xl border border-[#4F534C]/25 bg-gray-50 px-3.5 py-2.5 text-xs font-bold text-[#1A1E16]" />
                       </div>
-
                       <div>
-                        <label className="block text-xs font-bold text-[#1A1E16] mb-1">State *</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Tamil Nadu"
-                          value={state}
-                          onChange={(e) => setState(e.target.value)}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-[#EAF0E5] border border-[#4F534C]/25 text-xs font-bold text-[#1A1E16] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
-                        />
+                        <label className="block text-xs font-bold text-[#1A1E16] mb-1">District</label>
+                        <input readOnly value={district} placeholder="Choose district above" className="w-full rounded-xl border border-[#4F534C]/25 bg-gray-50 px-3.5 py-2.5 text-xs font-bold text-[#1A1E16]" />
                       </div>
-
+                      <div>
+                        <label className="block text-xs font-bold text-[#1A1E16] mb-1">State</label>
+                        <input readOnly value={state} className="w-full rounded-xl border border-[#4F534C]/25 bg-gray-50 px-3.5 py-2.5 text-xs font-bold text-[#1A1E16]" />
+                      </div>
                       <div>
                         <label className="block text-xs font-bold text-[#1A1E16] mb-1">PIN Code (6 digits) *</label>
                         <input
@@ -603,10 +729,12 @@ export default function CheckoutPage() {
                     {/* Address Verification Preview */}
                     {(flatHouse || streetArea || city) && (
                       <div className="p-3 bg-[#F4F7F0] rounded-xl border border-[#656B4F]/15 text-xs">
-                        <span className="font-bold text-[#656B4F] block mb-1">📦 Delivery Slip Address Preview:</span>
+                        <span className="font-bold text-[#656B4F] flex items-center gap-1.5 mb-1">
+                          <Package className="w-3.5 h-3.5 text-[#656B4F] shrink-0" />
+                          <span>Delivery Slip Address Preview:</span>
+                        </span>
                         <p className="text-[#1A1E16] font-semibold leading-relaxed">
-                          {[flatHouse, streetArea, landmark ? `(Landmark: ${landmark})` : '', city, state, pincode].filter(Boolean).join(', ')}
-                          {coordinates ? ` • GPS [${coordinates.lat.toFixed(4)}, ${coordinates.lng.toFixed(4)}]` : ''}
+                          {[flatHouse, streetArea, landmark ? `(Landmark: ${landmark})` : '', city, district, state, pincode].filter(Boolean).join(', ')}
                         </p>
                       </div>
                     )}
@@ -620,19 +748,19 @@ export default function CheckoutPage() {
                     <h3 className="text-base font-black text-[#1A1E16]">Payment Method</h3>
                   </div>
 
-                  <div className="p-4 rounded-xl border-2 border-emerald-600 bg-emerald-50/70 flex items-center gap-3">
-                    <ShieldCheck className="w-7 h-7 text-emerald-700 shrink-0" />
+                  <div className="p-4 rounded-xl border-2 border-[#656B4F] bg-[#EAF0E5]/70 flex items-center gap-3">
+                    <ShieldCheck className="w-7 h-7 text-[#656B4F] shrink-0" />
                     <div>
                       <h4 className="font-black text-sm text-[#1A1E16]">Secure Online Payment (Razorpay)</h4>
-                      <p className="text-xs text-emerald-800 font-semibold mt-0.5">Pay safely via UPI (GPay, PhonePe, Paytm), Cards, or Netbanking.</p>
+                      <p className="text-xs text-[#50563D] font-semibold mt-0.5">Pay safely via UPI (GPay, PhonePe, Paytm), Cards, or Netbanking.</p>
                     </div>
                   </div>
                 </div>
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-4 px-6 mt-4 bg-[#656B4F] text-white font-black rounded-xl hover:bg-[#656B4F] transition-all shadow-md text-base disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap"
+                  disabled={isSubmitting || !deliveryCalc.isServiceable}
+                  className="w-full py-4 px-6 mt-4 bg-[#656B4F] text-white font-black rounded-xl hover:bg-[#50563D] transition-all shadow-md text-base disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap"
                 >
                   <span>{isSubmitting ? 'Initializing Payment...' : `Proceed & Pay ₹${grandTotal}`}</span>
                 </button>
@@ -674,12 +802,14 @@ export default function CheckoutPage() {
                     <div>
                       <span>Delivery Charges</span>
                       <span className="block text-[10px] text-[#5A6355] font-normal">
-                        {deliveryCalc.mode === 'BIKE' ? '🛵 Bike (Coimbatore)' : deliveryCalc.mode === 'BUS' ? `🚌 Bus (${deliveryCalc.zoneName})` : `🚐 Travels (${deliveryCalc.zoneName})`}
+                        {!deliveryCalc.isServiceable ? 'Choose destination' : deliveryCalc.mode === 'BIKE' ? 'Bike (Coimbatore)' : deliveryCalc.mode === 'BUS' ? `Bus (${deliveryCalc.zoneName})` : `Travels (${deliveryCalc.zoneName})`}
                       </span>
                     </div>
                     <span className="font-black text-[#1A1E16]">
-                      {deliveryFee === 0 ? (
-                        <span className="text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded text-[11px]">FREE</span>
+                      {!deliveryCalc.isServiceable ? (
+                        <span className="text-amber-800">{selectedDestination?.id === 'coimbatore' ? 'Search address' : 'Select city'}</span>
+                      ) : deliveryFee === 0 ? (
+                        <span className="text-[#50563D] bg-[#EAF0E5] border border-[#656B4F]/20 px-2 py-0.5 rounded text-[11px] font-black">FREE</span>
                       ) : (
                         `₹${deliveryFee}`
                       )}

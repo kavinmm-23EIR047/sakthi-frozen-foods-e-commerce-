@@ -20,6 +20,7 @@ interface CartContextType {
   setSelectedProductForModal: (product: ProductType | null) => void;
   totalItems: number;
   totalPrice: number;
+  isCartLoading: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -104,6 +105,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           {
             productId: product.id,
             name: product.name,
+            image: product.image,
             weight: product.weight,
             price: product.price,
             quantity,
@@ -153,6 +155,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setSelectedProductForModal,
         totalItems,
         totalPrice,
+        isCartLoading: !cartLoaded,
       }}
     >
       {children}

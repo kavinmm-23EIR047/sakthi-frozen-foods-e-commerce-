@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { connectToDatabase, getStoreCategories, saveStoreCategory, deleteStoreCategory } from '@/lib/db';
+import { connectToDatabase } from '@/lib/db';
 import Category from '@/models/Category';
 
 import { requireAdmin } from '@/lib/auth';
@@ -29,14 +29,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         },
       });
     } else {
-      const categories = getStoreCategories();
-      const index = categories.findIndex((c) => c.id === id);
-      if (index === -1) {
-        return NextResponse.json({ success: false, error: 'Category not found' }, { status: 404 });
-      }
-      const updatedCat = { ...categories[index], ...body };
-      saveStoreCategory(updatedCat);
-      return NextResponse.json({ success: true, data: updatedCat });
+      return NextResponse.json({ success: false, error: 'Database is not connected; category was not updated.' }, { status: 503 });
     }
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -58,8 +51,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       }
       return NextResponse.json({ success: true, message: 'Category deleted successfully' });
     } else {
-      deleteStoreCategory(id);
-      return NextResponse.json({ success: true, message: 'Category deleted successfully' });
+      return NextResponse.json({ success: false, error: 'Database is not connected; category was not deleted.' }, { status: 503 });
     }
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

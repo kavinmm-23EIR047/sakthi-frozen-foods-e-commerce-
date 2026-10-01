@@ -9,6 +9,7 @@ export interface IUser extends Document {
   totalSpent: number;
   joinedDate: string;
   address: string;
+  wishlist?: mongoose.Types.ObjectId[];
 }
 
 const UserSchema: Schema = new Schema(
@@ -21,6 +22,7 @@ const UserSchema: Schema = new Schema(
     totalSpent: { type: Number, default: 0 },
     joinedDate: { type: String, default: () => new Date().toISOString().split('T')[0] },
     address: { type: String, default: '' },
+    wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
   },
   { timestamps: true }
 );

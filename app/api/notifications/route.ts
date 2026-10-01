@@ -28,7 +28,15 @@ export async function GET(request: Request) {
       headers,
       cache: 'no-store',
     });
-    const data = await response.json();
+    const text = await response.text();
+    let data: any = { success: true, count: 0, total: 0, data: [] };
+    if (text && text.trim()) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        // Fallback
+      }
+    }
     return NextResponse.json(data, { status: response.status });
   } catch (error: any) {
     return NextResponse.json({ success: true, count: 0, total: 0, data: [] });

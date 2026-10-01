@@ -38,8 +38,29 @@ router.get('/', async (req, res) => {
     if (category && category !== 'All') {
       query.category = category;
     }
-    if (search) {
-      query.name = { $regex: escapeRegex(String(search)), $options: 'i' };
+    if (search && String(search).trim()) {
+      const cleanSearch = String(search).trim();
+      const searchStr = escapeRegex(cleanSearch);
+      const fullRegex = { $regex: searchStr, $options: 'i' };
+      const words = cleanSearch.split(/\s+/).filter(Boolean).map((w) => escapeRegex(w));
+      
+      const searchConditions = [
+        { name: fullRegex },
+        { category: fullRegex },
+        { description: fullRegex },
+        { code: fullRegex },
+      ];
+
+      if (words.length > 1) {
+        words.forEach((w) => {
+          const wRegex = { $regex: w, $options: 'i' };
+          searchConditions.push({ name: wRegex });
+          searchConditions.push({ category: wRegex });
+          searchConditions.push({ description: wRegex });
+        });
+      }
+
+      query.$or = searchConditions;
     }
     
     const productQuery = Product.find(query)

@@ -8,6 +8,7 @@ import Footer from '@/components/Footer';
 import TransparentPattyGraphic from '@/components/TransparentPattyGraphic';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/context/ToastContext';
+import { useWishlist } from '@/context/WishlistContext';
 import { ProductType } from '@/lib/types';
 import { fetchApi } from '@/lib/apiConfig';
 import {
@@ -316,11 +317,29 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
       if (!packMap.has(key)) {
         packMap.set(key, {
           type: isRetail ? 'retail' : 'regular',
-          label: isRetail ? `Retail (${cleanWeight})` : `Regular (${cleanWeight})`,
+          label: isRetail ? `Retail (${cleanWeight})` : `Wholesale (${cleanWeight})`,
           weight: cleanWeight,
           price: item.price,
-          mrp: item.mrp ?? item.price,
+          mrp: item.mrp ?? Math.round(item.price * 1.25),
           id: item.id,
+        });
+      }
+
+      if (item.variants && Array.isArray(item.variants)) {
+        item.variants.forEach((v) => {
+          const vClean = formatCleanWeight(v.weight);
+          const vKey = vClean.toLowerCase();
+          const vIsRetail = vClean.includes('200') || vClean.includes('250') || vClean.includes('300') || vClean.includes('400') || vClean.includes('500');
+          if (!packMap.has(vKey)) {
+            packMap.set(vKey, {
+              type: vIsRetail ? 'retail' : 'regular',
+              label: vIsRetail ? `Retail (${vClean})` : `Wholesale (${vClean})`,
+              weight: vClean,
+              price: Number(v.price),
+              mrp: Math.round(Number(v.price) * 1.25),
+              id: item.id,
+            });
+          }
         });
       }
     }
@@ -369,6 +388,7 @@ export default function StorefrontHomePage() {
   const router = useRouter();
   const { addToCart } = useCart();
   const { showToast } = useToast();
+  const { isInWishlist, toggleWishlist } = useWishlist();
 
   const [heroDishIndex, setHeroDishIndex] = useState(0);
   const [isHeroHovered, setIsHeroHovered] = useState(false);
@@ -378,7 +398,6 @@ export default function StorefrontHomePage() {
   const [loading, setLoading] = useState(true);
   const [activeReviewIndex, setActiveReviewIndex] = useState(0);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
-  const [savedProducts, setSavedProducts] = useState<Record<string, boolean>>({});
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [reviewForm, setReviewForm] = useState({
     authorName: '',
@@ -392,37 +411,40 @@ export default function StorefrontHomePage() {
   const productScrollRef = useRef<HTMLDivElement>(null);
   const recipeScrollRef = useRef<HTMLDivElement>(null);
 
-  // Mouse / Touch Drag State for Category Carousel on Tab and Mobile
+  // Pointer / Touch Drag State for Category Carousel on Tab and Mobile
   const [isDraggingCategory, setIsDraggingCategory] = useState(false);
   const [categoryStartX, setCategoryStartX] = useState(0);
   const [categoryScrollStart, setCategoryScrollStart] = useState(0);
   const [categoryMoved, setCategoryMoved] = useState(false);
 
-  const handleCategoryMouseDown = (e: React.MouseEvent) => {
+  const handleCategoryPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'touch') return;
     if (!categoryScrollRef.current) return;
     setIsDraggingCategory(true);
     setCategoryMoved(false);
-    setCategoryStartX(e.pageX - categoryScrollRef.current.offsetLeft);
+    setCategoryStartX(e.clientX);
     setCategoryScrollStart(categoryScrollRef.current.scrollLeft);
   };
 
-  const handleCategoryMouseMove = (e: React.MouseEvent) => {
+  const handleCategoryPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'touch') return;
     if (!isDraggingCategory || !categoryScrollRef.current) return;
-    e.preventDefault();
-    const x = e.pageX - categoryScrollRef.current.offsetLeft;
-    const walk = (x - categoryStartX) * 1.5;
-    if (Math.abs(walk) > 4) {
+    const diff = e.clientX - categoryStartX;
+    if (Math.abs(diff) > 4) {
       setCategoryMoved(true);
+      categoryScrollRef.current.scrollLeft = categoryScrollStart - diff;
     }
-    categoryScrollRef.current.scrollLeft = categoryScrollStart - walk;
   };
 
-  const handleCategoryMouseUp = () => {
+  const handleCategoryPointerUpOrCancel = () => {
     setIsDraggingCategory(false);
   };
 
-  const handleCategoryMouseLeave = () => {
-    setIsDraggingCategory(false);
+  const handleCategoryWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (!categoryScrollRef.current) return;
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      categoryScrollRef.current.scrollLeft += e.deltaY;
+    }
   };
 
   const handleCategoryItemClick = (e: React.MouseEvent, link: string) => {
@@ -482,10 +504,9 @@ export default function StorefrontHomePage() {
     loadData();
   }, []);
 
-  const toggleSaveProduct = (e: React.MouseEvent, id: string) => {
+  const toggleSaveProduct = (e: React.MouseEvent, product: UnifiedProduct) => {
     e.stopPropagation();
-    setSavedProducts((prev) => ({ ...prev, [id]: !prev[id] }));
-    if (!savedProducts[id]) showToast('Saved to favorites!', 'success');
+    toggleWishlist(product);
   };
 
   const handleAddToCart = (product: UnifiedProduct, e: React.MouseEvent) => {
@@ -587,7 +608,7 @@ export default function StorefrontHomePage() {
             <div className="relative w-full bg-[#FAFDF6] rounded-2xl sm:rounded-3xl lg:rounded-[32px] border border-white/80 shadow-xs overflow-hidden isolate">
 
               {/* Botanical Leaf SVG Corner Garnishes */}
-              <svg className="absolute -top-6 -left-6 w-24 h-24 sm:w-32 sm:h-32 text-[#2E7D32]/15 pointer-events-none -z-10 rotate-12" viewBox="0 0 100 100" fill="currentColor">
+              <svg className="absolute -top-6 -left-6 w-24 h-24 sm:w-32 sm:h-32 text-[#656B4F]/15 pointer-events-none -z-10 rotate-12" viewBox="0 0 100 100" fill="currentColor">
                 <path d="M50 0 C20 30 10 60 50 100 C90 60 80 30 50 0 Z M50 20 C60 40 65 60 50 85 C35 60 40 40 50 20 Z" />
               </svg>
               <svg className="absolute -bottom-8 -right-8 w-28 h-28 sm:w-36 sm:h-36 text-[#86EFAC]/20 pointer-events-none -z-10 -rotate-45" viewBox="0 0 100 100" fill="currentColor">
@@ -598,27 +619,27 @@ export default function StorefrontHomePage() {
               <div className="absolute top-0 left-0 w-[280px] sm:w-[420px] h-[280px] sm:h-[420px] bg-gradient-to-br from-[#86EFAC]/20 via-[#BBF7D0]/10 to-transparent rounded-full blur-[60px] sm:blur-[90px] pointer-events-none -z-10" />
               <div className="absolute bottom-0 left-1/4 w-[240px] sm:w-[360px] h-[240px] sm:h-[360px] bg-gradient-to-tr from-[#FEF08A]/15 via-[#FEF9C3]/8 to-transparent rounded-full blur-[60px] sm:blur-[80px] pointer-events-none -z-10" />
 
-              {/* Responsive Grid Layout */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch min-h-0 sm:min-h-[460px] lg:min-h-[500px]">
+              {/* Responsive Grid Layout - Side-by-Side Left & Right on PC/Desktop (lg:) & Full Width on Tablet/Mobile */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch min-h-0 lg:min-h-[500px]">
 
-                {/* Left Column: Compact Content Sizing */}
+                {/* Left Column: Headline, Highlights, CTA Buttons, and Trust Strip */}
                 <div className="lg:col-span-6 xl:col-span-6 flex flex-col justify-between p-4 sm:p-7 lg:p-10 text-left z-10 space-y-4 sm:space-y-5">
 
                   {/* Top Text Block */}
                   <div className="space-y-2.5 sm:space-y-3.5">
                     {/* Pulsing Brand Tagline */}
-                    <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 py-0.5 sm:py-1 rounded-full bg-[#EAF5E5] border border-white text-[#1B4316] text-[10px] sm:text-xs font-black uppercase tracking-wider w-fit shadow-2xs">
+                    <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 py-0.5 sm:py-1 rounded-full bg-[#EAF0E5] border border-white text-[#50563D] text-[10px] sm:text-xs font-black uppercase tracking-wider w-fit shadow-2xs">
                       <span className="relative flex h-1.5 sm:h-2 w-1.5 sm:w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#2E7D32] opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-1.5 sm:h-2 w-1.5 sm:w-2 bg-[#2E7D32]"></span>
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#656B4F] opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 sm:h-2 w-1.5 sm:w-2 bg-[#656B4F]"></span>
                       </span>
                       <span>100% VEGETARIAN • PLANT-BASED MEATS</span>
                     </div>
 
-                    {/* Compact Headline */}
+                    {/* Headline */}
                     <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-[44px] font-black tracking-tight leading-[1.12]">
                       <span className="text-[#50563D] block">Authentic Taste</span>
-                      <span className="bg-gradient-to-r from-[#1E6221] via-[#2E7D32] to-[#16A34A] bg-clip-text text-transparent">
+                      <span className="bg-gradient-to-r from-[#50563D] via-[#656B4F] to-[#7B8361] bg-clip-text text-transparent">
                         A Kinder{' '}
                       </span>
                       <span className="bg-gradient-to-r from-[#D97706] to-[#CA8A04] bg-clip-text text-transparent">
@@ -631,19 +652,19 @@ export default function StorefrontHomePage() {
                       Enjoy the same rich taste and satisfying texture as real meat — made from plants, for a healthier you and a healthier planet.
                     </p>
 
-                    {/* 4 Feature Badges in 2x2 Grid for Mobile/Tablet */}
-                    <div className="py-1 sm:py-1.5 grid grid-cols-2 gap-2 sm:gap-3 lg:gap-4">
-                      <div className="flex items-center gap-1.5 sm:gap-2">
-                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#E5F5E0] text-[#2E7D32] flex items-center justify-center shrink-0 shadow-2xs">
-                          <Leaf className="w-3.5 h-3.5 text-[#2E7D32] fill-[#2E7D32]/20" />
+                    {/* 4 Feature Badges in Full Horizontal Row spanning full width */}
+                    <div className="py-1 sm:py-1.5 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 w-full">
+                      <div className="flex items-center gap-1.5 sm:gap-2 bg-white/80 border border-[#656B4F]/20 px-2.5 py-1.5 rounded-xl shadow-2xs">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#EAF0E5] text-[#656B4F] flex items-center justify-center shrink-0 shadow-2xs">
+                          <Leaf className="w-3.5 h-3.5 text-[#656B4F] fill-[#656B4F]/20" />
                         </div>
                         <div className="min-w-0">
-                          <span className="text-[11px] sm:text-xs font-black text-[#14360F] block leading-tight">100%</span>
-                          <span className="text-[9px] sm:text-[10px] lg:text-[11px] font-semibold text-[#4A5E46] block leading-tight truncate">Plant Based</span>
+                          <span className="text-[11px] sm:text-xs font-black text-[#50563D] block leading-tight">100%</span>
+                          <span className="text-[9px] sm:text-[10px] font-semibold text-[#656B4F] block leading-tight truncate">Plant Based</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1.5 sm:gap-2">
+                      <div className="flex items-center gap-1.5 sm:gap-2 bg-white/80 border border-[#DC2626]/15 px-2.5 py-1.5 rounded-xl shadow-2xs">
                         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#FEEBEA] text-[#DC2626] flex items-center justify-center shrink-0 shadow-2xs">
                           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="12" cy="12" r="10" />
@@ -652,36 +673,36 @@ export default function StorefrontHomePage() {
                         </div>
                         <div className="min-w-0">
                           <span className="text-[11px] sm:text-xs font-black text-[#5C1616] block leading-tight truncate">No Hormones</span>
-                          <span className="text-[9px] sm:text-[10px] lg:text-[11px] font-semibold text-[#6E4848] block leading-tight truncate">No Antibiotics</span>
+                          <span className="text-[9px] sm:text-[10px] font-semibold text-[#6E4848] block leading-tight truncate">No Antibiotics</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1.5 sm:gap-2">
+                      <div className="flex items-center gap-1.5 sm:gap-2 bg-white/80 border border-[#0D9488]/15 px-2.5 py-1.5 rounded-xl shadow-2xs">
                         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#E2F7F2] text-[#0D9488] flex items-center justify-center shrink-0 shadow-2xs">
                           <Utensils className="w-3.5 h-3.5" />
                         </div>
                         <div className="min-w-0">
                           <span className="text-[11px] sm:text-xs font-black text-[#0B4842] block leading-tight truncate">Ready to Cook</span>
-                          <span className="text-[9px] sm:text-[10px] lg:text-[11px] font-semibold text-[#3D6460] block leading-tight truncate">Quick & Easy</span>
+                          <span className="text-[9px] sm:text-[10px] font-semibold text-[#3D6460] block leading-tight truncate">Quick & Easy</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1.5 sm:gap-2">
+                      <div className="flex items-center gap-1.5 sm:gap-2 bg-white/80 border border-[#E11D48]/15 px-2.5 py-1.5 rounded-xl shadow-2xs">
                         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#FCE8E6] text-[#E11D48] flex items-center justify-center shrink-0 shadow-2xs">
                           <Heart className="w-3.5 h-3.5 text-[#E11D48] fill-[#E11D48]/20" />
                         </div>
                         <div className="min-w-0">
                           <span className="text-[11px] sm:text-xs font-black text-[#591422] block leading-tight truncate">Rich in</span>
-                          <span className="text-[9px] sm:text-[10px] lg:text-[11px] font-semibold text-[#733F4A] block leading-tight truncate">Protein & Fiber</span>
+                          <span className="text-[9px] sm:text-[10px] font-semibold text-[#733F4A] block leading-tight truncate">Protein & Fiber</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Perfectly Aligned Horizontal Action Buttons for Mobile, Tablet & Desktop */}
+                    {/* Perfectly Aligned Horizontal Action Buttons */}
                     <div className="pt-1 flex flex-row items-center gap-2.5 sm:gap-3 w-full">
                       <Link
                         href="/shop"
-                        className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 rounded-full bg-[#50563D] hover:bg-[#50563D] text-white font-black text-xs sm:text-sm transition-all shadow-md hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2 text-center"
+                        className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 rounded-full bg-[#50563D] hover:bg-[#3D422E] text-white font-black text-xs sm:text-sm transition-all shadow-md hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2 text-center whitespace-nowrap"
                       >
                         <span>Shop Now</span>
                         <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -689,7 +710,7 @@ export default function StorefrontHomePage() {
 
                       <a
                         href="#how-its-made"
-                        className="flex-1 sm:flex-none px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-full bg-white hover:bg-[#F2F6ED] text-[#50563D] font-bold text-xs sm:text-sm border border-stone-200 transition-all shadow-2xs hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2 text-center"
+                        className="flex-1 sm:flex-none px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-full bg-white hover:bg-[#F2F6ED] text-[#50563D] font-bold text-xs sm:text-sm border border-stone-200 transition-all shadow-2xs hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2 text-center whitespace-nowrap"
                       >
                         <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-[#50563D] text-[#50563D]" />
                         <span>Watch Story</span>
@@ -697,99 +718,69 @@ export default function StorefrontHomePage() {
                     </div>
                   </div>
 
-                  {/* Brand Value Grid Bar */}
-                  <div className="pt-2.5 border-t border-[#E1EFE0] grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-left">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#E5F5E0] text-[#2E7D32] flex items-center justify-center shrink-0">
+                  {/* Brand Value Grid Bar - Full Width Horizontal */}
+                  <div className="pt-2.5 border-t border-[#E1EFE0] grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-left w-full">
+                    <div className="flex items-center gap-1.5 min-w-0 bg-white/60 sm:bg-transparent p-1.5 sm:p-0 rounded-lg">
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#EAF0E5] text-[#656B4F] flex items-center justify-center shrink-0 shadow-2xs">
                         <Truck className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                       </div>
                       <div className="min-w-0">
-                        <span className="text-[10px] sm:text-xs font-bold text-[#50563D] block leading-tight truncate">Cold-Chain</span>
-                        <span className="text-[8px] sm:text-[10px] text-[#656B4F] block leading-tight truncate">Frozen Express</span>
+                        <span className="text-[10px] sm:text-xs font-bold text-[#50563D] block leading-tight whitespace-nowrap">Cold-Chain</span>
+                        <span className="text-[8px] sm:text-[10px] text-[#656B4F] block leading-tight whitespace-nowrap">Frozen Express</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#E5F5E0] text-[#2E7D32] flex items-center justify-center shrink-0">
-                        <Award className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    <div className="flex items-center gap-1.5 min-w-0 bg-white/60 sm:bg-transparent p-1.5 sm:p-0 rounded-lg">
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#EAF0E5] text-[#656B4F] flex items-center justify-center shrink-0 shadow-2xs">
+                        <Award className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5" />
                       </div>
                       <div className="min-w-0">
-                        <span className="text-[10px] sm:text-xs font-bold text-[#50563D] block leading-tight truncate">Premium</span>
-                        <span className="text-[8px] sm:text-[10px] text-[#656B4F] block leading-tight truncate">Non-GMO</span>
+                        <span className="text-[10px] sm:text-xs font-bold text-[#50563D] block leading-tight whitespace-nowrap">Premium</span>
+                        <span className="text-[8px] sm:text-[10px] text-[#656B4F] block leading-tight whitespace-nowrap">Non-GMO</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#E5F5E0] text-[#2E7D32] flex items-center justify-center shrink-0">
-                        <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    <div className="flex items-center gap-1.5 min-w-0 bg-white/60 sm:bg-transparent p-1.5 sm:p-0 rounded-lg">
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#EAF0E5] text-[#656B4F] flex items-center justify-center shrink-0 shadow-2xs">
+                        <ShieldCheck className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5" />
                       </div>
                       <div className="min-w-0">
-                        <span className="text-[10px] sm:text-xs font-bold text-[#50563D] block leading-tight truncate">100% Hygienic</span>
-                        <span className="text-[8px] sm:text-[10px] text-[#656B4F] block leading-tight truncate">FSSAI Certified</span>
+                        <span className="text-[10px] sm:text-xs font-bold text-[#50563D] block leading-tight whitespace-nowrap">100% Hygienic</span>
+                        <span className="text-[8px] sm:text-[10px] text-[#656B4F] block leading-tight whitespace-nowrap">FSSAI Certified</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#E5F5E0] text-[#2E7D32] flex items-center justify-center shrink-0">
-                        <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    <div className="flex items-center gap-1.5 min-w-0 bg-white/60 sm:bg-transparent p-1.5 sm:p-0 rounded-lg">
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#EAF0E5] text-[#656B4F] flex items-center justify-center shrink-0 shadow-2xs">
+                        <Flame className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5" />
                       </div>
                       <div className="min-w-0">
-                        <span className="text-[10px] sm:text-xs font-bold text-[#50563D] block leading-tight truncate">Real Spices</span>
-                        <span className="text-[8px] sm:text-[10px] text-[#656B4F] block leading-tight truncate">Authentic Flavor</span>
+                        <span className="text-[10px] sm:text-xs font-bold text-[#50563D] block leading-tight whitespace-nowrap">Real Spices</span>
+                        <span className="text-[8px] sm:text-[10px] text-[#656B4F] block leading-tight whitespace-nowrap">Authentic Flavor</span>
                       </div>
                     </div>
                   </div>
 
                 </div>
 
-                {/* Right Column: Clean Separate Image Card Layout with Distinct White Border */}
-                <div className="lg:col-span-6 xl:col-span-6 p-2 sm:p-3 lg:p-0 flex items-center justify-center">
+                {/* Right Column: Hero Banner Image Slider - Edge-to-Edge Full Cover Image */}
+                <div className="lg:col-span-6 xl:col-span-6 p-2 sm:p-4 lg:p-0 flex items-center justify-center">
                   <div
-                    className="relative w-full h-[260px] xs:h-[300px] sm:h-[380px] lg:h-full min-h-[260px] sm:min-h-[380px] lg:min-h-[480px] xl:min-h-[520px] bg-stone-900 rounded-2xl sm:rounded-3xl lg:rounded-r-[32px] lg:rounded-l-none border-2 sm:border-4 border-white shadow-md overflow-hidden group select-none flex items-center justify-center"
+                    className="relative w-full h-[280px] xs:h-[340px] sm:h-[420px] lg:h-full min-h-[280px] xs:min-h-[340px] sm:min-h-[420px] lg:min-h-[500px] rounded-2xl sm:rounded-3xl lg:rounded-r-[32px] lg:rounded-l-none border-2 sm:border-4 border-white shadow-md overflow-hidden group select-none flex items-center justify-center"
                     onMouseEnter={() => setIsHeroHovered(true)}
                     onMouseLeave={() => setIsHeroHovered(false)}
                   >
                     <img
                       src={currentHeroBanner.image}
                       alt={currentHeroBanner.title}
-                      className="w-full h-full object-cover object-[center_top] transition-all duration-700"
+                      className="w-full h-full object-cover object-center transition-all duration-700 pointer-events-none"
                     />
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
-
-                    {/* 3 Floating Pure Icon Badges */}
-                    <div className="absolute right-2.5 sm:right-4 top-2.5 sm:top-4 z-20 flex flex-col gap-2 pointer-events-auto">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/95 backdrop-blur-md border border-white shadow-md text-[#2E7D32] flex items-center justify-center hover:scale-110 transition-transform cursor-pointer group/icon relative" title="100% Plant Based">
-                        <Leaf className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-[#2E7D32] fill-[#2E7D32]/20" />
-                        <span className="absolute right-11 bg-black/80 text-white text-[10px] font-bold px-2 py-1 rounded-md opacity-0 group-hover/icon:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                          100% Plant Based
-                        </span>
-                      </div>
-
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/95 backdrop-blur-md border border-white shadow-md text-[#2E7D32] flex items-center justify-center hover:scale-110 transition-transform cursor-pointer group/icon relative" title="High in Protein">
-                        <svg className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-[#2E7D32]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M12.5 4a3.5 3.5 0 0 0-3.5 3.5v1a2 2 0 0 1-2 2H5a2 2 0 0 0-2 2v2a4 4 0 0 0 4 4h4a7 7 0 0 0 7-7v-3.5A4 4 0 0 0 14.5 4h-2z" />
-                          <path d="M12 11.5c1.5 0 3 .5 3 2" />
-                        </svg>
-                        <span className="absolute right-11 bg-black/80 text-white text-[10px] font-bold px-2 py-1 rounded-md opacity-0 group-hover/icon:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                          High in Protein
-                        </span>
-                      </div>
-
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/95 backdrop-blur-md border border-white shadow-md text-[#2E7D32] flex items-center justify-center hover:scale-110 transition-transform cursor-pointer group/icon relative" title="No Preservatives">
-                        <svg className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-[#2E7D32]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="9" />
-                          <path d="M10 8v3l-2.5 4.5h9L14 11V8" />
-                          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-                        </svg>
-                        <span className="absolute right-11 bg-black/80 text-white text-[10px] font-bold px-2 py-1 rounded-md opacity-0 group-hover/icon:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                          No Preservatives
-                        </span>
-                      </div>
-                    </div>
+                    {/* Gradient Overlay for Sleek Controls Visibility */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10 pointer-events-none" />
 
                     {/* Slider Navigation Controls */}
-                    <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-5 z-20 bg-black/65 backdrop-blur-md px-3 py-1 sm:py-1.5 rounded-full border border-white/20 shadow-xl flex items-center gap-2 sm:gap-2.5">
+                    <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-5 z-20 bg-black/75 backdrop-blur-md px-3 py-1 sm:py-1.5 rounded-full border border-white/20 shadow-xl flex items-center gap-2 sm:gap-2.5">
                       <button
                         onClick={prevHeroSlide}
                         aria-label="Previous Slide"
@@ -834,29 +825,29 @@ export default function StorefrontHomePage() {
         {/* 2. SHOP BY CATEGORY SECTION (Connected to Backend, Full Medium Width & Smooth Mobile/Tab Swipe) */}
         {/* ========================================================================= */}
         <section className="py-6 sm:py-8 lg:py-10 max-w-[1400px] mx-auto px-3 sm:px-6 lg:px-8 w-full">
-          <div className="flex items-center justify-between mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
             <div>
               <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#1E201D] tracking-tight font-display">
                 Shop by Category
               </h2>
-              <p className="text-xs sm:text-sm text-[#657563] font-medium mt-0.5 hidden sm:block">
+              <p className="text-xs sm:text-sm text-[#657563] font-medium mt-0.5">
                 Explore our full line of delicious 100% plant-based frozen favorites
               </p>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 w-full sm:w-auto shrink-0">
               {/* Left/Right Floating Scroll Buttons for touch & mouse convenience */}
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <button
                   onClick={() => scrollContainer(categoryScrollRef, 'left')}
-                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-stone-200 bg-white hover:bg-[#F2F7EE] hover:border-[#2E7D32]/40 flex items-center justify-center text-stone-700 transition-all shadow-xs active:scale-95"
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-stone-200 bg-white hover:bg-[#EAF0E5] hover:border-[#656B4F]/40 flex items-center justify-center text-stone-700 transition-all shadow-xs active:scale-95"
                   aria-label="Scroll Categories Left"
                 >
                   <ChevronLeft className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
                 </button>
                 <button
                   onClick={() => scrollContainer(categoryScrollRef, 'right')}
-                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-stone-200 bg-white hover:bg-[#F2F7EE] hover:border-[#2E7D32]/40 flex items-center justify-center text-stone-700 transition-all shadow-xs active:scale-95"
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-stone-200 bg-white hover:bg-[#EAF0E5] hover:border-[#656B4F]/40 flex items-center justify-center text-stone-700 transition-all shadow-xs active:scale-95"
                   aria-label="Scroll Categories Right"
                 >
                   <ChevronRight className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
@@ -865,7 +856,7 @@ export default function StorefrontHomePage() {
 
               <Link
                 href="/shop"
-                className="text-xs sm:text-sm font-black text-[#1B4316] hover:text-[#2E7D32] flex items-center gap-1 transition-colors px-3 py-1.5 rounded-full bg-[#EAF5E5] hover:bg-[#DDF0D6] border border-[#2E7D32]/20 shadow-2xs"
+                className="text-xs sm:text-sm font-black text-[#50563D] hover:text-[#3E442F] flex items-center gap-1 transition-colors px-3.5 py-1.5 rounded-full bg-[#EAF0E5] hover:bg-[#DDE8D6] border border-[#656B4F]/20 shadow-2xs whitespace-nowrap"
               >
                 <span>View All</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -876,24 +867,31 @@ export default function StorefrontHomePage() {
           {/* Full Medium Width Container on Laptop / Desktop & Smooth Drag/Touch Swipe on Mobile/Tablet */}
           <div
             ref={categoryScrollRef}
-            onMouseDown={handleCategoryMouseDown}
-            onMouseMove={handleCategoryMouseMove}
-            onMouseUp={handleCategoryMouseUp}
-            onMouseLeave={handleCategoryMouseLeave}
-            className="w-full flex gap-3 sm:gap-4 overflow-x-auto pb-3 pt-1 scrollbar-hide [-ms-overflow-style:none] [scrollbar-width:none] touch-pan-x overscroll-x-contain select-none cursor-grab active:cursor-grabbing snap-x snap-mandatory md:grid md:grid-cols-4 lg:grid-cols-6 md:overflow-visible md:cursor-default md:active:cursor-default"
+            onPointerDown={handleCategoryPointerDown}
+            onPointerMove={handleCategoryPointerMove}
+            onPointerUp={handleCategoryPointerUpOrCancel}
+            onPointerCancel={handleCategoryPointerUpOrCancel}
+            onWheel={handleCategoryWheel}
+            style={{
+              WebkitOverflowScrolling: 'touch',
+              touchAction: 'pan-x',
+              overscrollBehaviorX: 'contain',
+              scrollBehavior: 'smooth',
+            }}
+            className="w-full flex gap-3 sm:gap-4 overflow-x-auto pb-3 pt-1 scrollbar-hide [-ms-overflow-style:none] [scrollbar-width:none] select-none cursor-grab active:cursor-grabbing snap-x snap-mandatory md:grid md:grid-cols-4 lg:grid-cols-6 md:overflow-visible md:cursor-default md:active:cursor-default"
           >
             {/* All Categories Item */}
             <div
               onClick={(e) => handleCategoryItemClick(e, '/shop')}
-              className="group flex w-[132px] sm:w-[160px] md:w-auto min-w-0 bg-[#50563D] hover:bg-[#50563D] text-white rounded-2xl p-3 sm:p-4 flex-col items-center justify-center shrink-0 md:shrink h-28 sm:h-32 md:h-36 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] cursor-pointer snap-start border border-[#234E37]"
+              className="group flex w-[132px] sm:w-[160px] md:w-auto min-w-0 bg-[#50563D] hover:bg-[#3E442F] text-white rounded-2xl p-3 sm:p-4 flex-col items-center justify-center shrink-0 md:shrink h-28 sm:h-32 md:h-36 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] cursor-pointer snap-start border border-[#50563D]"
             >
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/10 flex items-center justify-center mb-1.5 sm:mb-2 group-hover:scale-110 transition-transform">
-                <LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6 text-[#4ADE80]" />
+                <LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6 text-[#EAF0E5]" />
               </div>
               <span className="text-xs sm:text-sm font-black text-white text-center leading-tight">
                 All Products
               </span>
-              <span className="text-[10px] sm:text-[11px] text-[#A7D7B5] mt-0.5 font-semibold">
+              <span className="text-[10px] sm:text-[11px] text-[#EAF0E5]/80 mt-0.5 font-semibold">
                 Explore
               </span>
             </div>
@@ -903,9 +901,9 @@ export default function StorefrontHomePage() {
               <div
                 key={cat.id || idx}
                 onClick={(e) => handleCategoryItemClick(e, cat.link)}
-                className="group flex w-[132px] sm:w-[160px] md:w-auto min-w-0 bg-white hover:bg-[#F9FCF7] rounded-2xl p-2.5 sm:p-3.5 flex-col items-center justify-center shrink-0 md:shrink h-28 sm:h-32 md:h-36 shadow-xs hover:shadow-md border border-stone-200/80 hover:border-[#2E7D32]/40 transition-all hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer snap-start"
+                className="group flex w-[132px] sm:w-[160px] md:w-auto min-w-0 bg-white hover:bg-[#F9FCF7] rounded-2xl p-2.5 sm:p-3.5 flex-col items-center justify-center shrink-0 md:shrink h-28 sm:h-32 md:h-36 shadow-xs hover:shadow-md border border-stone-200/80 hover:border-[#656B4F]/40 transition-all hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer snap-start"
               >
-                <div className="w-13 h-13 sm:w-16 sm:h-16 md:w-18 md:h-18 rounded-full overflow-hidden p-0.5 bg-stone-100 border-2 border-white shadow-xs group-hover:scale-110 group-hover:border-[#2E7D32]/40 transition-all shrink-0">
+                <div className="w-13 h-13 sm:w-16 sm:h-16 md:w-18 md:h-18 rounded-full overflow-hidden p-0.5 bg-stone-100 border-2 border-white shadow-xs group-hover:scale-110 group-hover:border-[#656B4F]/40 transition-all shrink-0">
                   <img
                     src={cat.img}
                     alt={cat.name}
@@ -915,7 +913,7 @@ export default function StorefrontHomePage() {
                     }}
                   />
                 </div>
-                <span className="mt-1.5 sm:mt-2 text-xs sm:text-sm font-extrabold text-[#1E201D] group-hover:text-[#2E7D32] transition-colors text-center leading-tight line-clamp-2 px-1">
+                <span className="mt-1.5 sm:mt-2 text-xs sm:text-sm font-extrabold text-[#1E201D] group-hover:text-[#50563D] transition-colors text-center leading-tight line-clamp-2 px-1">
                   {cat.name}
                 </span>
               </div>
@@ -929,11 +927,11 @@ export default function StorefrontHomePage() {
         <section className="py-6 md:py-10 site-shell">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
 
-            <div className="lg:col-span-7 bg-[#EAF3E7] rounded-[28px] sm:rounded-[36px] p-6 sm:p-8 lg:p-10 flex flex-col sm:flex-row items-center gap-6 lg:gap-8 shadow-xs border border-[#DFEBE0] text-left relative overflow-hidden">
+            <div className="lg:col-span-7 bg-[#EAF0E5] rounded-[28px] sm:rounded-[36px] p-6 sm:p-8 lg:p-10 flex flex-col sm:flex-row items-center gap-6 lg:gap-8 shadow-xs border border-[#D4DBC9] text-left relative overflow-hidden">
               <div className="relative shrink-0 flex items-center justify-center w-44 sm:w-52 md:w-60 aspect-square">
-                <div className="absolute inset-0 bg-[#CDE8C9]/70 rounded-[40%_60%_70%_30%_/_40%_50%_60%_55%] blur-sm scale-110 pointer-events-none" />
-                <div className="absolute -top-3 -left-3 w-24 h-24 bg-[#B8E2B2]/60 rounded-[60%_40%_30%_70%_/_50%_60%_40%_50%] blur-md pointer-events-none" />
-                <div className="absolute -bottom-2 -right-2 w-28 h-28 bg-[#D6EED2]/80 rounded-[50%_50%_60%_40%_/_60%_40%_50%_50%] blur-sm pointer-events-none" />
+                <div className="absolute inset-0 bg-[#D4DBC9]/70 rounded-[40%_60%_70%_30%_/_40%_50%_60%_55%] blur-sm scale-110 pointer-events-none" />
+                <div className="absolute -top-3 -left-3 w-24 h-24 bg-[#EAF0E5]/60 rounded-[60%_40%_30%_70%_/_50%_60%_40%_50%] blur-md pointer-events-none" />
+                <div className="absolute -bottom-2 -right-2 w-28 h-28 bg-[#D4DBC9]/80 rounded-[50%_50%_60%_40%_/_60%_40%_50%_50%] blur-sm pointer-events-none" />
 
                 <div className="relative w-full h-full rounded-full overflow-hidden shadow-xl z-10">
                   <img
@@ -945,8 +943,8 @@ export default function StorefrontHomePage() {
               </div>
 
               <div className="space-y-3 flex-1 z-10">
-                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#DFEDE0] border border-[#2E7D32]/25 text-[#2E7D32] text-[10px] font-extrabold uppercase tracking-wider shadow-2xs">
-                  <Leaf className="w-3 h-3 text-[#2E7D32]" />
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/80 border border-[#656B4F]/25 text-[#50563D] text-[10px] font-extrabold uppercase tracking-wider shadow-2xs">
+                  <Leaf className="w-3 h-3 text-[#656B4F]" />
                   <span>Why Sakthi!</span>
                 </div>
 
@@ -964,7 +962,7 @@ export default function StorefrontHomePage() {
                     className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-white hover:bg-stone-50 text-[#50563D] font-extrabold text-xs shadow-md shadow-black/5 border border-stone-200/80 transition-all hover:scale-105 active:scale-95 group"
                   >
                     <span>Learn More</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-[#2E7D32] group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className="w-3.5 h-3.5 text-[#656B4F] group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </div>
               </div>
@@ -973,8 +971,8 @@ export default function StorefrontHomePage() {
             <div className="lg:col-span-5 bg-white rounded-[28px] sm:rounded-[36px] p-6 sm:p-8 border border-stone-200/80 shadow-xs flex flex-col justify-between gap-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col items-center justify-center text-center p-2">
-                  <div className="w-13 h-13 rounded-[16px_24px_18px_26px] bg-[#E6F4EA] text-[#2E7D32] flex items-center justify-center mb-2.5 shadow-2xs">
-                    <svg className="w-6 h-6 text-[#2E7D32]" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <div className="w-13 h-13 rounded-[16px_24px_18px_26px] bg-[#EAF0E5] text-[#656B4F] flex items-center justify-center mb-2.5 shadow-2xs">
+                    <svg className="w-6 h-6 text-[#656B4F]" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d="M12 2L5 10h4l-3 6h5v4h2v-4h5l-3-6h4L12 2z" />
                     </svg>
                   </div>
@@ -1013,9 +1011,9 @@ export default function StorefrontHomePage() {
         {/* 4. FEATURED PRODUCTS SECTION */}
         {/* ========================================================================= */}
         <section className="py-10 md:py-14 site-shell">
-          <div className="flex items-end justify-between mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-4 sm:mb-6">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-black text-[#1E201D] tracking-tight font-display">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#1E201D] tracking-tight font-display">
                 Featured Products
               </h2>
               <p className="text-xs sm:text-sm text-[#61665D] mt-0.5">
@@ -1023,21 +1021,26 @@ export default function StorefrontHomePage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <Link href="/shop" className="text-xs font-extrabold text-[#50563D] hover:underline flex items-center gap-1">
+            <div className="flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 w-full sm:w-auto shrink-0">
+              <Link
+                href="/shop"
+                className="text-xs sm:text-sm font-black text-[#50563D] hover:text-[#3E442F] flex items-center gap-1 transition-colors px-3.5 py-1.5 rounded-full bg-[#EAF0E5] hover:bg-[#DDE8D6] border border-[#656B4F]/20 shadow-2xs whitespace-nowrap"
+              >
                 <span>View All Products</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   onClick={() => scrollContainer(productScrollRef, 'left')}
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-stone-200 bg-white hover:bg-stone-50 flex items-center justify-center text-stone-700 transition-colors shadow-2xs"
+                  className="w-8 h-8 rounded-full border border-stone-200 bg-white hover:bg-stone-50 flex items-center justify-center text-stone-700 transition-colors shadow-2xs active:scale-95"
+                  aria-label="Previous products"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => scrollContainer(productScrollRef, 'right')}
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-stone-200 bg-white hover:bg-stone-50 flex items-center justify-center text-stone-700 transition-colors shadow-2xs"
+                  className="w-8 h-8 rounded-full border border-stone-200 bg-white hover:bg-stone-50 flex items-center justify-center text-stone-700 transition-colors shadow-2xs active:scale-95"
+                  aria-label="Next products"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -1047,14 +1050,14 @@ export default function StorefrontHomePage() {
 
           <div
             ref={productScrollRef}
-            className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 overflow-x-auto pb-4 sm:pb-0 snap-x snap-mandatory scrollbar-hide"
+            className="flex sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-x-auto pb-4 sm:pb-0 snap-x snap-mandatory scrollbar-none scrollbar-hide no-scrollbar"
           >
             {topProducts.slice(0, 4).map((p, idx) => (
               <div
                 key={p.id || idx}
-                className="bg-white rounded-2xl border border-stone-200/80 shadow-2xs hover:shadow-md transition-all p-3.5 flex flex-col justify-between group relative w-[220px] sm:w-auto shrink-0 snap-start"
+                className="bg-white rounded-2xl border border-stone-200/80 shadow-2xs hover:shadow-md transition-all p-3.5 flex flex-col justify-between group relative w-[220px] xs:w-[240px] sm:w-auto shrink-0 snap-start"
               >
-                <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-stone-50 mb-3 border border-stone-100 flex items-center justify-center">
+                <div className="relative w-full aspect-square max-h-[240px] rounded-xl overflow-hidden bg-stone-50 mb-3 border border-stone-100 flex items-center justify-center">
                   <Link href={`/product/${p.id}`} className="w-full h-full block">
                     {p.image ? (
                       <img
@@ -1064,18 +1067,20 @@ export default function StorefrontHomePage() {
                       />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-[#F4F7F0]">
-                        <Utensils className="w-8 h-8 text-[#2E7D32]/60 mb-2" />
-                        <span className="text-xs font-bold text-[#2E7D32]">{p.name}</span>
+                        <Utensils className="w-8 h-8 text-[#656B4F]/60 mb-2" />
+                        <span className="text-xs font-bold text-[#50563D]">{p.name}</span>
                       </div>
                     )}
                   </Link>
 
                   <button
-                    onClick={(e) => toggleSaveProduct(e, p.id)}
+                    onClick={(e) => toggleSaveProduct(e, p)}
                     className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center text-stone-600 hover:text-rose-600 transition-colors shadow-2xs"
+                    title={isInWishlist(p.id) ? 'Remove from wishlist' : 'Save to wishlist'}
+                    aria-label={isInWishlist(p.id) ? 'Remove from wishlist' : 'Save to wishlist'}
                   >
                     <Heart
-                      className={`w-3.5 h-3.5 ${savedProducts[p.id] ? 'fill-rose-500 text-rose-500' : ''}`}
+                      className={`w-3.5 h-3.5 ${isInWishlist(p.id) ? 'fill-rose-500 text-rose-500' : ''}`}
                     />
                   </button>
                 </div>
@@ -1098,10 +1103,9 @@ export default function StorefrontHomePage() {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1 text-[11px] font-bold text-amber-700">
-                      <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                      <span>4.8 (120)</span>
-                    </div>
+                    <span className="text-[10px] font-bold text-[#50563D] bg-[#EAF0E5] px-2 py-0.5 rounded-full border border-[#656B4F]/20">
+                      {p.weight || '1 KG'}
+                    </span>
                   </div>
                 </div>
 
@@ -1240,9 +1244,9 @@ export default function StorefrontHomePage() {
         {/* 6. TASTY RECIPES */}
         {/* ========================================================================= */}
         <section className="py-10 md:py-14 site-shell">
-          <div className="flex items-end justify-between mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-4 sm:mb-6">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-black text-[#1E201D] tracking-tight font-display">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#1E201D] tracking-tight font-display">
                 Tasty Recipes
               </h2>
               <p className="text-xs sm:text-sm text-[#61665D] mt-0.5">
@@ -1250,21 +1254,26 @@ export default function StorefrontHomePage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <Link href="/shop" className="text-xs font-extrabold text-[#50563D] hover:underline flex items-center gap-1">
+            <div className="flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 w-full sm:w-auto shrink-0">
+              <Link
+                href="/shop"
+                className="text-xs sm:text-sm font-black text-[#50563D] hover:text-[#3E442F] flex items-center gap-1 transition-colors px-3.5 py-1.5 rounded-full bg-[#EAF0E5] hover:bg-[#DDE8D6] border border-[#656B4F]/20 shadow-2xs whitespace-nowrap"
+              >
                 <span>View All Recipes</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   onClick={() => scrollContainer(recipeScrollRef, 'left')}
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-stone-200 bg-white hover:bg-stone-50 flex items-center justify-center text-stone-700 transition-colors shadow-2xs"
+                  className="w-8 h-8 rounded-full border border-stone-200 bg-white hover:bg-stone-50 flex items-center justify-center text-stone-700 transition-colors shadow-2xs active:scale-95"
+                  aria-label="Previous recipes"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => scrollContainer(recipeScrollRef, 'right')}
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-stone-200 bg-white hover:bg-stone-50 flex items-center justify-center text-stone-700 transition-colors shadow-2xs"
+                  className="w-8 h-8 rounded-full border border-stone-200 bg-white hover:bg-stone-50 flex items-center justify-center text-stone-700 transition-colors shadow-2xs active:scale-95"
+                  aria-label="Next recipes"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -1274,14 +1283,14 @@ export default function StorefrontHomePage() {
 
           <div
             ref={recipeScrollRef}
-            className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 overflow-x-auto pb-4 sm:pb-0 snap-x snap-mandatory scrollbar-hide"
+            className="flex sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-x-auto pb-4 sm:pb-0 snap-x snap-mandatory scrollbar-none scrollbar-hide no-scrollbar"
           >
             {RECIPES.map((recipe, idx) => (
               <div
                 key={idx}
-                className="bg-white rounded-2xl border border-stone-200/80 shadow-2xs hover:shadow-md transition-all p-3 flex flex-col group cursor-pointer w-[220px] sm:w-auto shrink-0 snap-start"
+                className="bg-white rounded-2xl border border-stone-200/80 shadow-2xs hover:shadow-md transition-all p-3 flex flex-col group cursor-pointer w-[220px] xs:w-[240px] sm:w-auto shrink-0 snap-start"
               >
-                <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-stone-50 mb-2.5">
+                <div className="relative w-full aspect-[4/3] max-h-[190px] rounded-xl overflow-hidden bg-stone-50 mb-2.5">
                   <img
                     src={recipe.image}
                     alt={recipe.title}
@@ -1298,12 +1307,12 @@ export default function StorefrontHomePage() {
 
                 <div className="flex items-center gap-3 text-xs text-[#61665D] font-semibold">
                   <span className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-[#2E7D32]" />
+                    <Clock className="w-3.5 h-3.5 text-[#656B4F]" />
                     {recipe.time}
                   </span>
                   <span>•</span>
                   <span className="flex items-center gap-1">
-                    <ChefHat className="w-3.5 h-3.5 text-[#2E7D32]" />
+                    <ChefHat className="w-3.5 h-3.5 text-[#656B4F]" />
                     {recipe.difficulty}
                   </span>
                 </div>
@@ -1341,7 +1350,7 @@ export default function StorefrontHomePage() {
 
                 <div className="flex items-center justify-between pt-4 mt-3 border-t border-stone-100">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#E0ECE0] text-[#2E7D32] font-black text-xs flex items-center justify-center border border-[#2E7D32]/30 overflow-hidden shadow-2xs shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-[#EAF0E5] text-[#656B4F] font-black text-xs flex items-center justify-center border border-[#656B4F]/30 overflow-hidden shadow-2xs shrink-0">
                       {displayReviews[activeReviewIndex]?.authorName?.charAt(0) || 'P'}
                     </div>
                     <div>
@@ -1391,18 +1400,21 @@ export default function StorefrontHomePage() {
             </div>
 
             <div className="lg:col-span-7 flex flex-col justify-between space-y-4">
-              <div className="flex items-end justify-between">
-                <div className="text-left space-y-1">
-                  <h2 className="text-2xl sm:text-3xl font-extrabold text-[#50563D] tracking-tight font-display">
+              <div className="flex items-start sm:items-end justify-between gap-3">
+                <div className="text-left space-y-1 min-w-0">
+                  <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#50563D] tracking-tight font-display">
                     Frequently Asked Questions
                   </h2>
                   <p className="text-xs sm:text-sm text-[#4E5E4C] font-medium">
                     Find answers to common questions.
                   </p>
                 </div>
-                <Link href="/shop" className="text-xs font-extrabold text-[#50563D] hover:text-[#2E7D32] flex items-center gap-1 transition-colors pb-1">
-                  <span>View All</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                <Link
+                  href="/shop"
+                  className="text-xs sm:text-sm font-extrabold text-[#50563D] hover:text-[#3E442F] inline-flex items-center gap-1.5 transition-colors shrink-0 whitespace-nowrap pb-1 mt-1 sm:mt-0"
+                >
+                  <span className="whitespace-nowrap">View All</span>
+                  <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                 </Link>
               </div>
 
@@ -1420,9 +1432,9 @@ export default function StorefrontHomePage() {
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-5 h-5 rounded-full bg-[#50563D] text-white flex items-center justify-center shrink-0">
-                            <Check className="w-3 h-3 text-[#4ADE80]" />
+                            <Check className="w-3 h-3 text-[#EAF0E5]" />
                           </div>
-                          <span className="font-extrabold text-[#50563D] group-hover:text-[#2E7D32] transition-colors">
+                          <span className="font-extrabold text-[#50563D] group-hover:text-[#3E442F] transition-colors">
                             {faq.q}
                           </span>
                         </div>

@@ -24,11 +24,18 @@ import {
   Leaf,
   Truck,
   Ban,
+  UserRound,
   Sprout,
-  UserRound
+  Beef,
+  Drumstick,
+  Fish,
+  Cookie,
+  Layers,
+  UtensilsCrossed
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
+import { useWishlist } from '@/context/WishlistContext';
 import SearchOverlay from './SearchOverlay';
 import { fetchApi } from '@/lib/apiConfig';
 import { CategoryType } from '@/lib/types';
@@ -45,11 +52,49 @@ export default function Navbar({
   const router = useRouter();
   const { totalItems } = useCart();
   const { user, logout } = useAuth();
+  const { wishlistCount } = useWishlist();
 
   const [isFooterVisible, setIsFooterVisible] = useState(false);
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [categories, setCategories] = useState<CategoryType[]>([]);
+
+  // Mobile quick chips slider drag & wheel state
+  const mobileChipsRef = React.useRef<HTMLDivElement>(null);
+  const [isChipsDragging, setIsChipsDragging] = useState(false);
+  const [chipsStartX, setChipsStartX] = useState(0);
+  const [chipsScrollLeft, setChipsScrollLeft] = useState(0);
+  const [chipsMoved, setChipsMoved] = useState(false);
+
+  const handleChipsPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'touch') return;
+    if (!mobileChipsRef.current) return;
+    setIsChipsDragging(true);
+    setChipsMoved(false);
+    setChipsStartX(e.clientX);
+    setChipsScrollLeft(mobileChipsRef.current.scrollLeft);
+  };
+
+  const handleChipsPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'touch') return;
+    if (!isChipsDragging || !mobileChipsRef.current) return;
+    const diff = e.clientX - chipsStartX;
+    if (Math.abs(diff) > 4) {
+      setChipsMoved(true);
+      mobileChipsRef.current.scrollLeft = chipsScrollLeft - diff;
+    }
+  };
+
+  const handleChipsPointerUpOrCancel = () => {
+    setIsChipsDragging(false);
+  };
+
+  const handleChipsWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (!mobileChipsRef.current) return;
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      mobileChipsRef.current.scrollLeft += e.deltaY;
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -99,7 +144,7 @@ export default function Navbar({
       <header className="relative z-40 bg-white border-b border-gray-200 shadow-xs">
 
         {/* TOP SLIDING / MOVING ANNOUNCEMENT STRIP */}
-        <div className="bg-[#656B4F] text-[#E8F0E5] overflow-hidden py-2 text-xs font-semibold border-b border-[#2d523f]">
+        <div className="bg-[#656B4F] text-[#E8F0E5] overflow-hidden py-2 text-xs font-semibold border-b border-[#50563D]">
           <div className="flex w-max whitespace-nowrap animate-marquee motion-reduce:animate-none">
             {/* Repeat list twice for seamless infinite loop */}
             {[...announcements, ...announcements].map(({ text, Icon }, idx) => (
@@ -141,8 +186,8 @@ export default function Navbar({
               </Link>
             </div>
 
-            {/* Search Bar */}
-            <div className="hidden md:flex flex-1 min-w-[120px] max-w-sm lg:max-w-lg shrink mx-1 lg:mx-2">
+            {/* Search Bar - Desktop */}
+            <div className="hidden lg:flex flex-1 max-w-lg xl:max-w-xl mx-2 lg:mx-4">
               <SearchOverlay />
             </div>
 
@@ -223,14 +268,16 @@ export default function Navbar({
             {/* Right Header Controls */}
             <div className="flex items-center justify-end gap-2 shrink-0">
               <Link
-                href="/shop"
-                className="relative p-1.5 sm:p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all hidden sm:flex items-center"
+                href="/wishlist"
+                className="relative p-1.5 sm:p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all flex items-center"
                 title="Wishlist"
               >
-                <Heart className="w-5 h-5" />
-                <span className="absolute top-1 right-1 bg-orange-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                  0
-                </span>
+                <Heart className={`w-5 h-5 ${wishlistCount > 0 ? 'text-rose-500 fill-rose-500' : ''}`} />
+                {wishlistCount > 0 && (
+                  <span className="absolute top-1 right-1 bg-rose-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-in zoom-in-50 shadow-xs">
+                    {wishlistCount > 99 ? '99+' : wishlistCount}
+                  </span>
+                )}
               </Link>
 
               {user ? (
@@ -285,44 +332,108 @@ export default function Navbar({
             </div>
           </div>
 
-          {/* Mobile Search Overlay */}
-          <div className="md:hidden pb-3">
+          {/* Mobile & Tablet Search Bar with Quick Chips */}
+          <div className="lg:hidden pb-3 pt-1 space-y-2">
             <SearchOverlay />
-          </div>
-          <div className="hidden md:flex xl:hidden pb-2">
-            <SearchOverlay />
+
+            {/* Quick Category Chips Bar (Mobile / Tablet) with Vector SVG Icons */}
+            <div className="w-full overflow-hidden">
+              <div
+                ref={mobileChipsRef}
+                onPointerDown={handleChipsPointerDown}
+                onPointerMove={handleChipsPointerMove}
+                onPointerUp={handleChipsPointerUpOrCancel}
+                onPointerCancel={handleChipsPointerUpOrCancel}
+                onWheel={handleChipsWheel}
+                style={{
+                  WebkitOverflowScrolling: 'touch',
+                  touchAction: 'pan-x',
+                  overscrollBehaviorX: 'contain',
+                  scrollBehavior: 'smooth',
+                }}
+                className={`flex items-center gap-2 overflow-x-auto py-1 scrollbar-none scrollbar-hide no-scrollbar w-full min-w-0 select-none ${
+                  isChipsDragging ? 'cursor-grabbing' : 'cursor-grab'
+                }`}
+              >
+                {(categories.length > 0
+                  ? categories
+                  : [
+                      { id: '1', name: 'Mutton Alternatives' },
+                      { id: '2', name: 'Poultry Alternatives' },
+                      { id: '3', name: 'Seafood Alternatives' },
+                      { id: '4', name: 'Snacks & Starters' },
+                      { id: '5', name: 'Retail Pack' },
+                    ]
+                ).map((cat) => {
+                  const getCategoryIconComponent = (name: string) => {
+                    const n = (name || '').toLowerCase();
+                    if (n.includes('mutton') || n.includes('meat')) return <Beef className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
+                    if (n.includes('chicken') || n.includes('poultry')) return <Drumstick className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
+                    if (n.includes('fish') || n.includes('sea')) return <Fish className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
+                    if (n.includes('starter') || n.includes('snack')) return <Cookie className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
+                    if (n.includes('retail') || n.includes('pack')) return <Package className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
+                    if (n.includes('combo')) return <Layers className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
+                    return <UtensilsCrossed className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
+                  };
+                  return (
+                    <Link
+                      key={cat.id || cat.name}
+                      href={`/shop?category=${encodeURIComponent(cat.name)}`}
+                      onClick={(e) => {
+                        if (chipsMoved) {
+                          e.preventDefault();
+                        }
+                      }}
+                      className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FAFAF5] hover:bg-[#EAF0E5] border border-stone-200/80 text-[11px] font-bold text-[#4F534C] hover:text-[#50563D] transition-colors shadow-2xs min-w-max whitespace-nowrap"
+                    >
+                      {getCategoryIconComponent(cat.name)}
+                      <span>{cat.name.replace(' Alternatives', '').replace(' Retail Pack', ' Packs')}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
 
         {/* BOTTOM QUICK INFO STRIP */}
-        <div className="bg-[#F4F8F1] border-t border-gray-200/80 px-3 sm:px-4 py-2 text-xs text-[#2D4030]">
-          <div className="max-w-[1440px] mx-auto flex flex-col items-center justify-center gap-y-2 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-4 lg:justify-between lg:gap-x-5">
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 sm:gap-x-5">
-              <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold text-[#656B4F] whitespace-nowrap">
-                <span className="w-3.5 h-3.5 rounded-xs border border-green-700 flex items-center justify-center p-0.5">
-                  <span className="w-1.5 h-1.5 bg-green-700 rounded-full block"></span>
+        <div className="bg-[#F4F8F1] border-t border-gray-200/80 px-3 sm:px-4 py-1.5 text-xs text-[#2D4030]">
+          <div className="max-w-[1440px] mx-auto flex items-center justify-around sm:justify-between gap-2 sm:gap-6 text-[11px] sm:text-xs w-full min-w-0">
+            <div className="flex items-center justify-around sm:justify-start gap-3 sm:gap-6 w-full sm:w-auto min-w-0">
+              <span className="inline-flex items-center gap-1.5 font-bold text-[#656B4F] shrink-0">
+                <span className="w-3.5 h-3.5 rounded-xs border border-[#656B4F] flex items-center justify-center p-0.5 shrink-0">
+                  <span className="w-1.5 h-1.5 bg-[#656B4F] rounded-full block"></span>
                 </span>
-                100% Pure Veg
+                <span>100% Pure Veg</span>
               </span>
 
-              <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-medium text-gray-700 whitespace-nowrap">
-                <Leaf className="w-3.5 h-3.5 text-green-600" /> Plant-Based
-              </span>
+              <span className="text-stone-300 select-none text-[9px]">•</span>
 
-              <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-medium text-gray-700 whitespace-nowrap">
-                <Ban className="w-3.5 h-3.5 text-green-600" /> No Hormones / Antibiotics
-              </span>
+              <a
+                href="#contact"
+                className="inline-flex items-center gap-1.5 font-medium text-gray-700 hover:text-[#656B4F] transition-colors shrink-0"
+              >
+                <HelpCircle className="w-3.5 h-3.5 text-[#656B4F] shrink-0" />
+                <span>Help</span>
+              </a>
+
+              <span className="text-stone-300 select-none text-[9px]">•</span>
+
+              <a
+                href="tel:+919876543210"
+                className="inline-flex items-center gap-1.5 text-[#656B4F] font-bold hover:underline shrink-0"
+                title="Contact Us"
+              >
+                <PhoneCall className="w-3.5 h-3.5 text-[#656B4F] shrink-0" />
+                <span>Contact</span>
+              </a>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[10px] sm:text-[11px] font-semibold">
-              <a href="#contact" className="inline-flex items-center gap-1 text-gray-700 hover:text-[#656B4F] transition-colors">
-                <HelpCircle className="w-3.5 h-3.5 text-green-700" /> Help Center
-              </a>
-              <a href="tel:+919876543210" className="inline-flex items-center gap-1 text-[#656B4F] font-bold hover:underline">
-                <PhoneCall className="w-3.5 h-3.5 text-green-700" /> +91 98765 43210
+            <div className="hidden sm:flex items-center gap-4 font-semibold shrink-0">
+              <a href="tel:+919876543210" className="inline-flex items-center gap-1.5 text-[#656B4F] font-bold hover:underline whitespace-nowrap">
+                <PhoneCall className="w-3.5 h-3.5 text-[#656B4F] shrink-0" /> +91 98765 43210
               </a>
             </div>
-
           </div>
         </div>
 
@@ -346,6 +457,15 @@ export default function Navbar({
                 <nav className="space-y-1">
                   <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"><Home className="h-4 w-4" />Home</Link>
                   <Link href="/shop" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"><Store className="h-4 w-4" />Shop all products<ArrowRight className="ml-auto h-4 w-4" /></Link>
+                  <Link href="/wishlist" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]">
+                    <Heart className={`h-4 w-4 ${wishlistCount > 0 ? 'text-rose-500 fill-rose-500' : 'text-[#26362a]'}`} />
+                    <span>My Wishlist</span>
+                    {wishlistCount > 0 && (
+                      <span className="ml-auto rounded-full bg-rose-500 px-2 py-0.5 text-xs font-bold text-white">
+                        {wishlistCount}
+                      </span>
+                    )}
+                  </Link>
                   <Link href={user ? '/orders' : '/login'} onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"><UserRound className="h-4 w-4" />{user ? 'My account & orders' : 'Sign in / Create account'}</Link>
                   <a href="#about" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"><Leaf className="h-4 w-4" />About Sakthi</a>
                   <a href="#contact" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"><HelpCircle className="h-4 w-4" />Help & contact</a>
@@ -379,6 +499,15 @@ export default function Navbar({
         <Link href="/shop" className="flex flex-col items-center gap-1 text-gray-600 hover:text-[#656B4F]">
           <Store className="w-5 h-5" />
           <span className="text-[10px] font-semibold">Shop</span>
+        </Link>
+        <Link href="/wishlist" className="flex flex-col items-center gap-1 text-gray-600 hover:text-rose-600 relative">
+          <Heart className={`w-5 h-5 ${wishlistCount > 0 ? 'text-rose-500 fill-rose-500' : ''}`} />
+          {wishlistCount > 0 && (
+            <span className="absolute -top-1 right-2 bg-rose-500 text-white text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">
+              {wishlistCount}
+            </span>
+          )}
+          <span className="text-[10px] font-semibold">Wishlist</span>
         </Link>
         <a href="#contact" className="flex flex-col items-center gap-1 text-gray-600 hover:text-[#656B4F]">
           <HelpCircle className="w-5 h-5" />

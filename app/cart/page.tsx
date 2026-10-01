@@ -2,27 +2,38 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Trash2, Plus, Minus, ArrowRight, ShoppingCart, ArrowLeft, UserCheck, LogIn } from 'lucide-react';
+import { Trash2, Plus, Minus, ArrowRight, ShoppingCart, ArrowLeft, UserCheck, LogIn, PackageCheck } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import OptimizedImage from '@/components/OptimizedImage';
+import FoodLoadingScreen from '@/components/FoodLoadingScreen';
 
 export default function CartPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { cart, removeFromCart, updateQuantity, totalPrice } = useCart();
+  const { cart, removeFromCart, updateQuantity, totalPrice, totalItems, isCartLoading } = useCart();
 
   const subtotal = totalPrice;
   const deliveryFee = subtotal >= 2999 || subtotal === 0 ? 0 : 40;
   const convenienceFee = Number((subtotal * 0.025).toFixed(2));
   const grandTotal = Number((subtotal + deliveryFee + convenienceFee).toFixed(2));
 
+  if (isCartLoading) {
+    return (
+      <FoodLoadingScreen
+        message="Loading your cart..."
+        subMessage="Reviewing your plant-based selections"
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F3FBEE] text-[#1E201D] flex flex-col font-sans">
       <Navbar />
 
-      <main className="mx-auto w-full max-w-[1180px] px-3 py-5 sm:px-4 sm:py-8 md:py-10 flex-1">
+      <main className="mx-auto w-full max-w-[1320px] px-3 py-5 sm:px-5 sm:py-8 md:py-10 flex-1">
         {/* Breadcrumb / Back button */}
         <button 
           onClick={() => router.push('/shop')}
@@ -31,14 +42,14 @@ export default function CartPage() {
           <ArrowLeft className="w-4 h-4" /> Continue Shopping
         </button>
 
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#4F534C]/15 flex flex-col md:flex-row">
+        <div className="bg-white rounded-3xl overflow-hidden shadow-[0_18px_55px_rgba(39,47,29,0.08)] border border-[#4F534C]/15 flex flex-col md:flex-row">
           {/* Cart Items List */}
           <div className="w-full md:w-2/3 p-5 sm:p-6 md:p-8 border-b md:border-b-0 md:border-r border-[#4F534C]/15 flex flex-col">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-[#656B4F] text-white flex items-center justify-center shadow-md">
                 <ShoppingCart className="w-5 h-5" />
               </div>
-              <h1 className="text-xl sm:text-2xl font-black text-[#1A1E16] font-poppins">Your Cart ({cart.length})</h1>
+              <div><h1 className="text-xl sm:text-2xl font-black text-[#1A1E16] font-poppins">Your Cart</h1><p className="mt-0.5 text-xs font-semibold text-[#68705C]">{totalItems} {totalItems === 1 ? 'item' : 'items'} ready for you</p></div>
             </div>
 
             <div className="flex-1 space-y-4">
@@ -59,11 +70,15 @@ export default function CartPage() {
                   </button>
                 </div>
               ) : (
-                cart.map((item) => (
+                cart.map((item, index) => (
                   <div
                     key={`${item.productId}-${item.weight}`}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 md:p-5 rounded-2xl bg-[#F8FAF4] border border-[#4F534C]/15 shadow-sm hover:shadow-md transition-shadow gap-4"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-4 md:p-5 rounded-2xl bg-[#F8FAF4] border border-[#4F534C]/15 shadow-sm hover:shadow-md hover:border-[#656B4F]/30 transition-all gap-4"
                   >
+                    <div className="flex items-center gap-4 min-w-0 flex-1">
+                    <div className="h-24 w-24 sm:h-28 sm:w-28 shrink-0 overflow-hidden rounded-xl border border-[#4F534C]/10 bg-white shadow-sm">
+                      <OptimizedImage src={item.image || ''} alt={item.name} width={240} priority={index < 2} className="h-full w-full object-contain p-1.5" />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="text-base font-extrabold text-[#1A1E16] truncate">{item.name}</h4>
                       <span className="inline-block text-xs font-bold text-[#656B4F] bg-[#EAF0E5] px-2.5 py-1 rounded-md mt-1.5 uppercase tracking-wide">
@@ -73,6 +88,7 @@ export default function CartPage() {
                         ₹{item.price} × {item.quantity} ={' '}
                         <span className="text-[#50563D] font-black text-base">₹{item.price * item.quantity}</span>
                       </div>
+                    </div>
                     </div>
 
                     {/* Quantity Controls */}
@@ -110,12 +126,12 @@ export default function CartPage() {
           </div>
 
           {/* Order Summary */}
-          <div className="w-full md:w-1/3 p-6 md:p-8 bg-[#EAF0E5] flex flex-col border-t md:border-t-0 md:border-l border-[#4F534C]/15">
+          <div className="w-full md:w-[36%] p-5 sm:p-6 md:p-8 bg-[#EAF0E5] flex flex-col border-t md:border-t-0 md:border-l border-[#4F534C]/15">
             <h2 className="text-lg font-black text-[#1A1E16] mb-6 font-poppins border-b border-[#4F534C]/15 pb-2">Order Summary</h2>
             
             <div className="space-y-3.5 text-xs sm:text-sm text-[#3E4536] font-bold flex-1">
               <div className="flex justify-between items-center">
-                <span>Items Subtotal ({cart.length} items)</span>
+                <span>Items Subtotal ({totalItems} items)</span>
                 <span className="font-black text-[#1A1E16]">₹{subtotal}</span>
               </div>
 
@@ -131,13 +147,19 @@ export default function CartPage() {
                   <span>Estimated Delivery</span>
                   <span className="font-black text-[#1A1E16]">
                     {deliveryFee === 0 ? (
-                      <span className="text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded text-xs font-black">FREE</span>
+                      <span className="text-[#50563D] bg-[#EAF0E5] border border-[#656B4F]/20 px-2 py-0.5 rounded text-xs font-black">FREE</span>
                     ) : (
-                      <span>₹{deliveryFee} <span className="text-[10px] text-[#4F5547] font-normal">(Base Rate)</span></span>
+                      <span>From {String.fromCharCode(8377)}{deliveryFee}</span>
                     )}
                   </span>
                 </div>
               
+                {deliveryFee > 0 && cart.length > 0 && (
+                  <p className="rounded-lg bg-white/70 px-3 py-2 text-[11px] leading-relaxed text-[#59604F]">
+                    Delivery varies by destination. Coimbatore local delivery is {'\u20B9'}10/km (minimum {'\u20B9'}40); other listed cities have fixed rates. Your exact charge is calculated after you choose a destination at checkout.
+                  </p>
+                )}
+
               {deliveryFee > 0 && cart.length > 0 && (
                 <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 font-bold mt-2">
                   Add ₹{2999 - subtotal} more to your order for <span className="font-black">FREE Delivery!</span>
@@ -147,15 +169,15 @@ export default function CartPage() {
 
             <div className="pt-5 mt-6 border-t border-[#4F534C]/20 flex justify-between items-center mb-4">
               <div>
-                <span className="text-sm font-black text-[#1A1E16] block">Grand Total</span>
-                <span className="text-[10px] text-[#4F5547] font-semibold">Incl. all taxes & fees</span>
+                <span className="text-sm font-black text-[#1A1E16] block">Estimated Total</span>
+                <span className="text-[10px] text-[#4F5547] font-semibold">Delivery is finalized at checkout</span>
               </div>
               <span className="text-2xl font-black text-[#50563D]">₹{grandTotal}</span>
             </div>
 
             {user ? (
               <div className="mb-4 p-2.5 bg-white/80 rounded-xl border border-[#4F534C]/15 flex items-center gap-2 text-xs text-[#50563D] font-bold">
-                <UserCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                <UserCheck className="w-4 h-4 text-[#656B4F] shrink-0" />
                 <span className="truncate">Checking out as: <strong className="text-[#1A1E16]">{user.name}</strong></span>
               </div>
             ) : (

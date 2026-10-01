@@ -3,6 +3,7 @@
 import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import FoodLoadingScreen from '@/components/FoodLoadingScreen';
 import { fetchApi } from '@/lib/apiConfig';
 import Link from 'next/link';
 import { ArrowRight, Lock, Mail, User as UserIcon, Phone, MapPin, AlertCircle, Eye, EyeOff, ShoppingBag } from 'lucide-react';
@@ -74,8 +75,8 @@ function RegisterForm() {
           </div>
 
           {targetRedirect === '/checkout' && (
-            <div className="mb-6 p-3.5 bg-emerald-50 rounded-2xl flex items-center gap-3 border border-emerald-200 text-emerald-900 text-xs font-bold">
-              <ShoppingBag className="w-5 h-5 text-emerald-700 shrink-0" />
+            <div className="mb-6 p-3.5 bg-[#EAF0E5] rounded-2xl flex items-center gap-3 border border-[#656B4F]/30 text-[#2D3823] text-xs font-bold">
+              <ShoppingBag className="w-5 h-5 text-[#656B4F] shrink-0" />
               <span>Create an account to complete checkout and track your delivery live.</span>
             </div>
           )}
@@ -231,7 +232,14 @@ function RegisterForm() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#E8EEE0] flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#656B4F] border-t-transparent rounded-full animate-spin"></div></div>}>
+    <Suspense
+      fallback={
+        <FoodLoadingScreen
+          message="Loading Create Account..."
+          subMessage="Preparing 100% pure vegetarian & plant-based essentials"
+        />
+      }
+    >
       <RegisterForm />
     </Suspense>
   );

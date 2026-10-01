@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const rateLimit = require('express-rate-limit');
 const crypto = require('crypto');
@@ -59,6 +60,17 @@ app.use('/api', limiter);
 app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false }));
 app.use('/api/payment', rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false }));
 
+app.get('/api/health', (req, res) => {
+  const connected = mongoose.connection.readyState === 1;
+  res.status(connected ? 200 : 503).json({ success: connected, status: connected ? 'ready' : 'starting', database: connected ? 'connected' : 'connecting' });
+});
+
+app.use('/api', (req, res, next) => {
+  if (req.path === '/health' || mongoose.connection.readyState === 1) return next();
+  res.set('Retry-After', '3');
+  return res.status(503).json({ success: false, error: 'Backend is starting; database is not ready yet.' });
+});
+
 // Routes
 app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
@@ -69,6 +81,7 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
 app.use('/api/categories', require('./routes/categoryRoutes'));
 app.use('/api/reviews', require('./routes/reviewRoutes'));
+app.use('/api/wishlist', require('./routes/wishlistRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 
 // Serve Uploads folder as static
@@ -94,21 +107,43 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-async function startServer() {
-  await connectDB();
-  const runNotificationRetry = () => {
-    retryDueNotifications().catch((error) => console.error(JSON.stringify({ type: 'notification_retry_worker_failure', error: error.message })));
-  };
-  runNotificationRetry();
-  const retryTimer = setInterval(runNotificationRetry, 30 * 1000);
-  retryTimer.unref();
-  app.listen(PORT, () => {
+function startServer() {
+  const server = app.listen(PORT, () => {
     console.log(`Sakthi Frozen Foods Backend API running on port ${PORT}`);
   });
+
+  let retryTimer;
+  let retrying = false;
+  const connectWithRetry = async () => {
+    if (retrying || mongoose.connection.readyState === 1) return;
+    retrying = true;
+    try {
+      await connectDB();
+      console.log('Backend database is ready.');
+      if (!retryTimer) {
+        const runNotificationRetry = () => {
+          retryDueNotifications().catch((error) => console.error(JSON.stringify({ type: 'notification_retry_worker_failure', error: error.message })));
+        };
+        runNotificationRetry();
+        retryTimer = setInterval(runNotificationRetry, 30 * 1000);
+        retryTimer.unref();
+      }
+    } catch (error) {
+      console.error(`Backend database is not ready; retrying shortly: ${error.message}`);
+    } finally {
+      retrying = false;
+      if (mongoose.connection.readyState !== 1) {
+        const retry = setTimeout(connectWithRetry, 3000);
+        retry.unref();
+      }
+    }
+  };
+  void connectWithRetry();
+  return server;
 }
 
 if (require.main === module) {
-  startServer().catch(() => process.exit(1));
+  startServer();
 }
 
 module.exports = { app, startServer };

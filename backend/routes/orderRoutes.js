@@ -1,5 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const Razorpay = require('razorpay');
 const mongoose = require('mongoose');
 const Order = require('../models/Order');
@@ -8,6 +9,8 @@ const { protect, optionalProtect, admin } = require('../middleware/authMiddlewar
 const rateLimit = require('express-rate-limit');
 const { queueOrderNotifications } = require('../services/notificationService');
 const { getDeliveryCalculation } = require('../utils/deliveryRates');
+const { buildInvoiceHtml } = require('../services/emailService');
+const { generateInvoicePdf } = require('../services/pdfService');
 
 const router = express.Router();
 const createOrderLimiter = rateLimit({ windowMs: 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
@@ -39,6 +42,7 @@ function publicOrder(order) {
     landmark: order.landmark || null,
     pincode: order.pincode || null,
     city: order.city || null,
+    district: order.district || null,
     state: order.state || null,
     coordinates: order.coordinates || null,
     subtotal: order.subtotal ?? null,
@@ -263,9 +267,12 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
     const calc = getDeliveryCalculation({
       subtotal,
       coordinates: body.coordinates ? { lat: Number(body.coordinates.lat), lng: Number(body.coordinates.lng) } : undefined,
-      selectedZoneId: body.deliveryZoneId || body.zoneId,
-      cityOrDistrictText: [body.city, body.state, body.shippingAddress].filter(Boolean).join(', '),
+      cityOrDistrictText: body.city,
+      state: body.state,
     });
+    if (!calc.isServiceable) {
+      return res.status(400).json({ success: false, error: 'We could not find a delivery rate for this address. Search a Coimbatore address within 25 km or choose one of the listed delivery cities.' });
+    }
     const deliveryFee = calc.fee;
     const convenienceFee = Math.round(subtotal * 0.025 * 100) / 100;
     const totalAmount = Math.round((subtotal + deliveryFee + convenienceFee) * 100) / 100;
@@ -280,6 +287,7 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
       landmark: body.landmark ? String(body.landmark).trim() : undefined,
       pincode: body.pincode ? String(body.pincode).trim() : undefined,
       city: body.city ? String(body.city).trim() : undefined,
+      district: body.district ? String(body.district).trim() : undefined,
       state: body.state ? String(body.state).trim() : undefined,
       coordinates: body.coordinates ? { lat: Number(body.coordinates.lat), lng: Number(body.coordinates.lng) } : undefined,
       deliveryZoneId: calc.zoneId,
@@ -503,6 +511,54 @@ router.post('/:id/refund', protect, admin, async (req, res, next) => {
       await Order.findByIdAndUpdate(order._id, { refundStatus: 'Failed' });
       throw error;
     }
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @desc    Get printable / downloadable PDF invoice for an order
+// @route   GET /api/orders/:id/invoice
+// @access  Private (order owner, admin, or signed email link)
+router.get('/:id/invoice', optionalProtect, async (req, res, next) => {
+  try {
+    const order = await Order.findById(req.params.id).lean();
+    if (!order) return res.status(404).json({ success: false, error: 'Order not found' });
+
+    let isAuthorized = false;
+
+    // 1. Authenticated user check
+    if (req.user && (req.user.role === 'Admin' || order.customerEmail === req.user.email)) {
+      isAuthorized = true;
+    }
+
+    // 2. Token in query parameter (from email links)
+    const token = req.query.token;
+    if (!isAuthorized && token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'sakthi_jwt_secret');
+        if (
+          decoded.role === 'Admin' ||
+          decoded.email === order.customerEmail ||
+          decoded.orderId === order._id.toString() ||
+          decoded.id === order.user?.toString()
+        ) {
+          isAuthorized = true;
+        }
+      } catch (err) {
+        // invalid token fallthrough
+      }
+    }
+
+    if (!isAuthorized) {
+      return res.status(403).json({ success: false, error: 'Not authorized to view this invoice. Please sign in or use the secure invoice link from your confirmation email.' });
+    }
+
+    // Return real, clean, high-contrast PDF document stream
+    const pdfBuffer = await generateInvoicePdf(order);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="Invoice-${order.orderNumber}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    return res.end(pdfBuffer);
   } catch (error) {
     next(error);
   }

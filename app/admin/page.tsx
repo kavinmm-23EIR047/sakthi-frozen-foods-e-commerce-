@@ -184,7 +184,7 @@ export default function AdminPortalPage() {
         if (previousOrderCountRef.current !== null && ordData.data.length > previousOrderCountRef.current) {
           const diff = ordData.data.length - previousOrderCountRef.current;
           const latest = ordData.data[0];
-          setNewOrderAlert(`🎉 ${diff} New Order Received! (#${latest?.orderNumber || ''} by ${latest?.customerName || ''})`);
+          setNewOrderAlert(`${diff} New Order Received! (#${latest?.orderNumber || ''} by ${latest?.customerName || ''})`);
           if (soundEnabled) playNewOrderSound();
         }
         previousOrderCountRef.current = ordData.data.length;
@@ -675,7 +675,7 @@ export default function AdminPortalPage() {
       {/* Floating Clipboard Copy Toast */}
       {copiedText && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#1E201D] text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-bold border border-white/20 animate-bounce">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <CheckCircle2 className="w-4 h-4 text-[#A9B896] shrink-0" />
           <span>Copied {copiedText} to clipboard!</span>
         </div>
       )}
@@ -700,7 +700,7 @@ export default function AdminPortalPage() {
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
             {/* Live Polling Interval Selector */}
             <div className="hidden sm:flex items-center gap-1 bg-white/10 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border border-white/10">
-              <span className={`w-2 h-2 rounded-full ${refreshInterval > 0 ? 'bg-emerald-400 animate-pulse' : 'bg-gray-400'}`} />
+              <span className={`w-2 h-2 rounded-full ${refreshInterval > 0 ? 'bg-[#8E9D64] animate-pulse' : 'bg-gray-400'}`} />
               <span className="text-gray-300 mr-1">Auto-Sync:</span>
               <select
                 value={refreshInterval}
@@ -722,7 +722,7 @@ export default function AdminPortalPage() {
                 if (next) playNewOrderSound();
               }}
               className={`p-2 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 ${
-                soundEnabled ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/30' : 'bg-white/10 text-gray-400 hover:bg-white/20'
+                soundEnabled ? 'bg-[#656B4F]/40 text-[#CDDBC6] border border-[#656B4F]/50' : 'bg-white/10 text-gray-400 hover:bg-white/20'
               }`}
               title={soundEnabled ? 'Order Sound Alert: ON' : 'Order Sound Alert: MUTED'}
             >
@@ -737,7 +737,7 @@ export default function AdminPortalPage() {
               className="flex min-h-9 items-center justify-center gap-1.5 rounded-xl bg-white/10 px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-white/20 disabled:opacity-50"
               title="Refresh Data Now"
             >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-emerald-400' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#A9B896]' : ''}`} />
               <span className="hidden sm:inline">Sync</span>
             </button>
 
@@ -814,7 +814,7 @@ export default function AdminPortalPage() {
           </div>
 
           <div className="flex items-center gap-3 rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm sm:p-5">
-            <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-xl bg-[#656B4F] text-white flex items-center justify-center shrink-0">
               <Package className="w-6 h-6" />
             </div>
             <div>
@@ -1033,7 +1033,7 @@ export default function AdminPortalPage() {
                           <span
                             className={`font-bold px-2 py-0.5 rounded text-[11px] ${
                               p.stock > 20
-                                ? 'bg-green-100 text-green-800'
+                                ? 'bg-[#EAF0E5] text-[#50563D] border border-[#656B4F]/20'
                                 : p.stock > 0
                                 ? 'bg-amber-100 text-amber-800'
                                 : 'bg-red-100 text-red-800'
@@ -1165,18 +1165,10 @@ export default function AdminPortalPage() {
                         <td className="py-3 px-4 text-[#61665D] line-clamp-2">{cat.description}</td>
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => openEditCategoryModal(cat)}
-                              className="p-1.5 rounded-lg text-blue-700 hover:bg-blue-50 transition-colors"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteCategory(cat.id, cat.name)}
-                              className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {cat.id.startsWith('product-') ? <span className="text-[10px] font-semibold text-[#68705C]">From products</span> : <>
+                              <button onClick={() => openEditCategoryModal(cat)} className="p-1.5 rounded-lg text-blue-700 hover:bg-blue-50 transition-colors"><Edit className="w-4 h-4" /></button>
+                              <button onClick={() => handleDeleteCategory(cat.id, cat.name)} className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                            </>}
                           </div>
                         </td>
                       </tr>
@@ -1194,8 +1186,10 @@ export default function AdminPortalPage() {
                     <p className="mt-1 line-clamp-2 text-xs text-[#61665D]">{cat.description}</p>
                   </div>
                   <div className="flex shrink-0 gap-1">
-                    <button onClick={() => openEditCategoryModal(cat)} className="rounded-lg p-2 text-blue-700 hover:bg-blue-50" aria-label={`Edit ${cat.name}`}><Edit className="h-4 w-4" /></button>
-                    <button onClick={() => handleDeleteCategory(cat.id, cat.name)} className="rounded-lg p-2 text-red-600 hover:bg-red-50" aria-label={`Delete ${cat.name}`}><Trash2 className="h-4 w-4" /></button>
+                    {cat.id.startsWith('product-') ? <span className="self-center text-[10px] font-semibold text-[#68705C]">From products</span> : <>
+                      <button onClick={() => openEditCategoryModal(cat)} className="rounded-lg p-2 text-blue-700 hover:bg-blue-50" aria-label={`Edit ${cat.name}`}><Edit className="h-4 w-4" /></button>
+                      <button onClick={() => handleDeleteCategory(cat.id, cat.name)} className="rounded-lg p-2 text-red-600 hover:bg-red-50" aria-label={`Delete ${cat.name}`}><Trash2 className="h-4 w-4" /></button>
+                    </>}
                   </div>
                 </article>
               ))}
@@ -1246,13 +1240,13 @@ export default function AdminPortalPage() {
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 shadow-xs">
-                <span className="text-[10px] uppercase font-bold text-emerald-800 block tracking-wider flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" /> Completed
+              <div className="p-3.5 rounded-2xl bg-[#EAF0E5]/70 border border-[#656B4F]/30 shadow-xs">
+                <span className="text-[10px] uppercase font-bold text-[#50563D] block tracking-wider flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-[#656B4F]" /> Completed
                 </span>
                 <div className="flex items-baseline justify-between mt-1">
-                  <span className="text-xl sm:text-2xl font-black text-emerald-900">{deliveredOrdersCount}</span>
-                  <span className="text-[10px] font-bold text-emerald-700">Delivered</span>
+                  <span className="text-xl sm:text-2xl font-black text-[#2D3823]">{deliveredOrdersCount}</span>
+                  <span className="text-[10px] font-bold text-[#656B4F]">Delivered</span>
                 </div>
               </div>
 
@@ -1334,7 +1328,7 @@ export default function AdminPortalPage() {
                   { id: 'Pending', label: 'Pending', count: pendingOrdersCount, color: 'amber' },
                   { id: 'Processing', label: 'Processing', count: processingOrdersCount, color: 'blue' },
                   { id: 'Shipped', label: 'In Transit', count: shippedOrdersCount, color: 'purple' },
-                  { id: 'Delivered', label: 'Delivered', count: deliveredOrdersCount, color: 'emerald' },
+                  { id: 'Delivered', label: 'Delivered', count: deliveredOrdersCount, color: 'olive' },
                   { id: 'Cancelled', label: 'Cancelled', count: cancelledOrdersCount, color: 'gray' },
                 ].map((tab) => {
                   const isActive = orderStatusFilter === tab.id;
@@ -1412,10 +1406,10 @@ export default function AdminPortalPage() {
                               {/* Direct Phone Call */}
                               <a
                                 href={`tel:${ord.customerPhone}`}
-                                className="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold flex items-center gap-1 transition-colors shadow-2xs"
+                                className="px-2 py-1 rounded-lg bg-[#EAF0E5] hover:bg-[#DEE8D8] text-[#50563D] border border-[#656B4F]/20 text-[11px] font-bold flex items-center gap-1 transition-colors shadow-2xs"
                                 title={`Call ${ord.customerPhone}`}
                               >
-                                <Phone className="w-3 h-3 text-emerald-600" />
+                                <Phone className="w-3 h-3 text-[#656B4F]" />
                                 <span>{ord.customerPhone}</span>
                               </a>
 
@@ -1424,7 +1418,7 @@ export default function AdminPortalPage() {
                                 href={getWhatsAppUrl(ord)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-2xs"
+                                className="p-1 rounded-lg bg-[#656B4F] hover:bg-[#50563D] text-white transition-colors shadow-2xs"
                                 title="Send WhatsApp Update to Customer"
                               >
                                 <MessageCircle className="w-3.5 h-3.5" />
@@ -1499,7 +1493,7 @@ export default function AdminPortalPage() {
                             <div className="font-black text-base text-[#656B4F]">₹{ord.totalAmount}</div>
                             <div className="mt-1 flex flex-col items-start gap-1">
                               <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider ${
-                                ord.paymentStatus === 'Paid' ? 'bg-emerald-100 text-emerald-800' :
+                                ord.paymentStatus === 'Paid' ? 'bg-[#EAF0E5] text-[#50563D] border border-[#656B4F]/20' :
                                 ord.paymentStatus === 'Failed' ? 'bg-red-100 text-red-800' :
                                 'bg-amber-100 text-amber-800'
                               }`}>
@@ -1550,7 +1544,7 @@ export default function AdminPortalPage() {
                                     ord.status === 'Pending' ? 'bg-amber-50 text-amber-900 border-amber-300 focus:ring-amber-500' :
                                     ord.status === 'Processing' ? 'bg-blue-50 text-blue-900 border-blue-300 focus:ring-blue-500' :
                                     ord.status === 'Shipped' ? 'bg-purple-50 text-purple-900 border-purple-300 focus:ring-purple-500' :
-                                    ord.status === 'Delivered' ? 'bg-emerald-50 text-emerald-900 border-emerald-300 focus:ring-emerald-500' :
+                                    ord.status === 'Delivered' ? 'bg-[#EAF0E5] text-[#2D3823] border-[#656B4F]/40 focus:ring-[#656B4F]' :
                                     'bg-gray-100 text-gray-700 border-gray-300 focus:ring-gray-400'
                                   }`}
                                 >
@@ -1582,7 +1576,7 @@ export default function AdminPortalPage() {
                                 {ord.status === 'Shipped' && (
                                   <button
                                     onClick={() => handleUpdateOrderStatus(ord.id, 'Delivered')}
-                                    className="w-full px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-black text-[10px] transition-colors shadow-2xs flex items-center justify-center gap-1"
+                                    className="w-full px-2 py-1 bg-[#656B4F] hover:bg-[#50563D] text-white rounded-lg font-black text-[10px] transition-colors shadow-2xs flex items-center justify-center gap-1"
                                   >
                                     <CheckCircle2 className="w-3 h-3" />
                                     <span>Mark Delivered</span>
@@ -1664,7 +1658,7 @@ export default function AdminPortalPage() {
                       <div className="text-right">
                         <span className="text-lg font-black text-[#656B4F] block">₹{ord.totalAmount}</span>
                         <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-md font-bold text-[9px] uppercase tracking-wider ${
-                          ord.paymentStatus === 'Paid' ? 'bg-emerald-100 text-emerald-800' :
+                          ord.paymentStatus === 'Paid' ? 'bg-[#EAF0E5] text-[#50563D] border border-[#656B4F]/20' :
                           ord.paymentStatus === 'Failed' ? 'bg-red-100 text-red-800' :
                           'bg-amber-100 text-amber-800'
                         }`}>
@@ -1686,7 +1680,7 @@ export default function AdminPortalPage() {
                       <div className="grid grid-cols-2 gap-2 pt-1">
                         <a
                           href={`tel:${ord.customerPhone}`}
-                          className="min-h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                          className="min-h-11 rounded-xl bg-[#656B4F] hover:bg-[#50563D] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors"
                         >
                           <Phone className="w-4 h-4" />
                           <span>Call {ord.customerPhone}</span>
@@ -1818,7 +1812,7 @@ export default function AdminPortalPage() {
                                 ord.status === 'Pending' ? 'bg-amber-50 text-amber-900 border-amber-300' :
                                 ord.status === 'Processing' ? 'bg-blue-50 text-blue-900 border-blue-300' :
                                 ord.status === 'Shipped' ? 'bg-purple-50 text-purple-900 border-purple-300' :
-                                ord.status === 'Delivered' ? 'bg-emerald-50 text-emerald-900 border-emerald-300' :
+                                ord.status === 'Delivered' ? 'bg-[#EAF0E5] text-[#2D3823] border-[#656B4F]/40' :
                                 'bg-gray-100 text-gray-700 border-gray-300'
                               }`}
                             >
@@ -1867,10 +1861,10 @@ export default function AdminPortalPage() {
                           {ord.status === 'Shipped' && (
                             <button
                               onClick={() => handleUpdateOrderStatus(ord.id, 'Delivered')}
-                              className="w-full min-h-11 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                              className="w-full min-h-11 bg-[#656B4F] hover:bg-[#50563D] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors"
                             >
                               <CheckCircle2 className="w-4 h-4" />
-                              <span>Mark Order as Delivered ✅</span>
+                              <span>Mark Order as Delivered</span>
                             </button>
                           )}
                         </>
@@ -1929,7 +1923,7 @@ export default function AdminPortalPage() {
                     <CheckCircle2 className="w-4 h-4" />
                     <span>Live Working Operations</span>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-                      logSubTab === 'working' ? 'bg-white/25 text-white' : 'bg-emerald-100 text-emerald-800'
+                      logSubTab === 'working' ? 'bg-white/25 text-white' : 'bg-[#EAF0E5] text-[#50563D] border border-[#656B4F]/20'
                     }`}>
                       {workingOrders.length}
                     </span>
@@ -1962,10 +1956,10 @@ export default function AdminPortalPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">Active Confirmed Orders</span>
-                    <span className="text-2xl font-black text-emerald-950 mt-1 block">{workingOrders.length} orders</span>
-                    <span className="text-[11px] text-emerald-700">In preparation or transit</span>
+                  <div className="p-3.5 rounded-xl bg-[#EAF0E5] border border-[#656B4F]/20">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#656B4F] block">Active Confirmed Orders</span>
+                    <span className="text-2xl font-black text-[#2D3823] mt-1 block">{workingOrders.length} orders</span>
+                    <span className="text-[11px] text-[#50563D]">In preparation or transit</span>
                   </div>
 
                   <div className="p-3.5 rounded-xl bg-[#EAF0E5] border border-[#656B4F]/20">
@@ -2002,7 +1996,7 @@ export default function AdminPortalPage() {
               <div className="space-y-4">
                 {filteredLogOrders.length === 0 ? (
                   <div className="rounded-2xl border border-[#4F534C]/15 bg-white p-12 text-center text-gray-500 shadow-sm">
-                    <CheckCircle2 className="w-12 h-12 mx-auto text-emerald-500 mb-3" />
+                    <CheckCircle2 className="w-12 h-12 mx-auto text-[#656B4F] mb-3" />
                     <h3 className="text-base font-black text-[#1E201D]">No Payment Issues or Abandoned Carts Found</h3>
                     <p className="text-xs text-[#61665D] mt-1">All online orders are either paid or there are no drop-offs matching your search.</p>
                   </div>
@@ -2055,7 +2049,7 @@ export default function AdminPortalPage() {
                           <div className="grid grid-cols-2 gap-2 pt-1">
                             <a
                               href={`tel:${ord.customerPhone}`}
-                              className="min-h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                              className="min-h-10 rounded-xl bg-[#656B4F] hover:bg-[#50563D] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors"
                             >
                               <Phone className="w-3.5 h-3.5" />
                               <span>Call Customer</span>
@@ -2135,10 +2129,10 @@ export default function AdminPortalPage() {
                             disabled={updatingFollowUpId === ord.id}
                             className="px-3 py-1.5 rounded-xl border border-amber-300 bg-white font-bold text-xs text-amber-900 outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer disabled:opacity-50"
                           >
-                            <option value="Not Contacted">⏳ Not Contacted Yet</option>
-                            <option value="Contacted">📞 Contacted Customer</option>
-                            <option value="Recovered">🎉 Recovered (Placed New Order)</option>
-                            <option value="Lost">❌ Lost Lead</option>
+                            <option value="Not Contacted">Not Contacted Yet</option>
+                            <option value="Contacted">Contacted Customer</option>
+                            <option value="Recovered">Recovered (Placed New Order)</option>
+                            <option value="Lost">Lost Lead</option>
                           </select>
                         </div>
 
@@ -2190,7 +2184,7 @@ export default function AdminPortalPage() {
                           <span className={`px-2.5 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider ${
                             ord.status === 'Processing' ? 'bg-blue-100 text-blue-900' :
                             ord.status === 'Shipped' ? 'bg-purple-100 text-purple-900' :
-                            ord.status === 'Delivered' ? 'bg-emerald-100 text-emerald-900' :
+                            ord.status === 'Delivered' ? 'bg-[#EAF0E5] text-[#2D3823] border border-[#656B4F]/20' :
                             'bg-amber-100 text-amber-900'
                           }`}>
                             {ord.status}
@@ -2212,22 +2206,22 @@ export default function AdminPortalPage() {
                       <div className="flex items-center gap-2 shrink-0">
                         <div className="text-right mr-3 hidden sm:block">
                           <span className="text-lg font-black text-[#656B4F] block">₹{ord.totalAmount}</span>
-                          <span className="text-[10px] text-emerald-700 font-bold uppercase">{ord.paymentStatus || 'Paid'}</span>
+                          <span className="text-[10px] text-[#50563D] font-bold uppercase">{ord.paymentStatus || 'Paid'}</span>
                         </div>
 
                         <a
                           href={`tel:${ord.customerPhone}`}
-                          className="p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition-colors shadow-2xs"
+                          className="p-2.5 rounded-xl bg-[#EAF0E5] hover:bg-[#DEE8D8] text-[#50563D] border border-[#656B4F]/20 transition-colors shadow-2xs"
                           title={`Call ${ord.customerPhone}`}
                         >
-                          <Phone className="w-4 h-4 text-emerald-600" />
+                          <Phone className="w-4 h-4 text-[#656B4F]" />
                         </a>
 
                         <a
                           href={getWhatsAppUrl(ord)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-2xs"
+                          className="p-2.5 rounded-xl bg-[#656B4F] hover:bg-[#50563D] text-white transition-colors shadow-2xs"
                           title="WhatsApp Update"
                         >
                           <MessageCircle className="w-4 h-4" />
@@ -2708,7 +2702,7 @@ export default function AdminPortalPage() {
                       selectedOrderModal.status === 'Pending' ? 'bg-amber-100 text-amber-900' :
                       selectedOrderModal.status === 'Processing' ? 'bg-blue-100 text-blue-900' :
                       selectedOrderModal.status === 'Shipped' ? 'bg-purple-100 text-purple-900' :
-                      selectedOrderModal.status === 'Delivered' ? 'bg-emerald-100 text-emerald-900' :
+                      selectedOrderModal.status === 'Delivered' ? 'bg-[#EAF0E5] text-[#2D3823] border border-[#656B4F]/20' :
                       'bg-gray-100 text-gray-700'
                     }`}>
                       {selectedOrderModal.status}
@@ -2762,12 +2756,12 @@ export default function AdminPortalPage() {
                           isCurrent
                             ? 'bg-[#656B4F] text-white border-[#656B4F] shadow-xs'
                             : isDone
-                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                            ? 'bg-[#EAF0E5] text-[#50563D] border-[#656B4F]/20 hover:bg-[#DEE8D8]'
                             : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
                         }`}
                       >
                         <div className="flex items-center justify-center gap-1">
-                          {isDone ? <Check className="w-3 h-3 text-emerald-600" /> : <Clock className="w-3 h-3" />}
+                          {isDone ? <Check className="w-3 h-3 text-[#656B4F]" /> : <Clock className="w-3 h-3" />}
                           <span className="truncate">{step}</span>
                         </div>
                       </button>
@@ -2794,7 +2788,7 @@ export default function AdminPortalPage() {
                   <div className="grid grid-cols-2 gap-2 pt-1">
                     <a
                       href={`tel:${selectedOrderModal.customerPhone}`}
-                      className="min-h-10 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                      className="min-h-10 px-3 rounded-xl bg-[#656B4F] hover:bg-[#50563D] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors"
                     >
                       <Phone className="w-3.5 h-3.5" />
                       <span>Call Now</span>
@@ -2868,7 +2862,7 @@ export default function AdminPortalPage() {
                     <span>Payment Information</span>
                   </span>
                   <span className={`px-2.5 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider ${
-                    selectedOrderModal.paymentStatus === 'Paid' ? 'bg-emerald-100 text-emerald-800' :
+                    selectedOrderModal.paymentStatus === 'Paid' ? 'bg-[#EAF0E5] text-[#50563D] border border-[#656B4F]/20' :
                     selectedOrderModal.paymentStatus === 'Failed' ? 'bg-red-100 text-red-800' :
                     'bg-amber-100 text-amber-800'
                   }`}>
@@ -3010,13 +3004,23 @@ export default function AdminPortalPage() {
             {/* Header Toolbar */}
             <div className="bg-[#1E201D] text-white px-5 py-3 flex items-center justify-between shrink-0 print:hidden">
               <div className="flex items-center gap-2">
-                <Printer className="w-4 h-4 text-emerald-400" />
+                <Printer className="w-4 h-4 text-[#A9B896]" />
                 <span className="font-bold text-sm">Delivery Packing Slip / Bill</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
+                  onClick={() => {
+                    const token = typeof window !== 'undefined' ? sessionStorage.getItem('auth_token') || '' : '';
+                    window.open(`/api/orders/${invoiceOrder.id}/invoice?token=${encodeURIComponent(token)}`, '_blank');
+                  }}
+                  className="px-3 py-1 bg-[#2D3823] hover:bg-[#1E201D] text-white rounded-lg font-bold text-xs flex items-center gap-1 shadow-xs transition-colors"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Tax Invoice HTML</span>
+                </button>
+                <button
                   onClick={() => window.print()}
-                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs flex items-center gap-1 shadow-xs transition-colors"
+                  className="px-3 py-1 bg-[#656B4F] hover:bg-[#50563D] text-white rounded-lg font-bold text-xs flex items-center gap-1 shadow-xs transition-colors"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>Print Document</span>
@@ -3114,7 +3118,10 @@ export default function AdminPortalPage() {
 
               {/* Cold Storage & Delivery Instructions */}
               <div className="p-3 rounded-xl bg-[#FBFDF2] border border-[#656B4F]/20 text-[10px] text-[#4F534C] space-y-1">
-                <p className="font-bold text-[#656B4F]">❄️ Cold Storage Guidelines:</p>
+                <p className="font-bold text-[#656B4F] flex items-center gap-1">
+                  <Snowflake className="w-3.5 h-3.5 text-blue-600 inline" />
+                  <span>Cold Storage Guidelines:</span>
+                </p>
                 <p>Store immediately at -18°C upon delivery. Keep sealed until cooking. Do not refreeze once thawed.</p>
                 <p className="text-gray-500 pt-1">For support or queries, contact us on WhatsApp or call +91 98765 43210.</p>
               </div>
@@ -3126,7 +3133,7 @@ export default function AdminPortalPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => window.print()}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors"
+                  className="px-4 py-2 rounded-xl bg-[#656B4F] hover:bg-[#50563D] text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors"
                 >
                   <Printer className="w-4 h-4" />
                   <span>Print Slip</span>

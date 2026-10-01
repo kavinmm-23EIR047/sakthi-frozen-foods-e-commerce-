@@ -1,10 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { X, Star, ShoppingBag, Plus, Minus, ShieldCheck, Flame, Sparkles } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { getBackendPackOptions, PackOption } from '@/lib/productPacks';
 
 export default function ProductDetailModal() {
+  const router = useRouter();
   const { selectedProductForModal, setSelectedProductForModal, addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedWeightIdx, setSelectedWeightIdx] = useState(0);
@@ -13,26 +16,7 @@ export default function ProductDetailModal() {
   if (!selectedProductForModal) return null;
 
   const product = selectedProductForModal;
-
-  // Dynamic weight calculation based on product's actual base weight and price
-  const parseWeightToGrams = (weightStr: string) => {
-    if (!weightStr) return 1000;
-    const match = weightStr.toUpperCase().match(/([\d.]+)\s*(KG|G)/);
-    if (!match) return 1000;
-    const value = parseFloat(match[1]);
-    const unit = match[2];
-    return unit === 'KG' ? value * 1000 : value;
-  };
-
-  // Combine Base Weight + Custom Variants so BOTH appear together for customer selection
-  const baseOpt = { label: product.weight || '1 KG', price: product.price };
-  const customOpts = product.variants ? product.variants.map((v: { weight: string; price: number }) => ({ label: v.weight, price: v.price })) : [];
-  
-  const optionsMap = new Map<string, { label: string; price: number }>();
-  optionsMap.set(baseOpt.label.trim().toUpperCase(), baseOpt);
-  customOpts.forEach((opt: { label: string; price: number }) => optionsMap.set(opt.label.trim().toUpperCase(), opt));
-
-  const weightOptions = Array.from(optionsMap.values());
+  const weightOptions: PackOption[] = getBackendPackOptions(product);
 
   // If the product changed, reset the selected weight
   if (product.id !== lastProductId) {
@@ -41,19 +25,31 @@ export default function ProductDetailModal() {
   }
 
   const safeIdx = selectedWeightIdx >= 0 && selectedWeightIdx < weightOptions.length ? selectedWeightIdx : 0;
-  const currentOption = weightOptions[safeIdx];
-  const currentWeight = currentOption;
+  const currentOption = weightOptions[safeIdx] || {
+    productId: product.id,
+    weight: product.weight || '1kg',
+    price: product.price,
+    mrp: product.mrp || product.price,
+    packType: 'wholesale' as const,
+    badge: 'Wholesale' as const,
+    label: product.weight || '1kg',
+    isBase: true,
+  };
   const dynamicPrice = currentOption.price;
+  const dynamicMrp = currentOption.mrp;
 
   const handleAdd = () => {
     const customizedProduct = {
       ...product,
-      weight: currentOption.label,
+      id: currentOption.productId || product.id,
+      weight: currentOption.weight,
       price: dynamicPrice,
+      mrp: dynamicMrp,
     };
     addToCart(customizedProduct, quantity);
     setSelectedProductForModal(null);
     setQuantity(1);
+    router.push('/cart');
   };
 
   return (
@@ -71,16 +67,17 @@ export default function ProductDetailModal() {
 
         <div className="grid grid-cols-1 md:grid-cols-2">
           {/* Image Side */}
-            <div className="relative aspect-[4/3] md:aspect-auto md:min-h-[380px] bg-[#EAF0E5] flex items-center justify-center p-5">
-              <img
-                src={product.image}
-                alt={product.name}
-                className="w-full h-full object-cover rounded-xl shadow-sm border border-[#4F534C]/15"
-              />
-              <span className="absolute top-4 left-4 bg-[#656B4F] text-white text-xs font-bold px-3 py-1 rounded-full shadow">
-                {currentWeight.label}
-              </span>
-            </div>
+          <div className="relative aspect-[4/3] md:aspect-auto md:min-h-[380px] bg-[#EAF0E5] flex items-center justify-center p-5">
+            <img
+              src={product.image}
+              alt={product.name}
+              className="w-full h-full object-cover rounded-xl shadow-sm border border-[#4F534C]/15"
+            />
+            <span className="absolute top-4 left-4 bg-[#656B4F] text-white text-xs font-black px-3 py-1 rounded-full shadow flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              {currentOption.badge} Pack • {currentOption.weight}
+            </span>
+          </div>
 
           {/* Product Content Side */}
           <div className="p-5 sm:p-6 md:p-7 flex flex-col justify-between space-y-5">
@@ -123,19 +120,30 @@ export default function ProductDetailModal() {
               
               {/* Weight Selector */}
               <div>
-                <span className="text-xs font-bold text-[#1E201D] mb-2 block">Select Pack Size</span>
+                <span className="text-xs font-black uppercase tracking-wider text-[#3E4536] mb-2 block">
+                  Select Pack Size ({weightOptions.length} available)
+                </span>
                 <div className="flex flex-wrap gap-2">
                   {weightOptions.map((opt, idx) => (
                     <button
-                      key={opt.label}
+                      key={opt.weight}
+                      type="button"
                       onClick={() => setSelectedWeightIdx(idx)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                      className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${
                         selectedWeightIdx === idx
-                          ? 'bg-[#656B4F] text-white border-[#656B4F] shadow-md'
+                          ? 'bg-[#50563D] text-white border-[#50563D] shadow-sm'
                           : 'bg-[#E8EEE0] text-[#61665D] border-[#4F534C]/20 hover:border-[#656B4F] hover:text-[#1E201D]'
                       }`}
                     >
-                      {opt.label} {weightOptions.length > 1 ? `(₹${opt.price})` : ''}
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-black uppercase ${
+                        selectedWeightIdx === idx
+                          ? 'bg-white/20 text-white'
+                          : opt.packType === 'retail' ? 'bg-amber-100 text-amber-900' : 'bg-[#D6DFC9] text-[#2D3823]'
+                      }`}>
+                        {opt.badge}
+                      </span>
+                      <span>{opt.weight}</span>
+                      <span className="font-extrabold">• ₹{opt.price}</span>
                     </button>
                   ))}
                 </div>

@@ -26,9 +26,14 @@ const ProductSchema: Schema = new Schema(
     stock: { type: Number, default: 50 },
     image: { type: String, default: '' },
     rating: { type: Number, default: 4.8 },
-    isPopular: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
+
+ProductSchema.index({ name: 'text', description: 'text', category: 'text' });
+ProductSchema.index({ category: 1, code: 1 });
+ProductSchema.index({ name: 1 });
+ProductSchema.index({ isPopular: -1, price: 1 });
+ProductSchema.index({ price: 1 });
 
 export default mongoose.models.Product || mongoose.model<IProduct>('Product', ProductSchema);

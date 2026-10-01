@@ -138,47 +138,69 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Column 4: Contact & WhatsApp Support */}
-          <div className="col-span-2 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5 lg:col-span-1 lg:block">
+          {/* Column 4: Contact & Store Location with Google Map */}
+          <div className="col-span-2 space-y-3 lg:col-span-1">
             <div>
-            <h4 className="text-[10px] sm:text-xs font-black text-white uppercase tracking-[0.1em] mb-2">
-              Contact & Support
-            </h4>
-            <ul className="grid grid-cols-1 gap-2 text-[10px] leading-snug sm:text-xs lg:text-[13px] text-white font-medium">
-              <li className="flex items-start gap-3">
-                <div className="p-2 bg-white/10 rounded-lg mt-0.5">
-                  <MapPin className="w-4 h-4 text-[#A9F2B7] shrink-0" />
-                </div>
-                <span>Sakthi Frozen Foods Industrial Park, Guindy, Chennai - 600032</span>
-              </li>
-              <li>
-                <a href="tel:+919876543210" className="inline-flex items-center gap-3 transition-colors hover:text-white group">
-                  <div className="p-2 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors">
-                    <Phone className="w-4 h-4 shrink-0 text-[#A9F2B7]" />
+              <h4 className="text-[10px] sm:text-xs font-black text-white uppercase tracking-[0.1em] mb-2">
+                Store Location & Contact
+              </h4>
+              <ul className="grid grid-cols-1 gap-2 text-[10px] leading-snug sm:text-xs lg:text-[13px] text-white font-medium">
+                <li className="flex items-start gap-2.5">
+                  <div className="p-1.5 bg-white/10 rounded-lg mt-0.5 shrink-0">
+                    <MapPin className="w-3.5 h-3.5 text-[#A9F2B7]" />
                   </div>
-                  <span>+91 98765 43210 / 044-24567890</span>
-                </a>
-              </li>
-              <li>
-                <a href="mailto:orders@sakthifrozenfoods.com" className="inline-flex items-center gap-3 transition-colors hover:text-white group">
-                  <div className="p-2 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors">
-                    <Mail className="w-4 h-4 shrink-0 text-[#A9F2B7]" />
-                  </div>
-                  <span>orders@sakthifrozenfoods.com</span>
-                </a>
-              </li>
-            </ul>
-
+                  <a
+                    href="https://maps.google.com/?q=Sakthi+Frozen+Food+Traders+Tank+Road+Puens+colony+Koundampalayam+Coimbatore+Tamil+Nadu+641030"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline hover:text-white transition-colors"
+                  >
+                    Tank Road, Puens colony, Koundampalayam, Coimbatore, Tamil Nadu 641030
+                  </a>
+                </li>
+                <li>
+                  <a href="tel:+919876543210" className="inline-flex items-center gap-2.5 transition-colors hover:text-white group">
+                    <div className="p-1.5 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors shrink-0">
+                      <Phone className="w-3.5 h-3.5 text-[#A9F2B7]" />
+                    </div>
+                    <span>+91 98765 43210 / 0422-2456789</span>
+                  </a>
+                </li>
+                <li>
+                  <a href="mailto:orders@sakthifrozenfoods.com" className="inline-flex items-center gap-2.5 transition-colors hover:text-white group">
+                    <div className="p-1.5 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors shrink-0">
+                      <Mail className="w-3.5 h-3.5 text-[#A9F2B7]" />
+                    </div>
+                    <span>orders@sakthifrozenfoods.com</span>
+                  </a>
+                </li>
+              </ul>
             </div>
-            <div className="mt-0 sm:self-end lg:mt-4">
+
+            {/* Embedded Google Map Preview */}
+            <div className="rounded-xl overflow-hidden border border-white/20 shadow-md bg-white/5 h-[120px] w-full relative">
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d125310.08213131265!2d76.81346682338442!3d11.0431204487083!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ba8590cc15b53eb%3A0x46fec529d6a8bb00!2sSakthi%20Frozen%20Food%20Traders!5e0!3m2!1sen!2sin!4v1790868798009!5m2!1sen!2sin"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="strict-origin-when-cross-origin"
+                title="Sakthi Frozen Food Traders Location Map"
+                className="w-full h-full"
+              />
+            </div>
+
+            <div>
               <a
                 href="https://wa.me/919876543210"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Chat with Sakthi Frozen Foods on WhatsApp"
-                className="inline-flex min-h-9 w-full sm:w-auto items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#25D366] to-[#128C7E] px-4 py-2 text-xs font-bold text-white shadow-md transition-all hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366]"
+                className="inline-flex min-h-8 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#25D366] to-[#128C7E] px-3.5 py-1.5 text-xs font-bold text-white shadow-md transition-all hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366]"
               >
-                <MessageCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <MessageCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 <span>Chat on WhatsApp</span>
               </a>
             </div>
@@ -292,7 +314,7 @@ export default function Footer() {
             {/* Modal Footer */}
             <div className="p-4 bg-[#E8EEE0] border-t border-[#4F534C]/15 flex items-center justify-between text-xs text-[#61665D]">
               <span className="font-bold text-[#656B4F] flex items-center gap-1">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" /> Sakthi Frozen Foods Official Policy
+                <ShieldCheck className="w-4 h-4 text-[#656B4F]" /> Sakthi Frozen Foods Official Policy
               </span>
               <button
                 onClick={() => setActivePolicyModal(null)}

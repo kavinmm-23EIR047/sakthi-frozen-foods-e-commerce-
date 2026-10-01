@@ -100,7 +100,10 @@ export async function POST(request: Request) {
         body: rawBody,
       });
       if (response.ok) {
-        return NextResponse.json(await response.json());
+        const text = await response.text();
+        if (text && text.trim()) {
+          return NextResponse.json(JSON.parse(text));
+        }
       }
     } catch {
       // Fallback
@@ -114,7 +117,12 @@ export async function POST(request: Request) {
     const db = await connectToDatabase();
     if (!db) return NextResponse.json({ success: false, error: 'Database unavailable' }, { status: 503 });
 
-    const body = rawBody ? JSON.parse(rawBody) : {};
+    let body: any = {};
+    try {
+      body = rawBody ? JSON.parse(rawBody) : {};
+    } catch {
+      return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
+    }
     const { productId, weight, quantity = 1 } = body;
     if (!productId || !weight) return NextResponse.json({ success: false, error: 'Invalid cart item' }, { status: 400 });
 
@@ -140,7 +148,10 @@ export async function PATCH(request: Request) {
         body: rawBody,
       });
       if (response.ok) {
-        return NextResponse.json(await response.json());
+        const text = await response.text();
+        if (text && text.trim()) {
+          return NextResponse.json(JSON.parse(text));
+        }
       }
     } catch {
       // Fallback
@@ -154,7 +165,12 @@ export async function PATCH(request: Request) {
     const db = await connectToDatabase();
     if (!db) return NextResponse.json({ success: false, error: 'Database unavailable' }, { status: 503 });
 
-    const body = rawBody ? JSON.parse(rawBody) : {};
+    let body: any = {};
+    try {
+      body = rawBody ? JSON.parse(rawBody) : {};
+    } catch {
+      return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
+    }
     const { productId, weight, quantity } = body;
     if (!productId || !weight || quantity === undefined) return NextResponse.json({ success: false, error: 'Invalid cart item' }, { status: 400 });
 
@@ -184,7 +200,10 @@ export async function DELETE(request: Request) {
         body: rawBody,
       });
       if (response.ok) {
-        return NextResponse.json(await response.json());
+        const text = await response.text();
+        if (text && text.trim()) {
+          return NextResponse.json(JSON.parse(text));
+        }
       }
     } catch {
       // Fallback

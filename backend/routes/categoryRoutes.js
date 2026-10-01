@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Category = require('../models/Category');
+const Product = require('../models/Product');
 const { protect, admin } = require('../middleware/authMiddleware');
 
 // GET all categories
@@ -8,13 +9,23 @@ router.get('/', async (req, res) => {
   try {
     res.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
     const rawCategories = await Category.find().sort({ createdAt: 1 });
-    const categories = rawCategories.map((c) => ({
+    let categories = rawCategories.map((c) => ({
       id: c._id.toString(),
       name: c.name,
       description: c.description,
       image: c.image,
       icon: c.icon,
     }));
+    if (categories.length === 0) {
+      const productCategories = await Product.distinct('category', { category: { $type: 'string', $ne: '' } });
+      categories = productCategories.sort().map((name) => ({
+        id: `product-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+        name,
+        description: '',
+        image: '',
+        icon: 'Package',
+      }));
+    }
     res.json({ success: true, count: categories.length, data: categories });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

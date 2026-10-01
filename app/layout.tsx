@@ -37,6 +37,7 @@ export const metadata: Metadata = {
 
 import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/context/ToastContext';
+import { WishlistProvider } from '@/context/WishlistContext';
 import { Plus_Jakarta_Sans, Manrope, Bricolage_Grotesque } from 'next/font/google';
 
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], variable: '--font-jakarta' });
@@ -60,7 +61,9 @@ export default function RootLayout({
       <body className={`${jakarta.variable} ${manrope.variable} ${bricolage.variable} font-sans antialiased min-h-screen bg-[#FBFDF2] text-[#1E201D]`}>
         <ToastProvider>
           <AuthProvider>
-            <CartProvider>{children}</CartProvider>
+            <WishlistProvider>
+              <CartProvider>{children}</CartProvider>
+            </WishlistProvider>
           </AuthProvider>
         </ToastProvider>
       </body>

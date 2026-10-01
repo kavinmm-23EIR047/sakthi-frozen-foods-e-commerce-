@@ -55,8 +55,28 @@ export async function GET(request: Request) {
     if (category && category !== 'All') {
       query.category = category;
     }
-    if (search) {
-      query.name = { $regex: search, $options: 'i' };
+    if (search && search.trim()) {
+      const cleanSearch = search.trim();
+      const fullRegex = { $regex: cleanSearch, $options: 'i' };
+      const words = cleanSearch.split(/\s+/).filter(Boolean);
+      
+      const searchConditions: any[] = [
+        { name: fullRegex },
+        { category: fullRegex },
+        { description: fullRegex },
+        { code: fullRegex },
+      ];
+
+      if (words.length > 1) {
+        words.forEach((w) => {
+          const wRegex = { $regex: w, $options: 'i' };
+          searchConditions.push({ name: wRegex });
+          searchConditions.push({ category: wRegex });
+          searchConditions.push({ description: wRegex });
+        });
+      }
+
+      query.$or = searchConditions;
     }
     
     let productQuery = Product.find(query).sort({ code: 1 });

@@ -14,14 +14,27 @@ function authHeaders(request: Request) {
 }
 
 async function proxy(request: Request, id: string) {
-  const base = backendUrl();
-  if (!base) return NextResponse.json({ success: false, error: 'Render API is not configured' }, { status: 503 });
-  const response = await fetch(`${base}/orders/${id}`, {
-    method: request.method,
-    headers: authHeaders(request),
-    body: request.method === 'GET' ? undefined : await request.text(),
-  });
-  return NextResponse.json(await response.json(), { status: response.status });
+  try {
+    const base = backendUrl();
+    if (!base) return NextResponse.json({ success: false, error: 'Render API is not configured' }, { status: 503 });
+    const response = await fetch(`${base}/orders/${id}`, {
+      method: request.method,
+      headers: authHeaders(request),
+      body: request.method === 'GET' ? undefined : await request.text(),
+    });
+    const text = await response.text();
+    let data: any = { success: response.ok };
+    if (text && text.trim()) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { success: false, error: 'Invalid JSON response from server' };
+      }
+    }
+    return NextResponse.json(data, { status: response.status });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: 'Order details service unavailable' }, { status: 503 });
+  }
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {

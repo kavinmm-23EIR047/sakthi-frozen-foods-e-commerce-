@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { connectToDatabase, getStoreCategories, saveStoreCategory } from '@/lib/db';
+import { connectToDatabase } from '@/lib/db';
 import Category from '@/models/Category';
+import Product from '@/models/Product';
 
 export async function GET(request: Request) {
   try {
@@ -16,11 +17,23 @@ export async function GET(request: Request) {
         image: c.image,
         icon: c.icon,
       }));
+      if (categories.length === 0) {
+        const productCategories = await Product.distinct('category', { category: { $type: 'string', $ne: '' } });
+        categories = productCategories.sort().map((name) => ({
+          id: `product-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+          name,
+          description: '',
+          image: '',
+          icon: 'Package',
+        }));
+      }
     } else {
-      categories = getStoreCategories();
+      return NextResponse.json({ success: false, count: 0, data: [], error: 'Database is not connected; live categories are unavailable.' }, { status: 503 });
     }
 
-    return NextResponse.json({ success: true, count: categories.length, data: categories });
+    return NextResponse.json({ success: true, count: categories.length, data: categories }, {
+      headers: { 'Cache-Control': 'private, max-age=60, stale-while-revalidate=300' },
+    });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -55,15 +68,7 @@ export async function POST(request: Request) {
         },
       });
     } else {
-      const newCat = {
-        id: `cat-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        name: body.name,
-        description: body.description || '',
-        image: body.image || '',
-        icon: body.icon || 'Leaf',
-      };
-      saveStoreCategory(newCat);
-      return NextResponse.json({ success: true, data: newCat });
+      return NextResponse.json({ success: false, error: 'Database is not connected; categories were not saved.' }, { status: 503 });
     }
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

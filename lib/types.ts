@@ -25,6 +25,7 @@ export interface ProductType {
 export interface OrderItemType {
   productId: string;
   name: string;
+  image?: string;
   weight: string;
   price: number;
   quantity: number;
@@ -40,6 +41,7 @@ export interface OrderType {
   landmark?: string;
   pincode?: string;
   city?: string;
+  district?: string;
   state?: string;
   coordinates?: { lat: number; lng: number };
   items: OrderItemType[];

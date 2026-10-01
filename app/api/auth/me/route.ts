@@ -20,7 +20,15 @@ export async function GET() {
       cache: 'no-store'
     });
     
-    const data = await response.json();
+    const text = await response.text();
+    let data: any = { success: false, error: 'Invalid response' };
+    if (text && text.trim()) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { success: false, error: 'Invalid JSON from auth backend' };
+      }
+    }
     
     if (!response.ok || !data.success) {
       // If the token is invalid or expired, clear the cookie

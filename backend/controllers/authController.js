@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { dispatchNotification } = require('../services/notificationService');
+const { sendOtpEmail } = require('../services/emailService');
 
 // Generate JWT Token
 const generateToken = (id, role, sessionVersion = 0) => {
@@ -29,6 +30,11 @@ const isValidMobileNumber = (phone) => {
   const cleaned = cleanPhoneNumber(phone);
   return /^[6-9]\d{9}$/.test(cleaned);
 };
+
+// Generate 6-digit OTP
+function generateOtp() {
+  return crypto.randomInt(100000, 999999).toString();
+}
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -182,34 +188,114 @@ const getUserProfile = async (req, res) => {
   }
 };
 
+// ─── OTP-BASED FORGOT PASSWORD ─────────────────────────────────────────────
+
+// @desc    Request OTP for password reset
+// @route   POST /api/auth/forgot-password
+// @access  Public
 const requestPasswordReset = async (req, res, next) => {
   try {
     const email = String(req.body?.email || '').trim().toLowerCase();
-    const genericResponse = { success: true, message: 'If an account exists, password reset instructions have been sent.' };
+    const genericResponse = { success: true, message: 'If an account exists, a 6-digit OTP has been sent to your email.' };
     if (!email) return res.json(genericResponse);
 
-    const user = await User.findOne({ email }).select('+passwordResetTokenHash +passwordResetExpiresAt');
+    const user = await User.findOne({ email }).select('+otpHash +otpExpiresAt +otpAttempts');
     if (!user) return res.json(genericResponse);
 
-    const token = crypto.randomBytes(32).toString('hex');
-    user.passwordResetTokenHash = crypto.createHash('sha256').update(token).digest('hex');
-    user.passwordResetExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    // Rate limit: Max 3 OTP requests per 15 minutes
+    if (user.otpExpiresAt && user.otpExpiresAt > new Date() && user.otpAttempts >= 3) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many OTP requests. Please wait a few minutes before trying again.',
+      });
+    }
+
+    // Generate 6-digit OTP
+    const otp = generateOtp();
+    const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+
+    user.otpHash = otpHash;
+    user.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    user.otpAttempts = (user.otpAttempts || 0) + 1;
     await user.save();
-    const resetUrl = `${process.env.FRONTEND_URL || ''}/reset-password?token=${token}`;
+
+    // Send OTP via email
+    try {
+      await sendOtpEmail(user.email, user.name, otp);
+    } catch (emailError) {
+      console.error('OTP email sending failed:', emailError.message);
+      // Still return success to avoid leaking info about which emails exist
+    }
+
+    // Also keep the old notification dispatch as a backup
     void dispatchNotification({
-      notificationKey: `password-reset:${user._id}:${user.passwordResetTokenHash}`,
-      eventType: 'password.reset.requested',
+      notificationKey: `otp-reset:${user._id}:${otpHash}`,
+      eventType: 'password.otp.requested',
       channel: 'customer-email',
       recipient: user.email,
-      subject: 'Reset your Sakthi Frozen Foods password',
-      message: `Use this link within 15 minutes to reset your password: ${resetUrl}`,
+      subject: `${otp} is your Sakthi Frozen Foods password reset OTP`,
+      message: `Your OTP for password reset is: ${otp}. Valid for 10 minutes. Do not share this with anyone.`,
     });
+
     return res.json(genericResponse);
   } catch (error) {
     next(error);
   }
 };
 
+// @desc    Verify OTP
+// @route   POST /api/auth/verify-otp
+// @access  Public
+const verifyOtp = async (req, res, next) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const otp = String(req.body?.otp || '').trim();
+
+    if (!email || !otp || otp.length !== 6) {
+      return res.status(400).json({ success: false, message: 'Valid email and 6-digit OTP are required' });
+    }
+
+    const user = await User.findOne({ email }).select('+otpHash +otpExpiresAt +otpAttempts');
+    if (!user || !user.otpHash || !user.otpExpiresAt) {
+      return res.status(400).json({ success: false, message: 'No OTP request found. Please request a new OTP.' });
+    }
+
+    // Check if OTP is expired
+    if (user.otpExpiresAt < new Date()) {
+      return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
+    }
+
+    // Verify OTP
+    const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+    if (otpHash !== user.otpHash) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP. Please check and try again.' });
+    }
+
+    // OTP is valid — generate a temporary reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    user.passwordResetTokenHash = resetTokenHash;
+    user.passwordResetExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    // Clear OTP fields
+    user.otpHash = undefined;
+    user.otpExpiresAt = undefined;
+    user.otpAttempts = 0;
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: 'OTP verified successfully. You can now set a new password.',
+      resetToken,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Reset password after OTP verification
+// @route   POST /api/auth/reset-password
+// @access  Public
 const resetPassword = async (req, res, next) => {
   try {
     const token = String(req.body?.token || '');
@@ -221,13 +307,13 @@ const resetPassword = async (req, res, next) => {
       { passwordResetTokenHash: tokenHash, passwordResetExpiresAt: { $gt: new Date() } },
       {
         $set: { password: passwordHash },
-        $unset: { passwordResetTokenHash: 1, passwordResetExpiresAt: 1 },
+        $unset: { passwordResetTokenHash: 1, passwordResetExpiresAt: 1, otpHash: 1, otpExpiresAt: 1, otpAttempts: 1 },
         $inc: { sessionVersion: 1 },
       },
       { new: true, runValidators: true }
     ).select('-password');
     if (!user) return res.status(400).json({ success: false, message: 'Reset token is invalid or expired' });
-    return res.json({ success: true, message: 'Password reset successfully' });
+    return res.json({ success: true, message: 'Password reset successfully. You can now login with your new password.' });
   } catch (error) {
     next(error);
   }
@@ -238,5 +324,6 @@ module.exports = {
   loginUser,
   getUserProfile,
   requestPasswordReset,
+  verifyOtp,
   resetPassword,
 };

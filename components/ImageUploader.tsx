@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { UploadCloud, Link as LinkIcon, Image as ImageIcon, Sparkles, CheckCircle2, RefreshCw, X, FileImage, ShieldCheck } from 'lucide-react';
+import { UploadCloud, Link as LinkIcon, Image as ImageIcon, Sparkles, CheckCircle2, RefreshCw, X, FileImage, ShieldCheck, Flame } from 'lucide-react';
 import { compressImageToWebP, formatBytes, CompressionResult, optimizeImageUrl, handleImageError } from '@/lib/imageCompressor';
 import OptimizedImage from '@/components/OptimizedImage';
 
@@ -175,8 +175,8 @@ export default function ImageUploader({ value, onChange, label = 'Product Image'
                       <Sparkles className="w-3 h-3" /> WebP Compressed
                     </span>
                     {compressionStats?.savingsPercentage ? (
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-[11px]">
-                        🔥 {compressionStats.savingsPercentage}% Saved
+                      <span className="px-2 py-0.5 rounded-full bg-[#EAF0E5] text-[#50563D] font-extrabold text-[11px] border border-[#656B4F]/20 flex items-center gap-1">
+                        <Flame className="w-3 h-3 text-amber-600" /> {compressionStats.savingsPercentage}% Saved
                       </span>
                     ) : null}
                   </div>
@@ -186,7 +186,7 @@ export default function ImageUploader({ value, onChange, label = 'Product Image'
                       <p>
                         Original: <span className="line-through text-red-500 font-semibold">{formatBytes(compressionStats.originalSize)}</span>
                         {' ➔ '}
-                        WebP: <span className="font-extrabold text-emerald-700">{formatBytes(compressionStats.compressedSize)}</span>
+                        WebP: <span className="font-extrabold text-[#656B4F]">{formatBytes(compressionStats.compressedSize)}</span>
                       </p>
                       <p className="text-[11px] text-[#4F534C]">
                         Resolution: {compressionStats.width} × {compressionStats.height}px
@@ -262,7 +262,7 @@ export default function ImageUploader({ value, onChange, label = 'Product Image'
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-[#1E201D] truncate">{value}</p>
-                <span className="text-[10px] text-emerald-700 font-extrabold flex items-center gap-1 mt-0.5">
+                <span className="text-[10px] text-[#656B4F] font-extrabold flex items-center gap-1 mt-0.5">
                   <CheckCircle2 className="w-3 h-3" /> CDN Auto-Format Ready
                 </span>
               </div>

@@ -43,9 +43,9 @@ const PROCEDURE_STEPS: ProcedureStep[] = [
     ],
     tags: ['Soy Protein', 'Pea Isolate', 'Mushrooms', 'Seitan Gluten'],
     iconName: 'Leaf',
-    headerBg: 'bg-[#20361C] text-white',
-    accentColor: 'text-[#20361C]',
-    badgeBg: 'bg-emerald-50 text-emerald-900 border-emerald-300',
+    headerBg: 'bg-[#656B4F] text-white',
+    accentColor: 'text-[#656B4F]',
+    badgeBg: 'bg-[#EAF0E5] text-[#50563D] border-[#656B4F]/30',
     chefTip: 'Blending soy chunks with pea isolate creates the exact springy bite of tender meat.',
   },
   {
@@ -162,9 +162,9 @@ const PROCEDURE_STEPS: ProcedureStep[] = [
     ],
     tags: ['Pan-Fry 5-8 Mins', 'Air-Fry 180°C', 'Direct Curry Simmer'],
     iconName: 'ChefHat',
-    headerBg: 'bg-[#15803D] text-white',
-    accentColor: 'text-[#15803D]',
-    badgeBg: 'bg-emerald-50 text-emerald-900 border-emerald-300',
+    headerBg: 'bg-[#50563D] text-white',
+    accentColor: 'text-[#50563D]',
+    badgeBg: 'bg-[#EAF0E5] text-[#50563D] border-[#656B4F]/30',
     chefTip: 'Serve immediately off the stove for maximum succulent chew and intoxicating aromatic crunch!',
   },
 ];
@@ -191,7 +191,7 @@ export default function ScrollStackProcedure() {
         {/* Centered Top Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-10 space-y-3">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-[#4F534C]/20 text-[#2D3823] text-xs font-black uppercase tracking-wider shadow-xs">
-            <ChefHat className="w-4 h-4 text-emerald-700" />
+            <ChefHat className="w-4 h-4 text-[#656B4F]" />
             <span>8-Step Making &amp; Cooking Guide</span>
           </div>
 
@@ -257,7 +257,7 @@ export default function ScrollStackProcedure() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                     {s.keyPoints.map((kp, kIdx) => (
                       <div key={kIdx} className="flex items-start gap-2 text-xs text-[#2F342F] font-semibold leading-snug">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#656B4F] shrink-0 mt-0.5" />
                         <span>{kp}</span>
                       </div>
                     ))}
