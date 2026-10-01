@@ -620,7 +620,7 @@ export default function AdminPortalPage() {
 
   // Metrics
   const totalRevenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
-  const confirmedOrdersCount = orders.filter(o => o.status === 'Confirmed' || o.paymentStatus === 'Paid' || o.status === 'Processing' || o.status === 'Shipped' || o.status === 'Delivered').length;
+  const confirmedOrdersCount = orders.filter(o => o.status === 'Confirmed' || o.paymentStatus === 'Paid').length;
   const awaitingPaymentOrdersCount = orders.filter(o => !isOrderFailedOrExpired(o) && (o.status === 'Awaiting Payment' || o.status === 'Pending') && o.paymentStatus === 'Pending').length;
   const failedOrCancelledOrdersCount = orders.filter(o => isOrderFailedOrExpired(o) || o.status === 'Payment Failed' || o.status === 'Cancelled').length;
 
@@ -655,7 +655,7 @@ export default function AdminPortalPage() {
     }
     if (orderStatusFilter !== 'All') {
       if (orderStatusFilter === 'Confirmed') {
-        const isConfirmed = o.status === 'Confirmed' || o.paymentStatus === 'Paid' || o.status === 'Processing' || o.status === 'Shipped' || o.status === 'Delivered';
+        const isConfirmed = o.status === 'Confirmed' || o.paymentStatus === 'Paid';
         if (!isConfirmed || isOrderFailedOrExpired(o)) return false;
       } else if (orderStatusFilter === 'Awaiting Payment') {
         const isAwaiting = !isOrderFailedOrExpired(o) && (o.status === 'Awaiting Payment' || o.status === 'Pending') && o.paymentStatus === 'Pending';
@@ -2354,9 +2354,9 @@ export default function AdminPortalPage() {
                         <div className="flex items-center gap-2.5">
                           <span className="font-mono font-black text-sm text-[#656B4F]">#{ord.orderNumber}</span>
                           <span className={`px-2.5 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wider ${
-                            ord.status === 'Processing' ? 'bg-blue-100 text-blue-900' :
-                            ord.status === 'Shipped' ? 'bg-purple-100 text-purple-900' :
-                            ord.status === 'Delivered' ? 'bg-[#EAF0E5] text-[#2D3823] border border-[#656B4F]/20' :
+                            ord.status === 'Confirmed' ? 'bg-[#EAF0E5] text-[#2D3823] border border-[#656B4F]/20' :
+                            ord.status === 'Cancelled' ? 'bg-red-100 text-red-900' :
+                            ord.status === 'Payment Failed' ? 'bg-red-100 text-red-900' :
                             'bg-amber-100 text-amber-900'
                           }`}>
                             {ord.status}
@@ -2935,11 +2935,10 @@ export default function AdminPortalPage() {
                       Order #{selectedOrderModal.orderNumber}
                     </h3>
                     <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                      selectedOrderModal.status === 'Pending' ? 'bg-amber-100 text-amber-900' :
-                      selectedOrderModal.status === 'Processing' ? 'bg-blue-100 text-blue-900' :
-                      selectedOrderModal.status === 'Shipped' ? 'bg-purple-100 text-purple-900' :
-                      selectedOrderModal.status === 'Delivered' ? 'bg-[#EAF0E5] text-[#2D3823] border border-[#656B4F]/20' :
-                      'bg-gray-100 text-gray-700'
+                      selectedOrderModal.status === 'Confirmed' ? 'bg-[#EAF0E5] text-[#2D3823] border border-[#656B4F]/20' :
+                      selectedOrderModal.status === 'Cancelled' ? 'bg-red-100 text-red-900' :
+                      selectedOrderModal.status === 'Payment Failed' ? 'bg-red-100 text-red-900' :
+                      'bg-amber-100 text-amber-900'
                     }`}>
                       {selectedOrderModal.status}
                     </span>
@@ -3005,9 +3004,7 @@ export default function AdminPortalPage() {
                   </div>
                 </div>
                 <span className="font-mono font-black text-xs px-3 py-1 rounded-xl bg-white/80 border border-current shadow-2xs">
-                  {selectedOrderModal.status === 'Processing' || selectedOrderModal.status === 'Shipped' || selectedOrderModal.status === 'Delivered'
-                    ? 'Confirmed'
-                    : selectedOrderModal.status}
+                  {selectedOrderModal.status}
                 </span>
               </div>
 
