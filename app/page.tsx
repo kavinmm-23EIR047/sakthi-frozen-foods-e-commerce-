@@ -10,7 +10,7 @@ import { useCart } from '@/context/CartContext';
 import { useToast } from '@/context/ToastContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { ProductType } from '@/lib/types';
-import { fetchApi } from '@/lib/apiConfig';
+import { fetchApi, fetchCachedApi, getCachedData } from '@/lib/apiConfig';
 import {
   LayoutGrid,
   ShieldCheck,
@@ -466,13 +466,38 @@ export default function StorefrontHomePage() {
   }, [isHeroHovered]);
 
   useEffect(() => {
+    // 1. Instant Cache Hydration (0ms load if cached)
+    const cachedProds = getCachedData<ProductType[]>('home_products_cache');
+    if (cachedProds && Array.isArray(cachedProds) && cachedProds.length > 0) {
+      setTopProducts(processUniqueProducts(cachedProds));
+      setLoading(false);
+    }
+    const cachedCats = getCachedData<any[]>('home_cats_cache');
+    if (cachedCats && Array.isArray(cachedCats) && cachedCats.length > 0) {
+      const cats: CategoryItem[] = cachedCats.map((c: any) => ({
+        id: c.id || c._id,
+        name: c.name,
+        shortName: c.name,
+        link: `/shop?category=${encodeURIComponent(c.name)}`,
+        img: c.image && c.image.trim() !== '' ? c.image : getCategoryFallbackImage(c.name),
+        description: c.description || '100% Plant-Based',
+      }));
+      setCategoriesList(cats);
+    }
+    const cachedRevs = getCachedData<ReviewType[]>('home_revs_cache');
+    if (cachedRevs && Array.isArray(cachedRevs) && cachedRevs.length > 0) {
+      setReviews(cachedRevs);
+    }
+
     const loadData = async () => {
-      setLoading(true);
+      if (!cachedProds || cachedProds.length === 0) {
+        setLoading(true);
+      }
       try {
         const [prodRes, catRes, revRes] = await Promise.all([
-          fetchApi('/products'),
-          fetchApi('/categories'),
-          fetchApi('/reviews'),
+          fetchCachedApi<ProductType[]>('/products', { cacheKey: 'home_products_cache', ttlMs: 120000 }),
+          fetchCachedApi<any[]>('/categories', { cacheKey: 'home_cats_cache', ttlMs: 180000 }),
+          fetchCachedApi<ReviewType[]>('/reviews', { cacheKey: 'home_revs_cache', ttlMs: 120000 }),
         ]);
 
         if (prodRes.success && Array.isArray(prodRes.data)) {
@@ -1052,72 +1077,92 @@ export default function StorefrontHomePage() {
             ref={productScrollRef}
             className="flex sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-x-auto pb-4 sm:pb-0 snap-x snap-mandatory scrollbar-none scrollbar-hide no-scrollbar"
           >
-            {topProducts.slice(0, 4).map((p, idx) => (
-              <div
-                key={p.id || idx}
-                className="bg-white rounded-2xl border border-stone-200/80 shadow-2xs hover:shadow-md transition-all p-3.5 flex flex-col justify-between group relative w-[220px] xs:w-[240px] sm:w-auto shrink-0 snap-start"
-              >
-                <div className="relative w-full aspect-square max-h-[240px] rounded-xl overflow-hidden bg-stone-50 mb-3 border border-stone-100 flex items-center justify-center">
-                  <Link href={`/product/${p.id}`} className="w-full h-full block">
-                    {p.image ? (
-                      <img
-                        src={p.image}
-                        alt={p.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            {loading && topProducts.length === 0 ? (
+              [1, 2, 3, 4].map((n) => (
+                <div
+                  key={n}
+                  className="bg-white rounded-2xl border border-stone-200/70 p-3.5 flex flex-col justify-between w-[220px] xs:w-[240px] sm:w-auto shrink-0 snap-start animate-pulse space-y-3"
+                >
+                  <div className="w-full aspect-square rounded-xl bg-stone-200" />
+                  <div className="space-y-2">
+                    <div className="h-4 bg-stone-200 rounded w-3/4" />
+                    <div className="h-3 bg-stone-200 rounded w-full" />
+                    <div className="flex justify-between items-center pt-2">
+                      <div className="h-4 bg-stone-200 rounded w-1/3" />
+                      <div className="h-4 bg-stone-200 rounded w-1/4" />
+                    </div>
+                  </div>
+                  <div className="h-9 bg-stone-200 rounded-xl w-full" />
+                </div>
+              ))
+            ) : (
+              topProducts.slice(0, 4).map((p, idx) => (
+                <div
+                  key={p.id || idx}
+                  className="bg-white rounded-2xl border border-stone-200/80 shadow-2xs hover:shadow-md transition-all p-3.5 flex flex-col justify-between group relative w-[220px] xs:w-[240px] sm:w-auto shrink-0 snap-start"
+                >
+                  <div className="relative w-full aspect-square max-h-[240px] rounded-xl overflow-hidden bg-stone-50 mb-3 border border-stone-100 flex items-center justify-center">
+                    <Link href={`/product/${p.id}`} className="w-full h-full block">
+                      {p.image ? (
+                        <img
+                          src={p.image}
+                          alt={p.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-[#F4F7F0]">
+                          <Utensils className="w-8 h-8 text-[#656B4F]/60 mb-2" />
+                          <span className="text-xs font-bold text-[#50563D]">{p.name}</span>
+                        </div>
+                      )}
+                    </Link>
+
+                    <button
+                      onClick={(e) => toggleSaveProduct(e, p)}
+                      className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center text-stone-600 hover:text-rose-600 transition-colors shadow-2xs"
+                      title={isInWishlist(p.id) ? 'Remove from wishlist' : 'Save to wishlist'}
+                      aria-label={isInWishlist(p.id) ? 'Remove from wishlist' : 'Save to wishlist'}
+                    >
+                      <Heart
+                        className={`w-3.5 h-3.5 ${isInWishlist(p.id) ? 'fill-rose-500 text-rose-500' : ''}`}
                       />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-[#F4F7F0]">
-                        <Utensils className="w-8 h-8 text-[#656B4F]/60 mb-2" />
-                        <span className="text-xs font-bold text-[#50563D]">{p.name}</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-1 mb-3">
+                    <Link href={`/product/${p.id}`}>
+                      <h3 className="font-extrabold text-sm sm:text-base text-[#1E201D] group-hover:text-[#50563D] transition-colors line-clamp-2 min-h-[44px] leading-snug">
+                        {p.name}
+                      </h3>
+                    </Link>
+                    <p className="text-xs text-[#61665D] line-clamp-2 min-h-[32px] leading-relaxed">
+                      {p.description || 'Juicy, tender and full of authentic flavor.'}
+                    </p>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="font-black text-sm text-[#1E201D]">₹{p.price}</span>
+                        {p.mrp && p.mrp > p.price && (
+                          <span className="text-[10px] text-stone-400 line-through">₹{p.mrp}</span>
+                        )}
                       </div>
-                    )}
-                  </Link>
+
+                      <span className="text-[10px] font-bold text-[#50563D] bg-[#EAF0E5] px-2 py-0.5 rounded-full border border-[#656B4F]/20">
+                        {p.weight || '1 KG'}
+                      </span>
+                    </div>
+                  </div>
 
                   <button
-                    onClick={(e) => toggleSaveProduct(e, p)}
-                    className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center text-stone-600 hover:text-rose-600 transition-colors shadow-2xs"
-                    title={isInWishlist(p.id) ? 'Remove from wishlist' : 'Save to wishlist'}
-                    aria-label={isInWishlist(p.id) ? 'Remove from wishlist' : 'Save to wishlist'}
+                    onClick={(e) => handleAddToCart(p, e)}
+                    className="w-full py-2.5 rounded-xl bg-[#50563D] hover:bg-[#151F12] text-white font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95"
                   >
-                    <Heart
-                      className={`w-3.5 h-3.5 ${isInWishlist(p.id) ? 'fill-rose-500 text-rose-500' : ''}`}
-                    />
+                    <ShoppingBag className="w-3.5 h-3.5" />
+                    <span>Add to Cart</span>
                   </button>
                 </div>
-
-                <div className="space-y-1 mb-3">
-                  <Link href={`/product/${p.id}`}>
-                    <h3 className="font-extrabold text-sm sm:text-base text-[#1E201D] group-hover:text-[#50563D] transition-colors line-clamp-2 min-h-[44px] leading-snug">
-                      {p.name}
-                    </h3>
-                  </Link>
-                  <p className="text-xs text-[#61665D] line-clamp-2 min-h-[32px] leading-relaxed">
-                    {p.description || 'Juicy, tender and full of authentic flavor.'}
-                  </p>
-
-                  <div className="flex items-center justify-between pt-1">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="font-black text-sm text-[#1E201D]">₹{p.price}</span>
-                      {p.mrp && p.mrp > p.price && (
-                        <span className="text-[10px] text-stone-400 line-through">₹{p.mrp}</span>
-                      )}
-                    </div>
-
-                    <span className="text-[10px] font-bold text-[#50563D] bg-[#EAF0E5] px-2 py-0.5 rounded-full border border-[#656B4F]/20">
-                      {p.weight || '1 KG'}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={(e) => handleAddToCart(p, e)}
-                  className="w-full py-2.5 rounded-xl bg-[#50563D] hover:bg-[#151F12] text-white font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95"
-                >
-                  <ShoppingBag className="w-3.5 h-3.5" />
-                  <span>Add to Cart</span>
-                </button>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </section>
 

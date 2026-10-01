@@ -65,7 +65,7 @@ const orderSchema = new mongoose.Schema(
     followUpNotes: { type: String, default: '' },
     status: {
       type: String,
-      enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
+      enum: ['Pending', 'Awaiting Payment', 'Confirmed', 'Payment Failed', 'Cancelled', 'Processing', 'Shipped', 'Delivered'],
       default: 'Pending',
     },
   },

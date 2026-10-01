@@ -85,7 +85,7 @@ async function markPaymentCaptured({ razorpayOrderId, razorpayPaymentId, razorpa
 
       updatedOrder = await Order.findOneAndUpdate(
         { _id: order._id, paymentStatus: 'Pending', stockCommitted: false },
-        { razorpayPaymentId, razorpaySignature, paymentStatus: 'Paid', status: 'Processing', paymentVerifiedAt: new Date(), stockCommitted: true },
+        { razorpayPaymentId, razorpaySignature, paymentStatus: 'Paid', status: 'Confirmed', paymentVerifiedAt: new Date(), stockCommitted: true },
         { new: true, session, runValidators: true }
       );
       if (!updatedOrder) return;
@@ -156,7 +156,11 @@ router.post('/webhook', async (req, res, next) => {
       const verifiedPayment = await withRetry(() => getRazorpay().payments.fetch(payment.id));
       if (verifiedPayment.order_id !== payment.order_id || verifiedPayment.status !== 'failed') return res.status(400).json({ success: false, error: 'Payment could not be verified' });
       await PaymentEvent.updateOne({ eventId }, { $setOnInsert: { eventId, eventType, razorpayPaymentId: payment.id } }, { upsert: true });
-      const failedOrder = await Order.findOneAndUpdate({ razorpayOrderId: payment.order_id, paymentStatus: 'Pending' }, { $set: { paymentStatus: 'Failed' } }, { new: true });
+      const failedOrder = await Order.findOneAndUpdate(
+        { razorpayOrderId: payment.order_id, paymentStatus: 'Pending' },
+        { $set: { paymentStatus: 'Failed', status: 'Payment Failed', isLocked: true, failureReason: 'Payment transaction failed' } },
+        { new: true }
+      );
       if (failedOrder) void queueOrderNotifications(failedOrder, 'payment.failed');
     }
 

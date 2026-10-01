@@ -48,10 +48,11 @@ import {
   ChevronDown,
   Sparkles,
   Lock,
-  AlertTriangle
+  AlertTriangle,
+  Snowflake
 } from 'lucide-react';
 import { ProductType, OrderType, UserType, CategoryType } from '@/lib/types';
-import { fetchApi } from '@/lib/apiConfig';
+import { fetchApi, getCachedData, setCachedData, invalidateCache } from '@/lib/apiConfig';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import ImageUploader from '@/components/ImageUploader';
 import OptimizedImage from '@/components/OptimizedImage';
@@ -116,7 +117,7 @@ export default function AdminPortalPage() {
 
   // Orders Filter & UI States
   const [orderSearch, setOrderSearch] = useState('');
-  const [orderStatusFilter, setOrderStatusFilter] = useState<'All' | 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled'>('All');
+  const [orderStatusFilter, setOrderStatusFilter] = useState<'All' | 'Confirmed' | 'Awaiting Payment' | 'Payment Failed' | 'Cancelled'>('All');
   const [orderPaymentFilter, setOrderPaymentFilter] = useState<'All' | 'Paid' | 'Pending' | 'Failed' | 'Refunded'>('All');
   const [orderSort, setOrderSort] = useState<'newest' | 'oldest' | 'highest' | 'lowest'>('newest');
   const [copiedText, setCopiedText] = useState<string | null>(null);
@@ -179,7 +180,10 @@ export default function AdminPortalPage() {
         fetchApi('/reviews'),
       ]);
 
-      if (prodData.success) setProducts(prodData.data);
+      if (prodData.success && Array.isArray(prodData.data)) {
+        setProducts(prodData.data);
+        setCachedData('admin_products', prodData.data);
+      }
       if (ordData.success && Array.isArray(ordData.data)) {
         if (previousOrderCountRef.current !== null && ordData.data.length > previousOrderCountRef.current) {
           const diff = ordData.data.length - previousOrderCountRef.current;
@@ -189,10 +193,20 @@ export default function AdminPortalPage() {
         }
         previousOrderCountRef.current = ordData.data.length;
         setOrders(ordData.data);
+        setCachedData('admin_orders', ordData.data);
       }
-      if (usrData.success) setUsers(usrData.data);
-      if (catData.success) setCategories(catData.data);
-      if (revData.success) setReviews(revData.data);
+      if (usrData.success && Array.isArray(usrData.data)) {
+        setUsers(usrData.data);
+        setCachedData('admin_users', usrData.data);
+      }
+      if (catData.success && Array.isArray(catData.data)) {
+        setCategories(catData.data);
+        setCachedData('admin_categories', catData.data);
+      }
+      if (revData.success && Array.isArray(revData.data)) {
+        setReviews(revData.data);
+        setCachedData('admin_reviews', revData.data);
+      }
       setLastSyncedTime(new Date());
     } catch (error) {
       console.error('Error loading admin dashboard data');
@@ -203,7 +217,42 @@ export default function AdminPortalPage() {
   };
 
   useEffect(() => {
-    fetchData();
+    // 1. Instant Cache Hydration for 0ms load
+    const cachedProds = getCachedData<ProductType[]>('admin_products');
+    const cachedOrds = getCachedData<OrderType[]>('admin_orders');
+    const cachedUsrs = getCachedData<UserType[]>('admin_users');
+    const cachedCats = getCachedData<CategoryType[]>('admin_categories');
+    const cachedRevs = getCachedData<any[]>('admin_reviews');
+
+    let hasCached = false;
+    if (cachedProds && Array.isArray(cachedProds) && cachedProds.length > 0) {
+      setProducts(cachedProds);
+      hasCached = true;
+    }
+    if (cachedOrds && Array.isArray(cachedOrds) && cachedOrds.length > 0) {
+      setOrders(cachedOrds);
+      previousOrderCountRef.current = cachedOrds.length;
+      hasCached = true;
+    }
+    if (cachedUsrs && Array.isArray(cachedUsrs) && cachedUsrs.length > 0) {
+      setUsers(cachedUsrs);
+      hasCached = true;
+    }
+    if (cachedCats && Array.isArray(cachedCats) && cachedCats.length > 0) {
+      setCategories(cachedCats);
+      hasCached = true;
+    }
+    if (cachedRevs && Array.isArray(cachedRevs) && cachedRevs.length > 0) {
+      setReviews(cachedRevs);
+      hasCached = true;
+    }
+
+    if (hasCached) {
+      setLoading(false);
+      fetchData(true); // silent background revalidation
+    } else {
+      fetchData(false); // first time cold loading with skeleton
+    }
   }, []);
 
   // Live Auto-Refresh Polling Hook
@@ -571,11 +620,9 @@ export default function AdminPortalPage() {
 
   // Metrics
   const totalRevenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
-  const pendingOrdersCount = orders.filter(o => o.status === 'Pending').length;
-  const processingOrdersCount = orders.filter(o => o.status === 'Processing').length;
-  const shippedOrdersCount = orders.filter(o => o.status === 'Shipped').length;
-  const deliveredOrdersCount = orders.filter(o => o.status === 'Delivered').length;
-  const cancelledOrdersCount = orders.filter(o => o.status === 'Cancelled').length;
+  const confirmedOrdersCount = orders.filter(o => o.status === 'Confirmed' || o.paymentStatus === 'Paid' || o.status === 'Processing' || o.status === 'Shipped' || o.status === 'Delivered').length;
+  const awaitingPaymentOrdersCount = orders.filter(o => !isOrderFailedOrExpired(o) && (o.status === 'Awaiting Payment' || o.status === 'Pending') && o.paymentStatus === 'Pending').length;
+  const failedOrCancelledOrdersCount = orders.filter(o => isOrderFailedOrExpired(o) || o.status === 'Payment Failed' || o.status === 'Cancelled').length;
 
   // Business & Marketing Log Lists
   const issueOrders = orders.filter((o) => isOrderFailedOrExpired(o));
@@ -606,7 +653,20 @@ export default function AdminPortalPage() {
       const matchItems = o.items?.some(i => i.name.toLowerCase().includes(q));
       if (!matchNum && !matchName && !matchPhone && !matchEmail && !matchAddr && !matchItems) return false;
     }
-    if (orderStatusFilter !== 'All' && o.status !== orderStatusFilter) return false;
+    if (orderStatusFilter !== 'All') {
+      if (orderStatusFilter === 'Confirmed') {
+        const isConfirmed = o.status === 'Confirmed' || o.paymentStatus === 'Paid' || o.status === 'Processing' || o.status === 'Shipped' || o.status === 'Delivered';
+        if (!isConfirmed || isOrderFailedOrExpired(o)) return false;
+      } else if (orderStatusFilter === 'Awaiting Payment') {
+        const isAwaiting = !isOrderFailedOrExpired(o) && (o.status === 'Awaiting Payment' || o.status === 'Pending') && o.paymentStatus === 'Pending';
+        if (!isAwaiting) return false;
+      } else if (orderStatusFilter === 'Payment Failed') {
+        const isFailed = isOrderFailedOrExpired(o) || o.status === 'Payment Failed';
+        if (!isFailed) return false;
+      } else if (orderStatusFilter === 'Cancelled') {
+        if (o.status !== 'Cancelled') return false;
+      }
+    }
     if (orderPaymentFilter !== 'All') {
       const pStatus = o.paymentStatus || 'Pending';
       if (pStatus !== orderPaymentFilter) return false;
@@ -635,11 +695,9 @@ export default function AdminPortalPage() {
 
   // Prepare data for Recharts
   const revenueByStatus = [
-    { name: 'Pending', value: orders.filter(o => o.status === 'Pending').reduce((acc, o) => acc + o.totalAmount, 0) },
-    { name: 'Processing', value: orders.filter(o => o.status === 'Processing').reduce((acc, o) => acc + o.totalAmount, 0) },
-    { name: 'Shipped', value: orders.filter(o => o.status === 'Shipped').reduce((acc, o) => acc + o.totalAmount, 0) },
-    { name: 'Delivered', value: orders.filter(o => o.status === 'Delivered').reduce((acc, o) => acc + o.totalAmount, 0) },
-    { name: 'Cancelled', value: orders.filter(o => o.status === 'Cancelled').reduce((acc, o) => acc + o.totalAmount, 0) }
+    { name: 'Confirmed', value: orders.filter(o => o.status === 'Confirmed' || o.paymentStatus === 'Paid').reduce((acc, o) => acc + o.totalAmount, 0) },
+    { name: 'Awaiting Payment', value: orders.filter(o => !isOrderFailedOrExpired(o) && (o.status === 'Awaiting Payment' || o.status === 'Pending') && o.paymentStatus === 'Pending').reduce((acc, o) => acc + o.totalAmount, 0) },
+    { name: 'Failed / Cancelled', value: orders.filter(o => isOrderFailedOrExpired(o) || o.status === 'Payment Failed' || o.status === 'Cancelled').reduce((acc, o) => acc + o.totalAmount, 0) }
   ];
 
   return (
@@ -779,7 +837,13 @@ export default function AdminPortalPage() {
                 >
                   <NavIcon className={`h-4 w-4 shrink-0 ${id === 'reviews' && !isActive ? 'fill-amber-500 text-amber-500' : ''}`} />
                   <span className="truncate">{String(label)}</span>
-                  {count !== null && <span className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] ${isActive ? 'bg-white/20' : 'bg-[#EAF0E5] text-[#656B4F]'}`}>{count as number}</span>}
+                  {count !== null && (
+                    loading ? (
+                      <span className="ml-auto w-4 h-4 rounded-full bg-[#EAF0E5] animate-pulse" />
+                    ) : (
+                      <span className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] ${isActive ? 'bg-white/20' : 'bg-[#EAF0E5] text-[#656B4F]'}`}>{count as number}</span>
+                    )
+                  )}
                 </button>
               );
             })}
@@ -797,9 +861,13 @@ export default function AdminPortalPage() {
             <div className="w-12 h-12 rounded-xl bg-[#656B4F] text-white flex items-center justify-center shrink-0">
               <DollarSign className="w-6 h-6" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <span className="text-xs text-[#61665D] block font-medium">Total Revenue</span>
-              <span className="text-2xl font-black text-[#1E201D]">₹{totalRevenue.toLocaleString()}</span>
+              {loading ? (
+                <div className="h-7 w-28 bg-[#E8EEE0] rounded-lg animate-pulse mt-1" />
+              ) : (
+                <span className="text-2xl font-black text-[#1E201D]">₹{totalRevenue.toLocaleString()}</span>
+              )}
             </div>
           </div>
 
@@ -807,9 +875,13 @@ export default function AdminPortalPage() {
             <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
               <ShoppingBag className="w-6 h-6" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <span className="text-xs text-[#61665D] block font-medium">Total Orders</span>
-              <span className="text-2xl font-black text-[#1E201D]">{orders.length}</span>
+              {loading ? (
+                <div className="h-7 w-16 bg-[#E8EEE0] rounded-lg animate-pulse mt-1" />
+              ) : (
+                <span className="text-2xl font-black text-[#1E201D]">{orders.length}</span>
+              )}
             </div>
           </div>
 
@@ -817,9 +889,13 @@ export default function AdminPortalPage() {
             <div className="w-12 h-12 rounded-xl bg-[#656B4F] text-white flex items-center justify-center shrink-0">
               <Package className="w-6 h-6" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <span className="text-xs text-[#61665D] block font-medium">Active Products</span>
-              <span className="text-2xl font-black text-[#1E201D]">{products.length}</span>
+              {loading ? (
+                <div className="h-7 w-16 bg-[#E8EEE0] rounded-lg animate-pulse mt-1" />
+              ) : (
+                <span className="text-2xl font-black text-[#1E201D]">{products.length}</span>
+              )}
             </div>
           </div>
 
@@ -827,9 +903,13 @@ export default function AdminPortalPage() {
             <div className="w-12 h-12 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0">
               <Users className="w-6 h-6" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <span className="text-xs text-[#61665D] block font-medium">Registered Users</span>
-              <span className="text-2xl font-black text-[#1E201D]">{users.length}</span>
+              {loading ? (
+                <div className="h-7 w-16 bg-[#E8EEE0] rounded-lg animate-pulse mt-1" />
+              ) : (
+                <span className="text-2xl font-black text-[#1E201D]">{users.length}</span>
+              )}
             </div>
           </div>
         </div>
@@ -912,21 +992,29 @@ export default function AdminPortalPage() {
         {activeTab === 'analytics' && (
           <div className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm sm:p-6">
             <h3 className="mb-4 text-base font-bold text-[#1E201D] sm:mb-6 sm:text-xl font-poppins">Revenue by Order Status</h3>
-            <div className="h-56 w-full sm:h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={revenueByStatus} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EAF0E5" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#61665D', fontSize: 12 }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#61665D', fontSize: 12 }} tickFormatter={(val) => `₹${val}`} />
-                  <RechartsTooltip 
-                    cursor={{ fill: '#E8EEE0' }}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    formatter={(value: any) => [`₹${value}`, 'Revenue']}
-                  />
-                  <Bar dataKey="value" fill="#656B4F" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            {loading ? (
+              <div className="h-56 w-full sm:h-80 flex items-end justify-around gap-6 p-6 bg-[#FAFAF5] rounded-2xl animate-pulse">
+                <div className="w-20 bg-[#E8EEE0] rounded-t-xl h-3/5" />
+                <div className="w-20 bg-[#E8EEE0] rounded-t-xl h-4/5" />
+                <div className="w-20 bg-[#E8EEE0] rounded-t-xl h-2/5" />
+              </div>
+            ) : (
+              <div className="h-56 w-full sm:h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={revenueByStatus} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EAF0E5" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#61665D', fontSize: 12 }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#61665D', fontSize: 12 }} tickFormatter={(val) => `₹${val}`} />
+                    <RechartsTooltip 
+                      cursor={{ fill: '#E8EEE0' }}
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      formatter={(value: any) => [`₹${value}`, 'Revenue']}
+                    />
+                    <Bar dataKey="value" fill="#656B4F" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </div>
         )}
 
@@ -972,154 +1060,205 @@ export default function AdminPortalPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#4F534C]/10">
-                    {filteredProducts.map((p, index) => (
-                      <React.Fragment key={p.id}>
-                        {(index === 0 || filteredProducts[index - 1].category !== p.category) && (
-                          <tr className="bg-[#F3FBEE]">
-                            <td colSpan={9} className="px-4 py-3">
-                              <div className="flex items-center justify-between gap-3">
-                                <div>
-                                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#656B4F]">
-                                    {isRetailCategory(p.category) ? 'Retail Packs' : 'Regular Packs'}
-                                  </p>
-                                  <h3 className="mt-0.5 text-sm font-black text-[#2F2F2F]">{p.category}</h3>
-                                </div>
-                                <span className="text-[11px] font-bold text-[#61665D]">Category section</span>
+                    {loading ? (
+                      [1, 2, 3, 4, 5, 6].map((n) => (
+                        <tr key={n} className="animate-pulse">
+                          <td className="py-3.5 px-4"><div className="h-4 bg-[#E8EEE0] rounded w-14" /></td>
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-[#E8EEE0] shrink-0" />
+                              <div className="space-y-1.5 flex-1">
+                                <div className="h-4 bg-[#E8EEE0] rounded w-36" />
+                                <div className="h-3 bg-[#E8EEE0] rounded w-48" />
                               </div>
-                            </td>
-                          </tr>
-                        )}
-                      <tr className="hover:bg-[#EAF0E5]/30 transition-colors">
-                        <td className="py-3 px-4 font-bold text-[#656B4F]">#{p.code}</td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
-                            <OptimizedImage
-                              src={p.image}
-                              alt={p.name}
-                              width={96}
-                              className="w-10 h-10 rounded-lg object-cover border border-[#4F534C]/15 shrink-0"
-                            />
-                            <div>
-                              <span className="font-bold block text-sm">{p.name}</span>
-                              <span className="text-[11px] text-[#61665D] line-clamp-1">{p.description}</span>
                             </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 font-semibold text-[#61665D]">{p.category}</td>
-                        <td className="py-3 px-4">
-                          <div className="flex flex-wrap items-center gap-1">
-                            <span className="bg-[#EAF0E5] text-[#656B4F] font-bold px-2 py-0.5 rounded text-[11px]" title="Base Weight">
-                              {p.weight}
-                            </span>
-                            {p.variants?.map((v, idx) => (
-                              <span key={idx} className="bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded text-[11px]" title="Custom Option">
-                                {v.weight}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-[#61665D] line-through">
-                          ₹{p.mrp ?? p.price}
-                        </td>
-                        <td className="py-3 px-4 font-black text-sm text-[#656B4F]">
-                          ₹{p.price}
-                          {p.variants && p.variants.length > 0 && (
-                            <span className="block text-[10px] text-[#61665D] font-normal">
-                              + {p.variants.map((v) => `₹${v.price}`).join(', ')}
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span
-                            className={`font-bold px-2 py-0.5 rounded text-[11px] ${
-                              p.stock > 20
-                                ? 'bg-[#EAF0E5] text-[#50563D] border border-[#656B4F]/20'
-                                : p.stock > 0
-                                ? 'bg-amber-100 text-amber-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {p.stock} units
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              await fetchApi(`/products/${p.id}`, {
-                                method: 'PUT',
-                                body: JSON.stringify({ isPopular: !p.isPopular }),
-                              });
-                              fetchData();
-                            }}
-                            className={`px-3 py-1 rounded-xl text-[11px] font-black transition-all flex items-center gap-1 shadow-xs ${
-                              p.isPopular
-                                ? 'bg-amber-500 text-white shadow-amber-200'
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 border border-gray-300'
-                            }`}
-                          >
-                            <Flame className={`w-3.5 h-3.5 ${p.isPopular ? 'fill-white' : ''}`} />
-                            <span>{p.isPopular ? 'Best Seller ON' : 'Off'}</span>
-                          </button>
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => openEditModal(p)}
-                              className="p-1.5 rounded-lg text-blue-700 hover:bg-blue-50 transition-colors"
-                              title="Edit product"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteProduct(p.id, p.name)}
-                              className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
-                              title="Delete product"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
+                          </td>
+                          <td className="py-3.5 px-4"><div className="h-4 bg-[#E8EEE0] rounded w-24" /></td>
+                          <td className="py-3.5 px-4"><div className="h-5 bg-[#E8EEE0] rounded w-14" /></td>
+                          <td className="py-3.5 px-4"><div className="h-4 bg-[#E8EEE0] rounded w-14" /></td>
+                          <td className="py-3.5 px-4"><div className="h-4 bg-[#E8EEE0] rounded w-16" /></td>
+                          <td className="py-3.5 px-4"><div className="h-5 bg-[#E8EEE0] rounded w-16" /></td>
+                          <td className="py-3.5 px-4"><div className="h-7 bg-[#E8EEE0] rounded-xl w-24" /></td>
+                          <td className="py-3.5 px-4 text-right"><div className="h-7 bg-[#E8EEE0] rounded-lg w-16 ml-auto" /></td>
+                        </tr>
+                      ))
+                    ) : filteredProducts.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="py-12 text-center text-[#61665D]">
+                          <Package className="w-10 h-10 mx-auto text-[#656B4F]/40 mb-2" />
+                          <p className="font-bold text-sm text-[#1E201D]">No products found</p>
+                          <p className="text-xs text-[#61665D] mt-0.5">Try changing your search term.</p>
                         </td>
                       </tr>
-                      </React.Fragment>
-                    ))}
+                    ) : (
+                      filteredProducts.map((p, index) => (
+                        <React.Fragment key={p.id}>
+                          {(index === 0 || filteredProducts[index - 1].category !== p.category) && (
+                            <tr className="bg-[#F3FBEE]">
+                              <td colSpan={9} className="px-4 py-3">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#656B4F]">
+                                      {isRetailCategory(p.category) ? 'Retail Packs' : 'Regular Packs'}
+                                    </p>
+                                    <h3 className="mt-0.5 text-sm font-black text-[#2F2F2F]">{p.category}</h3>
+                                  </div>
+                                  <span className="text-[11px] font-bold text-[#61665D]">Category section</span>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        <tr className="hover:bg-[#EAF0E5]/30 transition-colors">
+                          <td className="py-3 px-4 font-bold text-[#656B4F]">#{p.code}</td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-3">
+                              <OptimizedImage
+                                src={p.image}
+                                alt={p.name}
+                                width={96}
+                                className="w-10 h-10 rounded-lg object-cover border border-[#4F534C]/15 shrink-0"
+                              />
+                              <div>
+                                <span className="font-bold block text-sm">{p.name}</span>
+                                <span className="text-[11px] text-[#61665D] line-clamp-1">{p.description}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 font-semibold text-[#61665D]">{p.category}</td>
+                          <td className="py-3 px-4">
+                            <div className="flex flex-wrap items-center gap-1">
+                              <span className="bg-[#EAF0E5] text-[#656B4F] font-bold px-2 py-0.5 rounded text-[11px]" title="Base Weight">
+                                {p.weight}
+                              </span>
+                              {p.variants?.map((v, idx) => (
+                                <span key={idx} className="bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded text-[11px]" title="Custom Option">
+                                  {v.weight}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-sm text-[#61665D] line-through">
+                            ₹{p.mrp ?? p.price}
+                          </td>
+                          <td className="py-3 px-4 font-black text-sm text-[#656B4F]">
+                            ₹{p.price}
+                            {p.variants && p.variants.length > 0 && (
+                              <span className="block text-[10px] text-[#61665D] font-normal">
+                                + {p.variants.map((v) => `₹${v.price}`).join(', ')}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`font-bold px-2 py-0.5 rounded text-[11px] ${
+                                p.stock > 20
+                                  ? 'bg-[#EAF0E5] text-[#50563D] border border-[#656B4F]/20'
+                                  : p.stock > 0
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}
+                            >
+                              {p.stock} units
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                await fetchApi(`/products/${p.id}`, {
+                                  method: 'PUT',
+                                  body: JSON.stringify({ isPopular: !p.isPopular }),
+                                });
+                                fetchData();
+                              }}
+                              className={`px-3 py-1 rounded-xl text-[11px] font-black transition-all flex items-center gap-1 shadow-xs ${
+                                p.isPopular
+                                  ? 'bg-amber-500 text-white shadow-amber-200'
+                                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200 border border-gray-300'
+                              }`}
+                            >
+                              <Flame className={`w-3.5 h-3.5 ${p.isPopular ? 'fill-white' : ''}`} />
+                              <span>{p.isPopular ? 'Best Seller ON' : 'Off'}</span>
+                            </button>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => openEditModal(p)}
+                                className="p-1.5 rounded-lg text-blue-700 hover:bg-blue-50 transition-colors"
+                                title="Edit product"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteProduct(p.id, p.name)}
+                                className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+                                title="Delete product"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        </React.Fragment>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
             <div className="grid gap-3 xl:hidden">
-              {filteredProducts.map((p, index) => (
-                <React.Fragment key={p.id}>
-                  {(index === 0 || filteredProducts[index - 1].category !== p.category) && (
-                    <div className="border-b border-[#4F534C]/15 pb-3 pt-2">
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#656B4F]">
-                        {isRetailCategory(p.category) ? 'Retail Packs' : 'Regular Packs'}
-                      </p>
-                      <h3 className="mt-1 text-lg font-black text-[#2F2F2F]">{p.category}</h3>
+              {loading ? (
+                [1, 2, 3, 4].map((n) => (
+                  <article key={n} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm animate-pulse space-y-3">
+                    <div className="flex gap-3">
+                      <div className="h-16 w-16 rounded-xl bg-[#E8EEE0] shrink-0" />
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <div className="h-3 bg-[#E8EEE0] rounded w-24" />
+                        <div className="h-4 bg-[#E8EEE0] rounded w-40" />
+                        <div className="h-3 bg-[#E8EEE0] rounded w-32" />
+                      </div>
                     </div>
-                  )}
-                <article className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
-                  <div className="flex gap-3">
-                    <OptimizedImage src={p.image} alt={p.name} width={160} className="h-16 w-16 shrink-0 rounded-xl object-cover" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#656B4F]">#{p.code} · {p.category}</p>
-                      <h3 className="truncate text-sm font-black text-[#1E201D]">{p.name}</h3>
-                      <p className="mt-1 line-clamp-2 text-xs text-[#61665D]">{p.description}</p>
+                    <div className="border-t border-[#4F534C]/10 pt-3 flex gap-2">
+                      <div className="h-5 bg-[#E8EEE0] rounded w-16" />
+                      <div className="h-5 bg-[#E8EEE0] rounded w-20" />
                     </div>
-                  </div>
-                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#4F534C]/10 pt-3 text-xs">
-                    <span className="rounded bg-[#EAF0E5] px-2 py-1 font-bold text-[#656B4F]">{p.weight}</span>
-                    <span className="text-[#61665D] line-through">MRP ₹{p.mrp ?? p.price}</span>
-                    <span className="font-black text-[#656B4F]">₹{p.price}</span>
-                    <span className="rounded bg-amber-100 px-2 py-1 font-bold text-amber-800">{p.stock} in stock</span>
-                    <div className="ml-auto flex items-center gap-1">
-                      <button onClick={() => openEditModal(p)} className="rounded-lg p-2 text-blue-700 hover:bg-blue-50" aria-label={`Edit ${p.name}`}><Edit className="h-4 w-4" /></button>
-                      <button onClick={() => handleDeleteProduct(p.id, p.name)} className="rounded-lg p-2 text-red-600 hover:bg-red-50" aria-label={`Delete ${p.name}`}><Trash2 className="h-4 w-4" /></button>
+                  </article>
+                ))
+              ) : (
+                filteredProducts.map((p, index) => (
+                  <React.Fragment key={p.id}>
+                    {(index === 0 || filteredProducts[index - 1].category !== p.category) && (
+                      <div className="border-b border-[#4F534C]/15 pb-3 pt-2">
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#656B4F]">
+                          {isRetailCategory(p.category) ? 'Retail Packs' : 'Regular Packs'}
+                        </p>
+                        <h3 className="mt-1 text-lg font-black text-[#2F2F2F]">{p.category}</h3>
+                      </div>
+                    )}
+                  <article className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
+                    <div className="flex gap-3">
+                      <OptimizedImage src={p.image} alt={p.name} width={160} className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-[#656B4F]">#{p.code} · {p.category}</p>
+                        <h3 className="truncate text-sm font-black text-[#1E201D]">{p.name}</h3>
+                        <p className="mt-1 line-clamp-2 text-xs text-[#61665D]">{p.description}</p>
+                      </div>
                     </div>
-                  </div>
-                </article>
-                </React.Fragment>
-              ))}
+                    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#4F534C]/10 pt-3 text-xs">
+                      <span className="rounded bg-[#EAF0E5] px-2 py-1 font-bold text-[#656B4F]">{p.weight}</span>
+                      <span className="text-[#61665D] line-through">MRP ₹{p.mrp ?? p.price}</span>
+                      <span className="font-black text-[#656B4F]">₹{p.price}</span>
+                      <span className="rounded bg-amber-100 px-2 py-1 font-bold text-amber-800">{p.stock} in stock</span>
+                      <div className="ml-auto flex items-center gap-1">
+                        <button onClick={() => openEditModal(p)} className="rounded-lg p-2 text-blue-700 hover:bg-blue-50" aria-label={`Edit ${p.name}`}><Edit className="h-4 w-4" /></button>
+                        <button onClick={() => handleDeleteProduct(p.id, p.name)} className="rounded-lg p-2 text-red-600 hover:bg-red-50" aria-label={`Delete ${p.name}`}><Trash2 className="h-4 w-4" /></button>
+                      </div>
+                    </div>
+                  </article>
+                  </React.Fragment>
+                ))
+              )}
             </div>
           </div>
         )}
@@ -1149,50 +1288,84 @@ export default function AdminPortalPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#4F534C]/10">
-                    {categories.map((cat) => (
-                      <tr key={cat.id} className="hover:bg-[#EAF0E5]/30 transition-colors">
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
-                            <OptimizedImage
-                              src={cat.image}
-                              alt={cat.name}
-                              width={96}
-                              className="w-10 h-10 rounded-lg object-cover border border-[#4F534C]/15 shrink-0"
-                            />
-                            <span className="font-bold block text-sm">{cat.name}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-[#61665D] line-clamp-2">{cat.description}</td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {cat.id.startsWith('product-') ? <span className="text-[10px] font-semibold text-[#68705C]">From products</span> : <>
-                              <button onClick={() => openEditCategoryModal(cat)} className="p-1.5 rounded-lg text-blue-700 hover:bg-blue-50 transition-colors"><Edit className="w-4 h-4" /></button>
-                              <button onClick={() => handleDeleteCategory(cat.id, cat.name)} className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                            </>}
-                          </div>
+                    {loading ? (
+                      [1, 2, 3, 4].map((n) => (
+                        <tr key={n} className="animate-pulse">
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-[#E8EEE0] shrink-0" />
+                              <div className="h-4 bg-[#E8EEE0] rounded w-32" />
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4"><div className="h-3.5 bg-[#E8EEE0] rounded w-48" /></td>
+                          <td className="py-3.5 px-4 text-right"><div className="h-7 bg-[#E8EEE0] rounded-lg w-16 ml-auto" /></td>
+                        </tr>
+                      ))
+                    ) : categories.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="py-12 text-center text-[#61665D]">
+                          <List className="w-10 h-10 mx-auto text-[#656B4F]/40 mb-2" />
+                          <p className="font-bold text-sm text-[#1E201D]">No categories found</p>
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      categories.map((cat) => (
+                        <tr key={cat.id} className="hover:bg-[#EAF0E5]/30 transition-colors">
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-3">
+                              <OptimizedImage
+                                src={cat.image}
+                                alt={cat.name}
+                                width={96}
+                                className="w-10 h-10 rounded-lg object-cover border border-[#4F534C]/15 shrink-0"
+                              />
+                              <span className="font-bold block text-sm">{cat.name}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-[#61665D] line-clamp-2">{cat.description}</td>
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {cat.id.startsWith('product-') ? <span className="text-[10px] font-semibold text-[#68705C]">From products</span> : <>
+                                <button onClick={() => openEditCategoryModal(cat)} className="p-1.5 rounded-lg text-blue-700 hover:bg-blue-50 transition-colors"><Edit className="w-4 h-4" /></button>
+                                <button onClick={() => handleDeleteCategory(cat.id, cat.name)} className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                              </>}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
             <div className="grid gap-3 xl:hidden">
-              {categories.map((cat) => (
-                <article key={cat.id} className="flex items-center gap-3 rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
-                  <OptimizedImage src={cat.image} alt={cat.name} width={112} className="h-14 w-14 shrink-0 rounded-xl object-cover" />
-                  <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-sm font-black">{cat.name}</h3>
-                    <p className="mt-1 line-clamp-2 text-xs text-[#61665D]">{cat.description}</p>
-                  </div>
-                  <div className="flex shrink-0 gap-1">
-                    {cat.id.startsWith('product-') ? <span className="self-center text-[10px] font-semibold text-[#68705C]">From products</span> : <>
-                      <button onClick={() => openEditCategoryModal(cat)} className="rounded-lg p-2 text-blue-700 hover:bg-blue-50" aria-label={`Edit ${cat.name}`}><Edit className="h-4 w-4" /></button>
-                      <button onClick={() => handleDeleteCategory(cat.id, cat.name)} className="rounded-lg p-2 text-red-600 hover:bg-red-50" aria-label={`Delete ${cat.name}`}><Trash2 className="h-4 w-4" /></button>
-                    </>}
-                  </div>
-                </article>
-              ))}
+              {loading ? (
+                [1, 2, 3].map((n) => (
+                  <article key={n} className="flex items-center gap-3 rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm animate-pulse">
+                    <div className="h-14 w-14 rounded-xl bg-[#E8EEE0] shrink-0" />
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="h-4 bg-[#E8EEE0] rounded w-28" />
+                      <div className="h-3 bg-[#E8EEE0] rounded w-40" />
+                    </div>
+                  </article>
+                ))
+              ) : (
+                categories.map((cat) => (
+                  <article key={cat.id} className="flex items-center gap-3 rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
+                    <OptimizedImage src={cat.image} alt={cat.name} width={112} className="h-14 w-14 shrink-0 rounded-xl object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-sm font-black">{cat.name}</h3>
+                      <p className="mt-1 line-clamp-2 text-xs text-[#61665D]">{cat.description}</p>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      {cat.id.startsWith('product-') ? <span className="self-center text-[10px] font-semibold text-[#68705C]">From products</span> : <>
+                        <button onClick={() => openEditCategoryModal(cat)} className="rounded-lg p-2 text-blue-700 hover:bg-blue-50" aria-label={`Edit ${cat.name}`}><Edit className="h-4 w-4" /></button>
+                        <button onClick={() => handleDeleteCategory(cat.id, cat.name)} className="rounded-lg p-2 text-red-600 hover:bg-red-50" aria-label={`Delete ${cat.name}`}><Trash2 className="h-4 w-4" /></button>
+                      </>}
+                    </div>
+                  </article>
+                ))
+              )}
             </div>
           </div>
         )}
@@ -1201,61 +1374,59 @@ export default function AdminPortalPage() {
         {activeTab === 'orders' && (
           <div className="space-y-5">
             {/* Real-time Order Health KPI Bar */}
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6 sm:gap-3">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
               <div className="p-3.5 rounded-2xl bg-white border border-[#4F534C]/15 shadow-xs">
                 <span className="text-[10px] uppercase font-bold text-[#61665D] block tracking-wider">All Orders</span>
-                <div className="flex items-baseline justify-between mt-1">
-                  <span className="text-xl sm:text-2xl font-black text-[#1E201D]">{orders.length}</span>
-                  <span className="text-[11px] font-bold text-[#656B4F]">₹{totalRevenue.toLocaleString()}</span>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80 shadow-xs">
-                <span className="text-[10px] uppercase font-bold text-amber-800 block tracking-wider flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Pending
-                </span>
-                <div className="flex items-baseline justify-between mt-1">
-                  <span className="text-xl sm:text-2xl font-black text-amber-900">{pendingOrdersCount}</span>
-                  <span className="text-[10px] font-bold text-amber-700">Needs Action</span>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200/80 shadow-xs">
-                <span className="text-[10px] uppercase font-bold text-blue-800 block tracking-wider flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> Processing
-                </span>
-                <div className="flex items-baseline justify-between mt-1">
-                  <span className="text-xl sm:text-2xl font-black text-blue-900">{processingOrdersCount}</span>
-                  <span className="text-[10px] font-bold text-blue-700">In Prep</span>
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-2xl bg-purple-50/70 border border-purple-200/80 shadow-xs">
-                <span className="text-[10px] uppercase font-bold text-purple-800 block tracking-wider flex items-center gap-1">
-                  <Truck className="w-3 h-3" /> In Transit
-                </span>
-                <div className="flex items-baseline justify-between mt-1">
-                  <span className="text-xl sm:text-2xl font-black text-purple-900">{shippedOrdersCount}</span>
-                  <span className="text-[10px] font-bold text-purple-700">Shipped</span>
-                </div>
+                {loading ? (
+                  <div className="h-7 w-24 bg-[#E8EEE0] rounded-lg animate-pulse mt-1" />
+                ) : (
+                  <div className="flex items-baseline justify-between mt-1">
+                    <span className="text-xl sm:text-2xl font-black text-[#1E201D]">{orders.length}</span>
+                    <span className="text-[11px] font-bold text-[#656B4F]">₹{totalRevenue.toLocaleString()}</span>
+                  </div>
+                )}
               </div>
 
               <div className="p-3.5 rounded-2xl bg-[#EAF0E5]/70 border border-[#656B4F]/30 shadow-xs">
                 <span className="text-[10px] uppercase font-bold text-[#50563D] block tracking-wider flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3 text-[#656B4F]" /> Completed
+                  <CheckCircle2 className="w-3 h-3 text-[#656B4F]" /> Confirmed
                 </span>
-                <div className="flex items-baseline justify-between mt-1">
-                  <span className="text-xl sm:text-2xl font-black text-[#2D3823]">{deliveredOrdersCount}</span>
-                  <span className="text-[10px] font-bold text-[#656B4F]">Delivered</span>
-                </div>
+                {loading ? (
+                  <div className="h-7 w-20 bg-[#D8E4D1] rounded-lg animate-pulse mt-1" />
+                ) : (
+                  <div className="flex items-baseline justify-between mt-1">
+                    <span className="text-xl sm:text-2xl font-black text-[#2D3823]">{confirmedOrdersCount}</span>
+                    <span className="text-[10px] font-bold text-[#656B4F]">Paid / Confirmed</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80 shadow-xs">
+                <span className="text-[10px] uppercase font-bold text-amber-800 block tracking-wider flex items-center gap-1">
+                  <Clock className="w-3 h-3 animate-pulse text-amber-600" /> Awaiting Payment
+                </span>
+                {loading ? (
+                  <div className="h-7 w-20 bg-amber-100 rounded-lg animate-pulse mt-1" />
+                ) : (
+                  <div className="flex items-baseline justify-between mt-1">
+                    <span className="text-xl sm:text-2xl font-black text-amber-900">{awaitingPaymentOrdersCount}</span>
+                    <span className="text-[10px] font-bold text-amber-700">30m Grace Period</span>
+                  </div>
+                )}
               </div>
 
               <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200 shadow-xs">
-                <span className="text-[10px] uppercase font-bold text-gray-600 block tracking-wider">Cancelled</span>
-                <div className="flex items-baseline justify-between mt-1">
-                  <span className="text-xl sm:text-2xl font-black text-gray-700">{cancelledOrdersCount}</span>
-                  <span className="text-[10px] font-bold text-gray-500">Refunds</span>
-                </div>
+                <span className="text-[10px] uppercase font-bold text-gray-600 block tracking-wider flex items-center gap-1">
+                  <X className="w-3 h-3 text-red-500" /> Failed / Cancelled
+                </span>
+                {loading ? (
+                  <div className="h-7 w-20 bg-gray-200 rounded-lg animate-pulse mt-1" />
+                ) : (
+                  <div className="flex items-baseline justify-between mt-1">
+                    <span className="text-xl sm:text-2xl font-black text-gray-700">{failedOrCancelledOrdersCount}</span>
+                    <span className="text-[10px] font-bold text-gray-500">Expired / Void</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1325,11 +1496,9 @@ export default function AdminPortalPage() {
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 {[
                   { id: 'All', label: 'All Orders', count: orders.length },
-                  { id: 'Pending', label: 'Pending', count: pendingOrdersCount, color: 'amber' },
-                  { id: 'Processing', label: 'Processing', count: processingOrdersCount, color: 'blue' },
-                  { id: 'Shipped', label: 'In Transit', count: shippedOrdersCount, color: 'purple' },
-                  { id: 'Delivered', label: 'Delivered', count: deliveredOrdersCount, color: 'olive' },
-                  { id: 'Cancelled', label: 'Cancelled', count: cancelledOrdersCount, color: 'gray' },
+                  { id: 'Confirmed', label: 'Confirmed', count: confirmedOrdersCount, color: 'olive' },
+                  { id: 'Awaiting Payment', label: 'Awaiting Payment', count: awaitingPaymentOrdersCount, color: 'amber' },
+                  { id: 'Payment Failed', label: 'Payment Failed / Cancelled', count: failedOrCancelledOrdersCount, color: 'gray' },
                 ].map((tab) => {
                   const isActive = orderStatusFilter === tab.id;
                   return (
@@ -1346,14 +1515,18 @@ export default function AdminPortalPage() {
                       <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
                         isActive ? 'bg-white/20 text-white' : 'bg-[#656B4F]/10 text-[#656B4F]'
                       }`}>
-                        {tab.count}
+                        {loading ? (
+                          <span className="inline-block w-3.5 h-2.5 rounded-full bg-black/10 animate-pulse" />
+                        ) : (
+                          tab.count
+                        )}
                       </span>
                     </button>
                   );
                 })}
 
                 <span className="text-[11px] font-semibold text-[#61665D] ml-auto hidden md:inline shrink-0 pl-2">
-                  Showing {filteredOrders.length} of {orders.length} orders
+                  {loading ? 'Syncing orders...' : `Showing ${filteredOrders.length} of ${orders.length} orders`}
                 </span>
               </div>
             </div>
@@ -1374,7 +1547,19 @@ export default function AdminPortalPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#4F534C]/10">
-                    {filteredOrders.length === 0 ? (
+                    {loading ? (
+                      [1, 2, 3, 4, 5, 6].map((n) => (
+                        <tr key={n} className="animate-pulse">
+                          <td className="py-4 px-4"><div className="h-4 bg-[#E8EEE0] rounded w-24 mb-1.5" /><div className="h-3 bg-[#E8EEE0] rounded w-32" /></td>
+                          <td className="py-4 px-4"><div className="h-4 bg-[#E8EEE0] rounded w-28 mb-1.5" /><div className="h-3 bg-[#E8EEE0] rounded w-36" /></td>
+                          <td className="py-4 px-4"><div className="h-4 bg-[#E8EEE0] rounded w-48 mb-1.5" /><div className="h-3 bg-[#E8EEE0] rounded w-32" /></td>
+                          <td className="py-4 px-4"><div className="h-4 bg-[#E8EEE0] rounded w-40 mb-1.5" /><div className="h-3 bg-[#E8EEE0] rounded w-20" /></td>
+                          <td className="py-4 px-4"><div className="h-5 bg-[#E8EEE0] rounded w-20 mb-1" /><div className="h-3 bg-[#E8EEE0] rounded w-16" /></td>
+                          <td className="py-4 px-4"><div className="h-6 bg-[#E8EEE0] rounded-full w-24" /></td>
+                          <td className="py-4 px-4 text-right"><div className="h-8 bg-[#E8EEE0] rounded-xl w-20 ml-auto" /></td>
+                        </tr>
+                      ))
+                    ) : filteredOrders.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="py-12 text-center text-gray-500">
                           <ShoppingBag className="w-10 h-10 mx-auto text-gray-300 mb-2" />
@@ -1513,75 +1698,42 @@ export default function AdminPortalPage() {
                             </div>
                           </td>
 
-                          {/* Order Status Controller */}
-                          <td className="py-3.5 px-4 align-top">
+                          {/* Order Status & Direct State Control */}
+                          <td className="py-3.5 px-4 align-top w-52">
                             {isOrderFailedOrExpired(ord) ? (
                               <div className="space-y-1">
                                 <div className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-xl bg-red-50 border border-red-200 text-red-800 font-black text-xs shadow-2xs">
                                   <Lock className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                                  <span>Failed (Locked)</span>
+                                  <span>{ord.status === 'Cancelled' ? 'Cancelled' : 'Payment Failed'}</span>
                                 </div>
                                 <span className="text-[10px] text-gray-500 font-medium block text-center">
-                                  30m limit passed • No edits
+                                  Permanently Locked
                                 </span>
                               </div>
                             ) : isOnlinePaymentPending(ord) ? (
                               <div className="space-y-1.5">
                                 <div className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 font-black text-xs shadow-2xs">
                                   <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse shrink-0" />
-                                  <span>Payment Pending</span>
+                                  <span>Awaiting Payment</span>
                                 </div>
                                 <div className="p-1.5 rounded-lg bg-amber-100/70 border border-amber-200 text-[10px] text-amber-900 font-semibold text-center leading-tight">
-                                  ⏳ Awaiting customer online payment. Status updates disabled until paid.
+                                  ⏳ Customer has 30 mins to pay online.
                                 </div>
                               </div>
                             ) : (
                               <div className="space-y-1.5">
+                                <div className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#EAF0E5] border border-[#656B4F]/40 text-[#2D3823] font-black text-xs shadow-2xs">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-[#656B4F] shrink-0" />
+                                  <span>Order Confirmed</span>
+                                </div>
                                 <select
-                                  value={ord.status}
+                                  value={ord.status === 'Cancelled' ? 'Cancelled' : 'Confirmed'}
                                   onChange={(e) => handleUpdateOrderStatus(ord.id, e.target.value)}
-                                  className={`w-full px-2.5 py-1.5 rounded-xl border font-bold text-xs focus:outline-none focus:ring-2 cursor-pointer ${
-                                    ord.status === 'Pending' ? 'bg-amber-50 text-amber-900 border-amber-300 focus:ring-amber-500' :
-                                    ord.status === 'Processing' ? 'bg-blue-50 text-blue-900 border-blue-300 focus:ring-blue-500' :
-                                    ord.status === 'Shipped' ? 'bg-purple-50 text-purple-900 border-purple-300 focus:ring-purple-500' :
-                                    ord.status === 'Delivered' ? 'bg-[#EAF0E5] text-[#2D3823] border-[#656B4F]/40 focus:ring-[#656B4F]' :
-                                    'bg-gray-100 text-gray-700 border-gray-300 focus:ring-gray-400'
-                                  }`}
+                                  className="w-full px-2 py-1 rounded-lg border border-[#4F534C]/20 bg-white font-bold text-[10px] text-[#50563D] outline-none cursor-pointer focus:ring-1 focus:ring-[#656B4F]"
                                 >
-                                  <option value="Pending">Pending</option>
-                                  <option value="Processing">Processing (Kitchen)</option>
-                                  <option value="Shipped">Shipped (On Way)</option>
-                                  <option value="Delivered">Delivered (Done)</option>
-                                  <option value="Cancelled">Cancelled</option>
+                                  <option value="Confirmed">Status: Confirmed</option>
+                                  <option value="Cancelled">Cancel Order</option>
                                 </select>
-
-                                {/* 1-Click Fast Progression Stepper Action */}
-                                {ord.status === 'Pending' && (
-                                  <button
-                                    onClick={() => handleUpdateOrderStatus(ord.id, 'Processing')}
-                                    className="w-full px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-black text-[10px] transition-colors shadow-2xs flex items-center justify-center gap-1"
-                                  >
-                                    <span>Accept & Prep →</span>
-                                  </button>
-                                )}
-                                {ord.status === 'Processing' && (
-                                  <button
-                                    onClick={() => handleUpdateOrderStatus(ord.id, 'Shipped')}
-                                    className="w-full px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-black text-[10px] transition-colors shadow-2xs flex items-center justify-center gap-1"
-                                  >
-                                    <Truck className="w-3 h-3" />
-                                    <span>Dispatch Order →</span>
-                                  </button>
-                                )}
-                                {ord.status === 'Shipped' && (
-                                  <button
-                                    onClick={() => handleUpdateOrderStatus(ord.id, 'Delivered')}
-                                    className="w-full px-2 py-1 bg-[#656B4F] hover:bg-[#50563D] text-white rounded-lg font-black text-[10px] transition-colors shadow-2xs flex items-center justify-center gap-1"
-                                  >
-                                    <CheckCircle2 className="w-3 h-3" />
-                                    <span>Mark Delivered</span>
-                                  </button>
-                                )}
                               </div>
                             )}
                           </td>
@@ -1631,7 +1783,24 @@ export default function AdminPortalPage() {
 
             {/* Mobile-Friendly Card View (< xl screens) */}
             <div className="grid gap-3.5 xl:hidden">
-              {filteredOrders.length === 0 ? (
+              {loading ? (
+                [1, 2, 3, 4].map((n) => (
+                  <article key={n} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 sm:p-5 shadow-sm space-y-3.5 animate-pulse">
+                    <div className="flex items-start justify-between gap-3 border-b border-[#4F534C]/10 pb-3">
+                      <div className="space-y-1.5">
+                        <div className="h-4 bg-[#E8EEE0] rounded w-28" />
+                        <div className="h-3 bg-[#E8EEE0] rounded w-36" />
+                      </div>
+                      <div className="space-y-1 text-right">
+                        <div className="h-5 bg-[#E8EEE0] rounded w-16 ml-auto" />
+                        <div className="h-3 bg-[#E8EEE0] rounded w-20 ml-auto" />
+                      </div>
+                    </div>
+                    <div className="h-14 bg-[#E8EEE0] rounded-xl" />
+                    <div className="h-12 bg-[#E8EEE0] rounded-xl" />
+                  </article>
+                ))
+              ) : filteredOrders.length === 0 ? (
                 <div className="rounded-2xl border border-[#4F534C]/15 bg-white p-8 text-center text-gray-500 shadow-sm">
                   <ShoppingBag className="w-10 h-10 mx-auto text-gray-300 mb-2" />
                   <p className="font-bold text-sm text-[#1E201D]">No orders match your filter criteria</p>
@@ -1806,21 +1975,12 @@ export default function AdminPortalPage() {
                         <>
                           <div className="flex items-center gap-2">
                             <select
-                              value={ord.status}
+                              value={ord.status === 'Cancelled' ? 'Cancelled' : 'Confirmed'}
                               onChange={(e) => handleUpdateOrderStatus(ord.id, e.target.value)}
-                              className={`flex-1 min-h-11 rounded-xl px-3 text-xs font-bold border focus:outline-none focus:ring-2 ${
-                                ord.status === 'Pending' ? 'bg-amber-50 text-amber-900 border-amber-300' :
-                                ord.status === 'Processing' ? 'bg-blue-50 text-blue-900 border-blue-300' :
-                                ord.status === 'Shipped' ? 'bg-purple-50 text-purple-900 border-purple-300' :
-                                ord.status === 'Delivered' ? 'bg-[#EAF0E5] text-[#2D3823] border-[#656B4F]/40' :
-                                'bg-gray-100 text-gray-700 border-gray-300'
-                              }`}
+                              className="flex-1 min-h-11 rounded-xl px-3 text-xs font-bold border border-[#4F534C]/20 bg-white text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
                             >
-                              <option value="Pending">Pending</option>
-                              <option value="Processing">Processing (Kitchen)</option>
-                              <option value="Shipped">Shipped (On the way)</option>
-                              <option value="Delivered">Delivered (Completed)</option>
-                              <option value="Cancelled">Cancelled</option>
+                              <option value="Confirmed">Confirmed</option>
+                              <option value="Cancelled">Cancel Order</option>
                             </select>
 
                             <button
@@ -1839,34 +1999,6 @@ export default function AdminPortalPage() {
                               <Printer className="w-4 h-4" />
                             </button>
                           </div>
-
-                          {/* Quick 1-tap Next Status advancement button */}
-                          {ord.status === 'Pending' && (
-                            <button
-                              onClick={() => handleUpdateOrderStatus(ord.id, 'Processing')}
-                              className="w-full min-h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors"
-                            >
-                              <span>Accept & Start Preparation →</span>
-                            </button>
-                          )}
-                          {ord.status === 'Processing' && (
-                            <button
-                              onClick={() => handleUpdateOrderStatus(ord.id, 'Shipped')}
-                              className="w-full min-h-11 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors"
-                            >
-                              <Truck className="w-4 h-4" />
-                              <span>Dispatch for Delivery →</span>
-                            </button>
-                          )}
-                          {ord.status === 'Shipped' && (
-                            <button
-                              onClick={() => handleUpdateOrderStatus(ord.id, 'Delivered')}
-                              className="w-full min-h-11 bg-[#656B4F] hover:bg-[#50563D] text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors"
-                            >
-                              <CheckCircle2 className="w-4 h-4" />
-                              <span>Mark Order as Delivered</span>
-                            </button>
-                          )}
                         </>
                       )}
                     </div>
@@ -1936,13 +2068,21 @@ export default function AdminPortalPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="p-3.5 rounded-xl bg-red-50 border border-red-200">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-red-800 block">Failed / Abandoned Orders</span>
-                    <span className="text-2xl font-black text-red-950 mt-1 block">{issueOrders.length} orders</span>
+                    {loading ? (
+                      <div className="h-7 w-20 bg-red-100 rounded-lg animate-pulse mt-1" />
+                    ) : (
+                      <span className="text-2xl font-black text-red-950 mt-1 block">{issueOrders.length} orders</span>
+                    )}
                     <span className="text-[11px] text-red-700">30-min window expired or payment failed</span>
                   </div>
 
                   <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block">Recoverable Revenue Opportunity</span>
-                    <span className="text-2xl font-black text-amber-950 mt-1 block">₹{totalLostRevenue.toLocaleString()}</span>
+                    {loading ? (
+                      <div className="h-7 w-24 bg-amber-100 rounded-lg animate-pulse mt-1" />
+                    ) : (
+                      <span className="text-2xl font-black text-amber-950 mt-1 block">₹{totalLostRevenue.toLocaleString()}</span>
+                    )}
                     <span className="text-[11px] text-amber-800 font-semibold">Ready for WhatsApp & Call outreach</span>
                   </div>
 
@@ -1958,13 +2098,21 @@ export default function AdminPortalPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="p-3.5 rounded-xl bg-[#EAF0E5] border border-[#656B4F]/20">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-[#656B4F] block">Active Confirmed Orders</span>
-                    <span className="text-2xl font-black text-[#2D3823] mt-1 block">{workingOrders.length} orders</span>
+                    {loading ? (
+                      <div className="h-7 w-20 bg-[#D8E4D1] rounded-lg animate-pulse mt-1" />
+                    ) : (
+                      <span className="text-2xl font-black text-[#2D3823] mt-1 block">{workingOrders.length} orders</span>
+                    )}
                     <span className="text-[11px] text-[#50563D]">In preparation or transit</span>
                   </div>
 
                   <div className="p-3.5 rounded-xl bg-[#EAF0E5] border border-[#656B4F]/20">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-[#656B4F] block">Active Processing Value</span>
-                    <span className="text-2xl font-black text-[#1E201D] mt-1 block">₹{totalWorkingRevenue.toLocaleString()}</span>
+                    {loading ? (
+                      <div className="h-7 w-24 bg-[#D8E4D1] rounded-lg animate-pulse mt-1" />
+                    ) : (
+                      <span className="text-2xl font-black text-[#1E201D] mt-1 block">₹{totalWorkingRevenue.toLocaleString()}</span>
+                    )}
                     <span className="text-[11px] text-[#656B4F] font-semibold">Total confirmed revenue</span>
                   </div>
 
@@ -1994,7 +2142,24 @@ export default function AdminPortalPage() {
             {/* VIEW A: ISSUE LOG (FAILED / EXPIRED ORDERS RECOVERY) */}
             {logSubTab === 'issues' && (
               <div className="space-y-4">
-                {filteredLogOrders.length === 0 ? (
+                {loading ? (
+                  [1, 2, 3].map((n) => (
+                    <article key={n} className="rounded-2xl border border-red-200 bg-white p-4 sm:p-5 shadow-sm space-y-4 animate-pulse">
+                      <div className="flex justify-between border-b border-red-100 pb-3">
+                        <div className="space-y-2">
+                          <div className="h-4 bg-red-100 rounded w-40" />
+                          <div className="h-3 bg-red-50 rounded w-64" />
+                        </div>
+                        <div className="h-6 bg-red-100 rounded w-20" />
+                      </div>
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5">
+                        <div className="h-24 bg-gray-50 rounded-xl" />
+                        <div className="h-24 bg-gray-50 rounded-xl" />
+                        <div className="h-24 bg-[#FBFDF2] rounded-xl" />
+                      </div>
+                    </article>
+                  ))
+                ) : filteredLogOrders.length === 0 ? (
                   <div className="rounded-2xl border border-[#4F534C]/15 bg-white p-12 text-center text-gray-500 shadow-sm">
                     <CheckCircle2 className="w-12 h-12 mx-auto text-[#656B4F] mb-3" />
                     <h3 className="text-base font-black text-[#1E201D]">No Payment Issues or Abandoned Carts Found</h3>
@@ -2166,7 +2331,14 @@ export default function AdminPortalPage() {
             {/* VIEW B: WORKING / OPERATIONAL STREAM */}
             {logSubTab === 'working' && (
               <div className="space-y-3.5">
-                {filteredLogOrders.length === 0 ? (
+                {loading ? (
+                  [1, 2, 3].map((n) => (
+                    <article key={n} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 sm:p-5 shadow-sm space-y-3 animate-pulse">
+                      <div className="h-4 bg-[#E8EEE0] rounded w-48" />
+                      <div className="h-4 bg-[#E8EEE0] rounded w-64" />
+                    </article>
+                  ))
+                ) : filteredLogOrders.length === 0 ? (
                   <div className="rounded-2xl border border-[#4F534C]/15 bg-white p-12 text-center text-gray-500 shadow-sm">
                     <ShoppingBag className="w-12 h-12 mx-auto text-gray-300 mb-3" />
                     <h3 className="text-base font-black text-[#1E201D]">No Active Working Orders</h3>
@@ -2274,38 +2446,73 @@ export default function AdminPortalPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#4F534C]/10">
-                    {filteredUsers.map((usr) => (
-                      <tr key={usr.id} className="hover:bg-[#FFF3E0]/30 transition-colors">
-                        <td className="py-3.5 px-4 font-bold text-[#1E201D]">{usr.name}</td>
-                        <td className="py-3.5 px-4 text-[#61665D]">{usr.email}</td>
-                        <td className="py-3.5 px-4 font-medium">{usr.phone}</td>
-                        <td className="py-3.5 px-4">
-                          <span
-                            className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
-                              usr.role === 'Admin'
-                                ? 'bg-purple-100 text-purple-800'
-                                : 'bg-[#FFF3E0] text-[#656B4F]'
-                            }`}
-                          >
-                            {usr.role}
-                          </span>
+                    {loading ? (
+                      [1, 2, 3, 4, 5].map((n) => (
+                        <tr key={n} className="animate-pulse">
+                          <td className="py-3.5 px-4"><div className="h-4 bg-[#E8EEE0] rounded w-28" /></td>
+                          <td className="py-3.5 px-4"><div className="h-4 bg-[#E8EEE0] rounded w-36" /></td>
+                          <td className="py-3.5 px-4"><div className="h-4 bg-[#E8EEE0] rounded w-24" /></td>
+                          <td className="py-3.5 px-4"><div className="h-5 bg-[#E8EEE0] rounded-full w-14" /></td>
+                          <td className="py-3.5 px-4"><div className="h-4 bg-[#E8EEE0] rounded w-20" /></td>
+                          <td className="py-3.5 px-4"><div className="h-4 bg-[#E8EEE0] rounded w-8" /></td>
+                          <td className="py-3.5 px-4"><div className="h-4 bg-[#E8EEE0] rounded w-16" /></td>
+                        </tr>
+                      ))
+                    ) : filteredUsers.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-12 text-center text-[#61665D]">
+                          <Users className="w-10 h-10 mx-auto text-[#656B4F]/40 mb-2" />
+                          <p className="font-bold text-sm text-[#1E201D]">No registered users found</p>
                         </td>
-                        <td className="py-3.5 px-4 text-[#61665D]">{usr.joinedDate}</td>
-                        <td className="py-3.5 px-4 font-bold text-center sm:text-left">{usr.totalOrders}</td>
-                        <td className="py-3.5 px-4 font-black text-[#656B4F]">₹{usr.totalSpent}</td>
                       </tr>
-                    ))}
+                    ) : (
+                      filteredUsers.map((usr) => (
+                        <tr key={usr.id} className="hover:bg-[#FFF3E0]/30 transition-colors">
+                          <td className="py-3.5 px-4 font-bold text-[#1E201D]">{usr.name}</td>
+                          <td className="py-3.5 px-4 text-[#61665D]">{usr.email}</td>
+                          <td className="py-3.5 px-4 font-medium">{usr.phone}</td>
+                          <td className="py-3.5 px-4">
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
+                                usr.role === 'Admin'
+                                  ? 'bg-purple-100 text-purple-800'
+                                  : 'bg-[#FFF3E0] text-[#656B4F]'
+                              }`}
+                            >
+                              {usr.role}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-[#61665D]">{usr.joinedDate}</td>
+                          <td className="py-3.5 px-4 font-bold text-center sm:text-left">{usr.totalOrders}</td>
+                          <td className="py-3.5 px-4 font-black text-[#656B4F]">₹{usr.totalSpent}</td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
             <div className="grid gap-3 xl:hidden">
-              {filteredUsers.map((usr) => (
-                <article key={usr.id} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-sm font-black">{usr.name}</h3><p className="truncate text-xs text-[#61665D]">{usr.email}</p></div><span className="rounded-full bg-[#EAF0E5] px-2 py-1 text-[10px] font-bold text-[#656B4F]">{usr.role}</span></div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[#4F534C]/10 pt-3 text-xs"><p><span className="block text-[#61665D]">Phone</span>{usr.phone}</p><p><span className="block text-[#61665D]">Total spent</span><strong className="text-[#656B4F]">₹{usr.totalSpent}</strong></p></div>
-                </article>
-              ))}
+              {loading ? (
+                [1, 2, 3].map((n) => (
+                  <article key={n} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm animate-pulse space-y-3">
+                    <div className="flex justify-between">
+                      <div className="space-y-1.5">
+                        <div className="h-4 bg-[#E8EEE0] rounded w-28" />
+                        <div className="h-3 bg-[#E8EEE0] rounded w-36" />
+                      </div>
+                      <div className="h-5 bg-[#E8EEE0] rounded-full w-14" />
+                    </div>
+                  </article>
+                ))
+              ) : (
+                filteredUsers.map((usr) => (
+                  <article key={usr.id} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-sm font-black">{usr.name}</h3><p className="truncate text-xs text-[#61665D]">{usr.email}</p></div><span className="rounded-full bg-[#EAF0E5] px-2 py-1 text-[10px] font-bold text-[#656B4F]">{usr.role}</span></div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[#4F534C]/10 pt-3 text-xs"><p><span className="block text-[#61665D]">Phone</span>{usr.phone}</p><p><span className="block text-[#61665D]">Total spent</span><strong className="text-[#656B4F]">₹{usr.totalSpent}</strong></p></div>
+                  </article>
+                ))
+              )}
             </div>
           </div>
         )}
@@ -2334,46 +2541,75 @@ export default function AdminPortalPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#4F534C]/10">
-                    {reviews.map((rev) => (
-                      <tr key={rev._id || rev.id} className="hover:bg-[#FAFAF5] transition-colors">
-                        <td className="py-3.5 px-4 font-bold text-[#1E201D] flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-[#656B4F] text-white flex items-center justify-center text-xs font-black shrink-0">
-                            {rev.authorName.slice(0, 1)}
-                          </div>
-                          <span>{rev.authorName}</span>
-                        </td>
-                        <td className="py-3.5 px-4 text-[#61665D]">{rev.location || 'India'}</td>
-                        <td className="py-3.5 px-4 font-bold text-amber-600">
-                          {rev.rating} ★
-                        </td>
-                        <td className="py-3.5 px-4 text-[#61665D] max-w-xs truncate">{rev.comment}</td>
-                        <td className="py-3.5 px-4 text-[#61665D]">{rev.dateText || 'Recently'}</td>
-                        <td className="py-3.5 px-4 text-right">
-                          <button
-                            onClick={async () => {
-                              if (!confirm(`Delete review from "${rev.authorName}"?`)) return;
-                              await fetchApi(`/reviews/${rev._id || rev.id}`, { method: 'DELETE' });
-                              fetchData();
-                            }}
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete Review"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                    {loading ? (
+                      [1, 2, 3, 4].map((n) => (
+                        <tr key={n} className="animate-pulse">
+                          <td className="py-3.5 px-4"><div className="h-4 bg-[#E8EEE0] rounded w-28" /></td>
+                          <td className="py-3.5 px-4"><div className="h-4 bg-[#E8EEE0] rounded w-20" /></td>
+                          <td className="py-3.5 px-4"><div className="h-4 bg-[#E8EEE0] rounded w-12" /></td>
+                          <td className="py-3.5 px-4"><div className="h-4 bg-[#E8EEE0] rounded w-48" /></td>
+                          <td className="py-3.5 px-4"><div className="h-4 bg-[#E8EEE0] rounded w-16" /></td>
+                          <td className="py-3.5 px-4 text-right"><div className="h-7 bg-[#E8EEE0] rounded-lg w-10 ml-auto" /></td>
+                        </tr>
+                      ))
+                    ) : reviews.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-[#61665D]">
+                          <Star className="w-10 h-10 mx-auto text-amber-500/40 mb-2" />
+                          <p className="font-bold text-sm text-[#1E201D]">No reviews found</p>
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      reviews.map((rev) => (
+                        <tr key={rev._id || rev.id} className="hover:bg-[#FAFAF5] transition-colors">
+                          <td className="py-3.5 px-4 font-bold text-[#1E201D] flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-[#656B4F] text-white flex items-center justify-center text-xs font-black shrink-0">
+                              {rev.authorName.slice(0, 1)}
+                            </div>
+                            <span>{rev.authorName}</span>
+                          </td>
+                          <td className="py-3.5 px-4 text-[#61665D]">{rev.location || 'India'}</td>
+                          <td className="py-3.5 px-4 font-bold text-amber-600">
+                            {rev.rating} ★
+                          </td>
+                          <td className="py-3.5 px-4 text-[#61665D] max-w-xs truncate">{rev.comment}</td>
+                          <td className="py-3.5 px-4 text-[#61665D]">{rev.dateText || 'Recently'}</td>
+                          <td className="py-3.5 px-4 text-right">
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`Delete review from "${rev.authorName}"?`)) return;
+                                await fetchApi(`/reviews/${rev._id || rev.id}`, { method: 'DELETE' });
+                                fetchData();
+                              }}
+                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete Review"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
             <div className="grid gap-3 xl:hidden">
-              {reviews.map((rev) => (
-                <article key={rev._id || rev.id} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-3"><div className="flex min-w-0 items-center gap-2"><div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#656B4F] text-xs font-black text-white">{rev.authorName.slice(0, 1)}</div><div className="min-w-0"><h3 className="truncate text-sm font-black">{rev.authorName}</h3><p className="text-xs text-[#61665D]">{rev.location || 'India'} · {rev.dateText || 'Recently'}</p></div></div><button onClick={async () => { if (!confirm(`Delete review from "${rev.authorName}"?`)) return; await fetchApi(`/reviews/${rev._id || rev.id}`, { method: 'DELETE' }); fetchData(); }} className="rounded-lg p-2 text-red-600 hover:bg-red-50" aria-label={`Delete review from ${rev.authorName}`}><Trash2 className="h-4 w-4" /></button></div>
-                  <p className="mt-3 text-sm font-bold text-amber-600">{rev.rating} ★</p><p className="mt-1 text-xs leading-relaxed text-[#61665D]">{rev.comment}</p>
-                </article>
-              ))}
+              {loading ? (
+                [1, 2, 3].map((n) => (
+                  <article key={n} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm animate-pulse space-y-2">
+                    <div className="h-4 bg-[#E8EEE0] rounded w-32" />
+                    <div className="h-3 bg-[#E8EEE0] rounded w-48" />
+                  </article>
+                ))
+              ) : (
+                reviews.map((rev) => (
+                  <article key={rev._id || rev.id} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-3"><div className="flex min-w-0 items-center gap-2"><div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#656B4F] text-xs font-black text-white">{rev.authorName.slice(0, 1)}</div><div className="min-w-0"><h3 className="truncate text-sm font-black">{rev.authorName}</h3><p className="text-xs text-[#61665D]">{rev.location || 'India'} · {rev.dateText || 'Recently'}</p></div></div><button onClick={async () => { if (!confirm(`Delete review from "${rev.authorName}"?`)) return; await fetchApi(`/reviews/${rev._id || rev.id}`, { method: 'DELETE' }); fetchData(); }} className="rounded-lg p-2 text-red-600 hover:bg-red-50" aria-label={`Delete review from ${rev.authorName}`}><Trash2 className="h-4 w-4" /></button></div>
+                    <p className="mt-3 text-sm font-bold text-amber-600">{rev.rating} ★</p><p className="mt-1 text-xs leading-relaxed text-[#61665D]">{rev.comment}</p>
+                  </article>
+                ))
+              )}
             </div>
           </div>
         )}
@@ -2735,39 +2971,44 @@ export default function AdminPortalPage() {
             {/* Modal Body */}
             <div className="p-4 sm:p-6 space-y-5 text-xs overflow-y-auto flex-1">
               
-              {/* Order Status Stepper Bar */}
-              <div className="p-3.5 rounded-2xl bg-[#FBFDF2] border border-[#4F534C]/15 space-y-2">
-                <div className="flex items-center justify-between text-[11px] font-bold text-[#1E201D]">
-                  <span>Order Progress Stepper:</span>
-                  <span className="text-[#656B4F]">{selectedOrderModal.status}</span>
+              {/* Order Status Banner */}
+              <div className={`p-4 rounded-2xl border flex items-center justify-between ${
+                isOrderFailedOrExpired(selectedOrderModal)
+                  ? 'bg-red-50 border-red-200 text-red-900'
+                  : isOnlinePaymentPending(selectedOrderModal)
+                  ? 'bg-amber-50 border-amber-200 text-amber-900'
+                  : 'bg-[#EAF0E5] border-[#656B4F]/30 text-[#2D3823]'
+              }`}>
+                <div className="flex items-center gap-2.5">
+                  {isOrderFailedOrExpired(selectedOrderModal) ? (
+                    <Lock className="w-5 h-5 text-red-600 shrink-0" />
+                  ) : isOnlinePaymentPending(selectedOrderModal) ? (
+                    <Clock className="w-5 h-5 text-amber-600 animate-pulse shrink-0" />
+                  ) : (
+                    <CheckCircle2 className="w-5 h-5 text-[#656B4F] shrink-0" />
+                  )}
+                  <div>
+                    <p className="font-extrabold text-sm">
+                      {isOrderFailedOrExpired(selectedOrderModal)
+                        ? (selectedOrderModal.status === 'Cancelled' ? 'Order Cancelled' : 'Payment Failed (Window Expired)')
+                        : isOnlinePaymentPending(selectedOrderModal)
+                        ? 'Awaiting Payment (Within 30 Mins)'
+                        : 'Order Confirmed'}
+                    </p>
+                    <p className="text-xs opacity-80 mt-0.5">
+                      {isOrderFailedOrExpired(selectedOrderModal)
+                        ? 'No further payment or action possible.'
+                        : isOnlinePaymentPending(selectedOrderModal)
+                        ? 'Customer has 30 minutes to complete online payment.'
+                        : 'Payment completed and order is confirmed.'}
+                    </p>
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 gap-1 sm:gap-2 text-center text-[10px] font-bold">
-                  {['Pending', 'Processing', 'Shipped', 'Delivered'].map((step, idx) => {
-                    const statusOrder = ['Pending', 'Processing', 'Shipped', 'Delivered'];
-                    const currentIdx = statusOrder.indexOf(selectedOrderModal.status);
-                    const isDone = currentIdx >= idx && selectedOrderModal.status !== 'Cancelled';
-                    const isCurrent = selectedOrderModal.status === step;
-
-                    return (
-                      <button
-                        key={step}
-                        onClick={() => handleUpdateOrderStatus(selectedOrderModal.id, step)}
-                        className={`py-2 px-1 rounded-xl transition-all border ${
-                          isCurrent
-                            ? 'bg-[#656B4F] text-white border-[#656B4F] shadow-xs'
-                            : isDone
-                            ? 'bg-[#EAF0E5] text-[#50563D] border-[#656B4F]/20 hover:bg-[#DEE8D8]'
-                            : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-                        }`}
-                      >
-                        <div className="flex items-center justify-center gap-1">
-                          {isDone ? <Check className="w-3 h-3 text-[#656B4F]" /> : <Clock className="w-3 h-3" />}
-                          <span className="truncate">{step}</span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                <span className="font-mono font-black text-xs px-3 py-1 rounded-xl bg-white/80 border border-current shadow-2xs">
+                  {selectedOrderModal.status === 'Processing' || selectedOrderModal.status === 'Shipped' || selectedOrderModal.status === 'Delivered'
+                    ? 'Confirmed'
+                    : selectedOrderModal.status}
+                </span>
               </div>
 
               {/* Customer, Shipping, and Payment Details Grid */}
@@ -2957,20 +3198,17 @@ export default function AdminPortalPage() {
                   </div>
                 ) : (
                   <>
-                    <span className="text-xs font-bold text-[#61665D]">Update Status:</span>
+                    <span className="text-xs font-bold text-[#61665D]">Order Status:</span>
                     <select
-                      value={selectedOrderModal.status}
+                      value={selectedOrderModal.status === 'Cancelled' ? 'Cancelled' : 'Confirmed'}
                       onChange={(e) => {
                         handleUpdateOrderStatus(selectedOrderModal.id, e.target.value);
                         setSelectedOrderModal({ ...selectedOrderModal, status: e.target.value as any });
                       }}
                       className="px-3 py-1.5 rounded-xl border border-[#4F534C]/20 bg-white font-bold text-xs text-[#1E201D] outline-none focus:ring-2 focus:ring-[#656B4F]"
                     >
-                      <option value="Pending">Pending</option>
-                      <option value="Processing">Processing</option>
-                      <option value="Shipped">Shipped</option>
-                      <option value="Delivered">Delivered</option>
-                      <option value="Cancelled">Cancelled</option>
+                      <option value="Confirmed">Confirmed</option>
+                      <option value="Cancelled">Cancel Order</option>
                     </select>
                   </>
                 )}

@@ -117,18 +117,12 @@ function formatAdminOrderMessage(order, eventType = 'order.created') {
   if (eventType === 'order.cancelled') {
     headerEmoji = '❌';
     headerTitle = 'ORDER CANCELLED';
-  } else if (eventType === 'payment.success' || eventType === 'payment.verified') {
-    headerEmoji = '💳';
-    headerTitle = 'ONLINE PAYMENT CONFIRMED';
-  } else if (eventType === 'order.processing') {
-    headerEmoji = '👨‍🍳';
-    headerTitle = 'ORDER PROCESSING';
-  } else if (eventType === 'order.shipped') {
-    headerEmoji = '🚚';
-    headerTitle = 'ORDER SHIPPED';
-  } else if (eventType === 'order.delivered') {
+  } else if (eventType === 'payment.success' || eventType === 'payment.verified' || eventType === 'order.confirmed') {
     headerEmoji = '✅';
-    headerTitle = 'ORDER DELIVERED';
+    headerTitle = 'ORDER CONFIRMED (PAID)';
+  } else if (eventType === 'payment.failed') {
+    headerEmoji = '⚠️';
+    headerTitle = 'PAYMENT FAILED';
   }
 
   const itemsList = (order.items || []).map((item, idx) => {

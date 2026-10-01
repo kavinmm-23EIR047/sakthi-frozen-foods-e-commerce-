@@ -28,13 +28,12 @@ import {
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useToast } from '@/context/ToastContext';
-import { fetchApi } from '@/lib/apiConfig';
+import { fetchApi, fetchCachedApi, getCachedData } from '@/lib/apiConfig';
 import { ProductType } from '@/lib/types';
 import { getBackendPackOptions, PackOption } from '@/lib/productPacks';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import OptimizedImage from '@/components/OptimizedImage';
-import FoodLoadingScreen from '@/components/FoodLoadingScreen';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -51,15 +50,29 @@ export default function ProductDetailPage() {
   const [activeTab, setActiveTab] = useState<'cooking' | 'nutrition' | 'ingredients' | 'storage'>('cooking');
   const [addingToCart, setAddingToCart] = useState(false);
 
-  // Fetch product and catalog from backend
+  // Fetch product and catalog from backend with cache hydration
   useEffect(() => {
     let isMounted = true;
+    const prodId = params.id as string;
+    if (!prodId) return;
+
+    // Instant cache hydration
+    const cachedProduct = getCachedData<ProductType>(`product_detail_${prodId}`);
+    if (cachedProduct && cachedProduct.id) {
+      setProduct(cachedProduct);
+      setLoading(false);
+    }
+    const cachedAll = getCachedData<ProductType[]>('shop_products_cache');
+    if (cachedAll && Array.isArray(cachedAll) && cachedAll.length > 0) {
+      setAllProducts(cachedAll);
+    }
+
     const loadProductData = async () => {
-      setLoading(true);
+      if (!cachedProduct) setLoading(true);
       try {
         const [prodRes, listRes] = await Promise.all([
-          fetchApi(`/products/${params.id}`),
-          fetchApi('/products?limit=50'),
+          fetchCachedApi<ProductType>(`/products/${prodId}`, { cacheKey: `product_detail_${prodId}`, ttlMs: 120000 }),
+          fetchCachedApi<ProductType[]>('/products?limit=50', { cacheKey: 'shop_products_cache', ttlMs: 120000 }),
         ]);
 
         if (isMounted) {
@@ -77,9 +90,7 @@ export default function ProductDetailPage() {
       }
     };
 
-    if (params.id) {
-      loadProductData();
-    }
+    loadProductData();
     return () => { isMounted = false; };
   }, [params.id]);
 
@@ -127,12 +138,25 @@ export default function ProductDetailPage() {
     router.push('/cart');
   };
 
-  if (loading) {
+  if (loading && !product) {
     return (
-      <FoodLoadingScreen
-        message="Loading Product Details..."
-        subMessage="Preparing authentic plant-based culinary information"
-      />
+      <div className="min-h-screen bg-[#F7F8F4] text-[#1E201D] flex flex-col font-sans">
+        <Navbar />
+        <main className="site-shell py-8 flex-1 animate-pulse space-y-6">
+          <div className="h-4 bg-stone-200 rounded w-1/4" />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-6 aspect-square bg-stone-200 rounded-3xl" />
+            <div className="lg:col-span-6 space-y-4">
+              <div className="h-8 bg-stone-200 rounded w-3/4" />
+              <div className="h-4 bg-stone-200 rounded w-1/2" />
+              <div className="h-10 bg-stone-200 rounded-2xl w-1/3" />
+              <div className="h-24 bg-stone-200 rounded-2xl w-full" />
+              <div className="h-12 bg-stone-200 rounded-2xl w-full" />
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
     );
   }
 

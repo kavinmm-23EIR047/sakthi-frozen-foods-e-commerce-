@@ -5,11 +5,10 @@ import Script from 'next/script';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
-import { fetchApi } from '@/lib/apiConfig';
+import { fetchApi, fetchCachedApi, getCachedData } from '@/lib/apiConfig';
 import { OrderType } from '@/lib/types';
 import { Package, Clock, CheckCircle2, XCircle, CreditCard, Lock, FileText, Copy, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
-import FoodLoadingScreen from '@/components/FoodLoadingScreen';
 
 declare global {
   interface Window {
@@ -37,18 +36,18 @@ export default function OrdersPage() {
   }, []);
 
   const fetchOrders = async (silent = false) => {
-    if (!silent) setLoading(true);
+    if (!silent && orders.length === 0) setLoading(true);
     try {
-      const data = await fetchApi('/orders/mine');
-      if (data.success) {
+      const data = await fetchCachedApi<OrderType[]>('/orders/mine', { cacheKey: 'user_orders_cache', ttlMs: 30000, bypassCache: !silent });
+      if (data.success && Array.isArray(data.data)) {
         setOrders(data.data);
-      } else {
+      } else if (!data.success) {
         setError(data.error || 'Failed to load orders.');
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred.');
     } finally {
-      if (!silent) setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -57,7 +56,13 @@ export default function OrdersPage() {
       setLoading(false);
       return;
     }
-    fetchOrders();
+    // Instant cache hydration
+    const cached = getCachedData<OrderType[]>('user_orders_cache');
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      setOrders(cached);
+      setLoading(false);
+    }
+    fetchOrders(Boolean(cached && cached.length > 0));
   }, [user]);
 
   const cancelOrder = async (orderId: string) => {
@@ -181,15 +186,6 @@ export default function OrdersPage() {
     const token = typeof window !== 'undefined' ? sessionStorage.getItem('auth_token') : '';
     window.open(`/api/orders/${orderId}/invoice?token=${encodeURIComponent(token || '')}`, '_blank');
   };
-
-  if (loading) {
-    return (
-      <FoodLoadingScreen
-        message="Loading Your Orders..."
-        subMessage="Retrieving order history and invoice details"
-      />
-    );
-  }
 
   if (!user) {
     return (
@@ -382,17 +378,16 @@ export default function OrdersPage() {
                           <span className="block text-xs font-black uppercase tracking-wider text-[#50563D] mb-1.5">Order Status</span>
                           <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-black ${
                             isExpiredFailed ? 'bg-red-100 text-red-800 border-red-200' :
-                            isPaid || isCOD ? 'bg-[#EAF0E5] text-[#2D3823] border-[#656B4F]/30' :
+                            isPaid || isCOD || order.status === 'Confirmed' ? 'bg-[#EAF0E5] text-[#2D3823] border-[#656B4F]/30' :
                             'bg-amber-100 text-amber-800 border-amber-200'
                           }`}>
                             {isExpiredFailed ? <XCircle className="w-4 h-4 text-red-600" /> :
-                             isPaid || isCOD ? <CheckCircle2 className="w-4 h-4 text-[#656B4F]" /> :
+                             isPaid || isCOD || order.status === 'Confirmed' ? <CheckCircle2 className="w-4 h-4 text-[#656B4F]" /> :
                              <Clock className="w-4 h-4 text-amber-600" />}
                             <span>
-                              {isExpiredFailed ? 'Order Cancelled' :
-                               isPaid ? 'Order Confirmed (Paid)' :
-                               isCOD ? 'Order Confirmed (COD)' :
-                               'Payment Pending'}
+                              {isExpiredFailed ? (order.status === 'Cancelled' ? 'Order Cancelled' : 'Payment Failed') :
+                               isPaid || isCOD || order.status === 'Confirmed' ? 'Order Confirmed' :
+                               'Awaiting Payment'}
                             </span>
                           </div>
                         </div>
@@ -422,7 +417,7 @@ export default function OrdersPage() {
 
                           {/* Left and Right Horizontal Action Buttons */}
                           <div className="grid grid-cols-2 gap-2 w-full">
-                            {(isPaid || isCOD || order.status === 'Processing' || order.status === 'Shipped' || order.status === 'Delivered') ? (
+                            {(isPaid || isCOD || order.status === 'Confirmed') ? (
                               <button
                                 onClick={() => openInvoice(order.id)}
                                 className="w-full rounded-xl border border-[#656B4F]/40 bg-[#F9FAF6] hover:bg-[#EAF0E5] px-2 sm:px-3.5 py-2.5 text-[11px] sm:text-xs font-black text-[#656B4F] transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-center"
@@ -437,14 +432,14 @@ export default function OrdersPage() {
                               href={whatsappQueryUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className={`w-full rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] px-2 sm:px-3.5 py-2.5 text-[11px] sm:text-xs font-black text-white transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-center ${(isPaid || isCOD || order.status === 'Processing' || order.status === 'Shipped' || order.status === 'Delivered') ? '' : 'col-span-2'}`}
+                              className={`w-full rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] px-2 sm:px-3.5 py-2.5 text-[11px] sm:text-xs font-black text-white transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-center ${(isPaid || isCOD || order.status === 'Confirmed') ? '' : 'col-span-2'}`}
                             >
                               <MessageCircle className="w-3.5 h-3.5 shrink-0" />
                               <span className="truncate">WhatsApp Help</span>
                             </a>
                           </div>
 
-                          {order.status === 'Pending' && !isExpiredFailed && (
+                          {(order.status === 'Pending' || order.status === 'Awaiting Payment') && !isExpiredFailed && (
                             <button
                               onClick={() => cancelOrder(order.id)}
                               disabled={cancellingId === order.id}

@@ -29,7 +29,7 @@ export interface IOrder extends Document {
   convenienceFee?: number;
   totalAmount: number;
   paymentMethod: string;
-  status: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
+  status: 'Pending' | 'Awaiting Payment' | 'Confirmed' | 'Payment Failed' | 'Cancelled';
 }
 
 const OrderSchema: Schema = new Schema(
@@ -67,7 +67,7 @@ const OrderSchema: Schema = new Schema(
     paymentMethod: { type: String, default: 'UPI / Online' },
     status: {
       type: String,
-      enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
+      enum: ['Pending', 'Awaiting Payment', 'Confirmed', 'Payment Failed', 'Cancelled'],
       default: 'Pending',
     },
   },

@@ -116,7 +116,7 @@ export default function CheckoutPage() {
     e.preventDefault();
 
     if (!user) {
-      alert('Please sign in to complete your checkout and secure order tracking.');
+      alert('Please sign in to complete your checkout.');
       router.push('/login?redirect=/checkout');
       return;
     }

@@ -70,7 +70,7 @@ function LoginForm() {
           {targetRedirect === '/checkout' && (
             <div className="mb-6 p-3.5 bg-[#EAF0E5] rounded-2xl flex items-center gap-3 border border-[#656B4F]/30 text-[#2D3823] text-xs font-bold">
               <ShoppingBag className="w-5 h-5 text-[#656B4F] shrink-0" />
-              <span>Please sign in to complete your checkout and track delivery.</span>
+              <span>Please sign in to complete your checkout and view your orders.</span>
             </div>
           )}
 

@@ -27,10 +27,24 @@ function publicOrder(order) {
   const paymentExpiresAt = order.paymentExpiresAt
     ? new Date(order.paymentExpiresAt).toISOString()
     : new Date(createdAtDate.getTime() + 30 * 60 * 1000).toISOString();
-  const isExpired = order.paymentMethod === 'Razorpay (Online)' && order.paymentStatus === 'Pending' && Date.now() > new Date(paymentExpiresAt).getTime();
-  const paymentStatus = isExpired ? 'Failed' : (order.paymentStatus || 'Pending');
-  const status = isExpired && order.status === 'Pending' ? 'Cancelled' : order.status;
-  const isLocked = order.isLocked || paymentStatus === 'Failed' || status === 'Cancelled';
+  const isOnline = order.paymentMethod === 'Razorpay (Online)';
+  const isExpired = isOnline && order.paymentStatus === 'Pending' && Date.now() > new Date(paymentExpiresAt).getTime();
+  
+  let paymentStatus = order.paymentStatus || 'Pending';
+  if (isExpired) paymentStatus = 'Failed';
+
+  let status = order.status || 'Pending';
+  if (isExpired || paymentStatus === 'Failed' || order.status === 'Payment Failed') {
+    status = 'Payment Failed';
+  } else if (order.status === 'Cancelled' || paymentStatus === 'Refunded') {
+    status = 'Cancelled';
+  } else if (paymentStatus === 'Paid' || order.paymentMethod === 'Cash on Delivery') {
+    status = 'Confirmed';
+  } else if (paymentStatus === 'Pending') {
+    status = 'Awaiting Payment';
+  }
+
+  const isLocked = order.isLocked || isExpired || paymentStatus === 'Failed' || status === 'Payment Failed' || status === 'Cancelled';
 
   return {
     id: order._id.toString(),
@@ -73,13 +87,15 @@ async function autoExpirePendingOrders() {
       {
         paymentMethod: 'Razorpay (Online)',
         paymentStatus: 'Pending',
-        createdAt: { $lte: thirtyMinutesAgo },
-        status: 'Pending',
+        $or: [
+          { createdAt: { $lte: thirtyMinutesAgo } },
+          { paymentExpiresAt: { $lte: new Date() } },
+        ],
       },
       {
         $set: {
           paymentStatus: 'Failed',
-          status: 'Cancelled',
+          status: 'Payment Failed',
           isLocked: true,
           failureReason: 'Payment window expired (30 minutes elapsed without completion)',
         },
@@ -95,10 +111,13 @@ function validateCustomer(body) {
 }
 
 const allowedStatusTransitions = {
-  Pending: ['Processing', 'Cancelled'],
-  Processing: ['Shipped', 'Cancelled'],
-  Shipped: ['Delivered'],
-  Delivered: [],
+  Pending: ['Confirmed', 'Payment Failed', 'Cancelled'],
+  'Awaiting Payment': ['Confirmed', 'Payment Failed', 'Cancelled'],
+  Processing: ['Confirmed', 'Cancelled'],
+  Shipped: ['Confirmed', 'Cancelled'],
+  Delivered: ['Confirmed', 'Cancelled'],
+  Confirmed: ['Cancelled'],
+  'Payment Failed': [],
   Cancelled: [],
 };
 
@@ -299,8 +318,8 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
       items,
       totalAmount,
       paymentMethod,
-      status: 'Pending',
-      paymentStatus: 'Pending',
+      status: paymentMethod === 'Cash on Delivery' ? 'Confirmed' : 'Awaiting Payment',
+      paymentStatus: paymentMethod === 'Cash on Delivery' ? 'Paid' : 'Pending',
     });
 
     let razorpayOrder;
@@ -333,13 +352,15 @@ router.post('/:id/cancel', protect, async (req, res, next) => {
       const order = await Order.findById(req.params.id).session(session);
       if (!order) throw Object.assign(new Error('Order not found'), { statusCode: 404 });
       if (req.user.role !== 'Admin' && order.customerEmail !== req.user.email) throw Object.assign(new Error('Not authorized to cancel this order'), { statusCode: 403 });
-      if (order.status !== 'Pending' || (order.paymentStatus === 'Paid' && order.paymentMethod !== 'Cash on Delivery')) throw Object.assign(new Error('This order can no longer be cancelled'), { statusCode: 409 });
+      if (order.status === 'Cancelled' || order.status === 'Payment Failed' || (order.paymentStatus === 'Paid' && order.paymentMethod !== 'Cash on Delivery')) {
+        throw Object.assign(new Error('This order can no longer be cancelled directly'), { statusCode: 409 });
+      }
       if (order.stockCommitted) {
         for (const item of order.items) await Product.updateOne({ _id: item.productId }, { $inc: { stock: item.quantity } }, { session });
       }
       cancelled = await Order.findOneAndUpdate(
-        { _id: order._id, status: 'Pending' },
-        { status: 'Cancelled', stockCommitted: false },
+        { _id: order._id },
+        { status: 'Cancelled', isLocked: true, stockCommitted: false },
         { new: true, session, runValidators: true }
       );
     });
@@ -361,24 +382,24 @@ router.post('/:id/retry-payment', protect, async (req, res, next) => {
     }
 
     if (order.paymentStatus === 'Paid') {
-      return res.status(400).json({ success: false, error: 'This order has already been paid successfully.' });
+      return res.status(400).json({ success: false, error: 'This order has already been paid and confirmed.' });
     }
 
     // Check if 30 minutes have elapsed
     const createdAtTime = new Date(order.createdAt).getTime();
     const isPast30Mins = Date.now() > createdAtTime + 30 * 60 * 1000;
 
-    if (isPast30Mins || order.isLocked || order.paymentStatus === 'Failed') {
-      // Mark permanently as Failed and locked
+    if (isPast30Mins || order.isLocked || order.paymentStatus === 'Failed' || order.status === 'Payment Failed') {
+      // Mark permanently as Payment Failed and locked
       order.paymentStatus = 'Failed';
-      order.status = 'Cancelled';
+      order.status = 'Payment Failed';
       order.isLocked = true;
       order.failureReason = 'Payment window expired (30-minute grace period exceeded).';
       await order.save();
 
       return res.status(400).json({
         success: false,
-        error: 'Payment window expired after 30 minutes. This order is marked as Failed and cannot be completed. Please place a new order.',
+        error: 'Payment window expired after 30 minutes. This order is marked as Payment Failed. Please place a new order.',
       });
     }
 
@@ -437,34 +458,33 @@ router.put('/:id/follow-up', protect, admin, async (req, res, next) => {
 
 router.put('/:id', protect, admin, async (req, res, next) => {
   try {
-    const allowedStatuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
-    if (!allowedStatuses.includes(req.body.status)) return res.status(400).json({ success: false, error: 'Invalid order status' });
-    const existing = await Order.findById(req.params.id).select('status paymentStatus isLocked createdAt paymentMethod');
+    const allowedStatuses = ['Confirmed', 'Cancelled', 'Payment Failed'];
+    if (!allowedStatuses.includes(req.body.status)) return res.status(400).json({ success: false, error: 'Invalid order status. Status can only be Confirmed or Cancelled.' });
+    const existing = await Order.findById(req.params.id).select('status paymentStatus isLocked createdAt paymentMethod items stockCommitted');
     if (!existing) return res.status(404).json({ success: false, error: 'Order not found' });
 
     // Lock condition: After 30 minutes or if failed/locked, do NOT make any edit option
     const isExpired = existing.paymentMethod === 'Razorpay (Online)' && existing.paymentStatus === 'Pending' && (Date.now() > new Date(existing.createdAt).getTime() + 30 * 60 * 1000);
-    if (existing.isLocked || existing.paymentStatus === 'Failed' || isExpired) {
+    if (existing.isLocked || existing.paymentStatus === 'Failed' || existing.status === 'Payment Failed' || isExpired) {
       if (isExpired && existing.paymentStatus !== 'Failed') {
-        await Order.findByIdAndUpdate(existing._id, { paymentStatus: 'Failed', status: 'Cancelled', isLocked: true });
+        await Order.findByIdAndUpdate(existing._id, { paymentStatus: 'Failed', status: 'Payment Failed', isLocked: true });
       }
       return res.status(400).json({
         success: false,
-        error: 'This order is marked as Failed / Expired and is permanently locked. No status edits are allowed.',
+        error: 'This order is marked as Payment Failed and is permanently locked. No status edits are allowed.',
       });
     }
 
-    // Payment Pending condition: Do not allow status progression (Processing, Shipped, Delivered) until payment is Paid
+    // Payment Pending condition: Do not allow status progression to Confirmed until payment is Paid
     if (existing.paymentMethod === 'Razorpay (Online)' && existing.paymentStatus === 'Pending') {
       if (req.body.status !== 'Cancelled') {
         return res.status(400).json({
           success: false,
-          error: 'Online payment is currently Pending. Order status can only be updated after payment is verified as Paid.',
+          error: 'Online payment is currently Awaiting Payment (30-minute grace window). Status will automatically update to Confirmed once customer completes payment.',
         });
       }
     }
 
-    if (!allowedStatusTransitions[existing.status].includes(req.body.status)) return res.status(409).json({ success: false, error: `Cannot change order from ${existing.status} to ${req.body.status}` });
     if (req.body.status === 'Cancelled') {
       const session = await mongoose.startSession();
       let cancelled;
@@ -476,7 +496,7 @@ router.put('/:id', protect, admin, async (req, res, next) => {
           if (current.stockCommitted) {
             for (const item of current.items) await Product.updateOne({ _id: item.productId }, { $inc: { stock: item.quantity } }, { session });
           }
-          cancelled = await Order.findOneAndUpdate({ _id: current._id, status: current.status }, { status: 'Cancelled', stockCommitted: false }, { new: true, session, runValidators: true });
+          cancelled = await Order.findOneAndUpdate({ _id: current._id }, { status: 'Cancelled', isLocked: true, stockCommitted: false }, { new: true, session, runValidators: true });
         });
       } finally {
         await session.endSession();
@@ -485,6 +505,7 @@ router.put('/:id', protect, admin, async (req, res, next) => {
       void queueOrderNotifications(cancelled, 'order.cancelled');
       return res.json({ success: true, data: publicOrder(cancelled) });
     }
+
     const updated = await Order.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true, runValidators: true });
     if (!updated) return res.status(404).json({ success: false, error: 'Order not found' });
     void queueOrderNotifications(updated, `order.${req.body.status.toLowerCase()}`);

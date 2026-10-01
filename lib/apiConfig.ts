@@ -1,3 +1,7 @@
+import { getCachedData, setCachedData, invalidateCache } from './apiCache';
+
+export { getCachedData, setCachedData, invalidateCache };
+
 // API Base URL config
 // If running standalone backend on port 5000, it uses http://localhost:5000/api
 // Otherwise defaults to internal Next.js API routes /api
@@ -65,4 +69,46 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
   }
+}
+
+export interface CachedApiOptions extends RequestInit {
+  cacheKey?: string;
+  ttlMs?: number;
+  bypassCache?: boolean;
+}
+
+export async function fetchCachedApi<T = any>(
+  endpoint: string,
+  options: CachedApiOptions = {},
+  maxAgeMs = 3 * 60 * 1000
+): Promise<{ success: boolean; data?: T; error?: string; fromCache?: boolean }> {
+  const method = (options.method || 'GET').toUpperCase();
+  const cacheKey = options.cacheKey || `${endpoint}_${JSON.stringify(options.headers || {})}`;
+  const effectiveTtl = options.ttlMs || maxAgeMs;
+
+  // If GET request and not bypassed, return cached response immediately if available
+  if (method === 'GET' && !options.bypassCache) {
+    const cached = getCachedData<T>(cacheKey, effectiveTtl);
+    if (cached !== null) {
+      // Trigger background update silently to keep cache warm (SWR)
+      fetchApi(endpoint, options).then((freshRes) => {
+        if (freshRes.success && freshRes.data !== undefined) {
+          setCachedData(cacheKey, freshRes.data);
+        }
+      }).catch(() => {});
+
+      return { success: true, data: cached, fromCache: true };
+    }
+  }
+
+  // Not cached or non-GET request -> fetch directly
+  const res = await fetchApi(endpoint, options);
+  if (res.success && res.data !== undefined && method === 'GET') {
+    setCachedData(cacheKey, res.data);
+  } else if (res.success && method !== 'GET') {
+    // Write request succeeded -> invalidate related caches
+    invalidateCache(options.cacheKey || endpoint.split('/')[1] || '');
+  }
+
+  return res;
 }

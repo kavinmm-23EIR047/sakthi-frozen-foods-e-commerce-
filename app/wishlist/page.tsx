@@ -52,15 +52,6 @@ export default function WishlistPage() {
     setIsCartOpen(true);
   };
 
-  if (loading) {
-    return (
-      <FoodLoadingScreen
-        message="Loading Wishlist..."
-        subMessage="Gathering your saved plant-based favourites"
-      />
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#F3FBEE] text-[#1E201D] flex flex-col font-sans selection:bg-[#50563D] selection:text-white">
       <Navbar />

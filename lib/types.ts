@@ -54,7 +54,7 @@ export interface OrderType {
   refundStatus?: 'None' | 'Pending' | 'Processed' | 'Failed';
   refundedAmount?: number;
   razorpayPaymentId?: string;
-  status: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
+  status: 'Pending' | 'Awaiting Payment' | 'Confirmed' | 'Payment Failed' | 'Cancelled';
   createdAt: string;
   isLocked?: boolean;
   failureReason?: string;

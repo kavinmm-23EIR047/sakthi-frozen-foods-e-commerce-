@@ -9,7 +9,7 @@ import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useToast } from '@/context/ToastContext';
 import { ProductType, CategoryType } from '@/lib/types';
-import { fetchApi } from '@/lib/apiConfig';
+import { fetchApi, fetchCachedApi, getCachedData } from '@/lib/apiConfig';
 import {
   Search,
   Filter,
@@ -427,11 +427,16 @@ function ShopContent() {
   const [page, setPage] = useState(1);
   const pageSize = 16;
 
-  // 1. Fetch Categories dynamically from backend
+  // 1. Fetch Categories dynamically from backend with instant cache hydration
   useEffect(() => {
+    const cachedCats = getCachedData<CategoryType[]>('shop_categories_cache');
+    if (cachedCats && Array.isArray(cachedCats) && cachedCats.length > 0) {
+      setCategories(cachedCats);
+    }
+
     const loadCategories = async () => {
       try {
-        const res = await fetchApi('/categories');
+        const res = await fetchCachedApi<CategoryType[]>('/categories', { cacheKey: 'shop_categories_cache', ttlMs: 180000 });
         if (res.success && Array.isArray(res.data)) {
           setCategories(res.data);
         }
@@ -442,12 +447,20 @@ function ShopContent() {
     loadCategories();
   }, []);
 
-  // 2. Fetch All Products from backend API
+  // 2. Fetch All Products from backend API with instant cache hydration
   useEffect(() => {
+    const cachedProds = getCachedData<ProductType[]>('shop_products_cache');
+    if (cachedProds && Array.isArray(cachedProds) && cachedProds.length > 0) {
+      setProducts(cachedProds);
+      setLoading(false);
+    }
+
     const loadProducts = async () => {
-      setLoading(true);
+      if (!cachedProds || cachedProds.length === 0) {
+        setLoading(true);
+      }
       try {
-        const res = await fetchApi('/products?limit=100');
+        const res = await fetchCachedApi<ProductType[]>('/products?limit=100', { cacheKey: 'shop_products_cache', ttlMs: 120000 });
         if (res.success && Array.isArray(res.data)) {
           setProducts(res.data);
         }

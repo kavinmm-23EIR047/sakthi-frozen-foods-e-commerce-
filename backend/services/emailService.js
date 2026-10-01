@@ -711,12 +711,12 @@ function buildOtpEmail(userName, otp) {
 // ─── 5. ORDER STATUS UPDATE EMAIL ───────────────────────────────────────────
 function buildOrderStatusUpdateEmail(order, newStatus) {
   const statusMessages = {
-    Processing: 'Your order has been confirmed and is being prepared in our temperature-controlled cold kitchen.',
-    Shipped: 'Your order has been dispatched via cold-chain delivery service.',
-    Delivered: 'Your order has been safely delivered! Enjoy your meal.',
+    Confirmed: 'Your order has been confirmed successfully.',
+    'Awaiting Payment': 'Your order is awaiting online payment.',
+    'Payment Failed': 'Your order payment could not be completed or window expired.',
     Cancelled: 'Your order has been cancelled.',
   };
-  const trackingUrl = `${FRONTEND_URL}/orders`;
+  const ordersUrl = `${FRONTEND_URL}/orders`;
   const invoiceToken = getInvoiceToken(order);
   const invoiceUrl = `${FRONTEND_URL}/api/orders/${order._id || order.id}/invoice${invoiceToken ? `?token=${invoiceToken}` : ''}`;
 
@@ -745,8 +745,8 @@ function buildOrderStatusUpdateEmail(order, newStatus) {
   </div>
 
   <div style="text-align:center;margin:16px 0 8px;">
-    <a href="${trackingUrl}" style="display:inline-block;background:#2E4C33;color:#fff;padding:10px 20px;border-radius:8px;font-size:12px;font-weight:800;text-decoration:none;margin:0 4px;">
-      Track Order Live
+    <a href="${ordersUrl}" style="display:inline-block;background:#2E4C33;color:#fff;padding:10px 20px;border-radius:8px;font-size:12px;font-weight:800;text-decoration:none;margin:0 4px;">
+      View My Orders
     </a>
     <a href="${invoiceUrl}" target="_blank" style="display:inline-block;background:#1E2E1F;color:#fff;padding:10px 20px;border-radius:8px;font-size:12px;font-weight:800;text-decoration:none;margin:0 4px;">
       View Invoice PDF
