@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import logo from '../logo.png';
 import {
@@ -54,6 +54,7 @@ export default function Navbar({
   onSelectCategory,
 }: NavbarProps) {
   const router = useRouter();
+  const pathname = usePathname() || '/';
   const { totalItems } = useCart();
   const { user, logout } = useAuth();
   const { wishlistCount } = useWishlist();
@@ -198,7 +199,14 @@ export default function Navbar({
 
             {/* Navigation Links */}
             <nav className="hidden xl:flex items-center gap-1 2xl:gap-2 font-semibold text-xs text-[#3E473B] shrink-0">
-              <Link href="/" className="px-3 py-2 rounded-lg hover:text-[#656B4F] hover:bg-gray-100 transition-all">
+              <Link
+                href="/"
+                className={`px-3 py-2 rounded-lg transition-all ${
+                  pathname === '/'
+                    ? 'text-[#50563D] bg-[#EAF0E5] font-black'
+                    : 'hover:text-[#656B4F] hover:bg-gray-100'
+                }`}
+              >
                 Home
               </Link>
 
@@ -210,7 +218,11 @@ export default function Navbar({
               >
                 <Link
                   href="/shop"
-                  className="flex items-center gap-1 px-3 py-2 rounded-lg hover:text-[#656B4F] hover:bg-gray-100 transition-all"
+                  className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-all ${
+                    pathname.startsWith('/shop')
+                      ? 'text-[#50563D] bg-[#EAF0E5] font-black'
+                      : 'hover:text-[#656B4F] hover:bg-gray-100'
+                  }`}
                 >
                   <span>Shop</span>
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isMegaMenuOpen ? 'rotate-180' : ''}`} />
@@ -471,9 +483,40 @@ export default function Navbar({
                   <p className="mt-1 text-[11px] text-[#647160]">Pure vegetarian - Plant based - Delivered frozen</p>
                 </div>
                 <nav className="space-y-1">
-                  <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"><Home className="h-4 w-4" />Home</Link>
-                  <Link href="/shop" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"><Store className="h-4 w-4" />Shop all products<ArrowRight className="ml-auto h-4 w-4" /></Link>
-                  <Link href="/wishlist" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]">
+                  <Link
+                    href="/"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition-all ${
+                      pathname === '/'
+                        ? 'bg-[#EAF0E5] text-[#50563D] font-black shadow-2xs'
+                        : 'font-semibold text-[#26362a] hover:bg-[#edf3e9]'
+                    }`}
+                  >
+                    <Home className="h-4 w-4" />
+                    <span>Home</span>
+                  </Link>
+                  <Link
+                    href="/shop"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition-all ${
+                      pathname.startsWith('/shop')
+                        ? 'bg-[#EAF0E5] text-[#50563D] font-black shadow-2xs'
+                        : 'font-semibold text-[#26362a] hover:bg-[#edf3e9]'
+                    }`}
+                  >
+                    <Store className="h-4 w-4" />
+                    <span>Shop all products</span>
+                    <ArrowRight className="ml-auto h-4 w-4" />
+                  </Link>
+                  <Link
+                    href="/wishlist"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition-all ${
+                      pathname.startsWith('/wishlist')
+                        ? 'bg-[#EAF0E5] text-[#50563D] font-black shadow-2xs'
+                        : 'font-semibold text-[#26362a] hover:bg-[#edf3e9]'
+                    }`}
+                  >
                     <Heart className={`h-4 w-4 ${wishlistCount > 0 ? 'text-rose-500 fill-rose-500' : 'text-[#26362a]'}`} />
                     <span>My Wishlist</span>
                     {wishlistCount > 0 && (
@@ -482,8 +525,18 @@ export default function Navbar({
                       </span>
                     )}
                   </Link>
-                  <Link href={user ? '/orders' : '/login'} onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"><UserRound className="h-4 w-4" />{user ? 'My account & orders' : 'Sign in / Create account'}</Link>
-                  <Link href="/orders" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"><Bell className="h-4 w-4 text-[#50563D]" />Push Notifications</Link>
+                  <Link
+                    href={user ? '/orders' : '/login'}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition-all ${
+                      pathname.startsWith('/orders') || pathname.startsWith('/login') || pathname.startsWith('/account')
+                        ? 'bg-[#EAF0E5] text-[#50563D] font-black shadow-2xs'
+                        : 'font-semibold text-[#26362a] hover:bg-[#edf3e9]'
+                    }`}
+                  >
+                    <UserRound className="h-4 w-4" />
+                    <span>{user ? 'My account & orders' : 'Sign in / Create account'}</span>
+                  </Link>
 
                   {/* Corporate & Wholesale link */}
                   <a
@@ -518,37 +571,102 @@ export default function Navbar({
         )}
       </header>
 
-      {/* Mobile Bottom Navigation Bar */}
+      {/* Mobile Bottom Navigation Bar with Olive Green Active BG & White Text */}
       <div
-        className={`md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 z-50 flex items-center justify-around py-2 px-2 transition-transform duration-300 ${isFooterVisible ? 'translate-y-full' : 'translate-y-0'
-          }`}
+        className={`md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-stone-200/90 z-50 px-2 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] transition-transform duration-300 ${
+          isFooterVisible ? 'translate-y-full' : 'translate-y-0'
+        }`}
       >
-        <Link href="/" className="flex flex-col items-center gap-1 text-gray-600 hover:text-[#656B4F]">
-          <Home className="w-5 h-5" />
-          <span className="text-[10px] font-semibold">Home</span>
-        </Link>
-        <Link href="/shop" className="flex flex-col items-center gap-1 text-gray-600 hover:text-[#656B4F]">
-          <Store className="w-5 h-5" />
-          <span className="text-[10px] font-semibold">Shop</span>
-        </Link>
-        <Link href="/wishlist" className="flex flex-col items-center gap-1 text-gray-600 hover:text-rose-600 relative">
-          <Heart className={`w-5 h-5 ${wishlistCount > 0 ? 'text-rose-500 fill-rose-500' : ''}`} />
-          {wishlistCount > 0 && (
-            <span className="absolute -top-1 right-2 bg-rose-500 text-white text-[8px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center">
-              {wishlistCount}
-            </span>
-          )}
-          <span className="text-[10px] font-semibold">Wishlist</span>
-        </Link>
-        <a href="#contact" className="flex flex-col items-center gap-1 text-gray-600 hover:text-[#656B4F]">
-          <HelpCircle className="w-5 h-5" />
-          <span className="text-[10px] font-semibold">Contact</span>
-        </a>
-        <Link href="/account" className={`flex flex-col items-center gap-1 ${user ? 'text-[#656B4F]' : 'text-gray-600'} hover:text-[#656B4F]`}>
-          <UserRound className="w-5 h-5" />
-          <span className="text-[10px] font-semibold">My Account</span>
-        </Link>
+        <div className="flex items-center justify-around max-w-md mx-auto w-full gap-1">
+          {/* Home */}
+          <Link
+            href="/"
+            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all duration-200 min-w-[56px] ${
+              pathname === '/'
+                ? 'bg-[#50563D] text-white shadow-xs'
+                : 'text-[#6F776B] hover:text-[#50563D] hover:bg-[#F3F6EF]'
+            }`}
+          >
+            <Home className="w-4.5 h-4.5 mb-0.5" />
+            <span className="text-[10px] font-bold leading-none">Home</span>
+          </Link>
+
+          {/* Shop */}
+          <Link
+            href="/shop"
+            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all duration-200 min-w-[56px] ${
+              pathname.startsWith('/shop')
+                ? 'bg-[#50563D] text-white shadow-xs'
+                : 'text-[#6F776B] hover:text-[#50563D] hover:bg-[#F3F6EF]'
+            }`}
+          >
+            <Store className="w-4.5 h-4.5 mb-0.5" />
+            <span className="text-[10px] font-bold leading-none">Shop</span>
+          </Link>
+
+          {/* Cart */}
+          <Link
+            href="/cart"
+            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all duration-200 relative min-w-[56px] ${
+              pathname.startsWith('/cart')
+                ? 'bg-[#50563D] text-white shadow-xs'
+                : 'text-[#6F776B] hover:text-[#50563D] hover:bg-[#F3F6EF]'
+            }`}
+          >
+            <div className="relative">
+              <ShoppingBag className="w-4.5 h-4.5 mb-0.5" />
+              {totalItems > 0 && (
+                <span className="absolute -top-1.5 -right-2 bg-[#E06A26] text-white text-[8px] font-black min-w-[14px] h-[14px] px-0.5 rounded-full flex items-center justify-center ring-1 ring-white">
+                  {totalItems > 99 ? '99+' : totalItems}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] font-bold leading-none">Cart</span>
+          </Link>
+
+          {/* Wishlist */}
+          <Link
+            href="/wishlist"
+            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all duration-200 relative min-w-[56px] ${
+              pathname.startsWith('/wishlist')
+                ? 'bg-[#50563D] text-white shadow-xs'
+                : 'text-[#6F776B] hover:text-[#50563D] hover:bg-[#F3F6EF]'
+            }`}
+          >
+            <div className="relative">
+              <Heart
+                className={`w-4.5 h-4.5 mb-0.5 ${
+                  wishlistCount > 0 && pathname.startsWith('/wishlist')
+                    ? 'text-white fill-white'
+                    : wishlistCount > 0
+                    ? 'text-rose-500 fill-rose-500'
+                    : ''
+                }`}
+              />
+              {wishlistCount > 0 && !pathname.startsWith('/wishlist') && (
+                <span className="absolute -top-1.5 -right-2 bg-rose-500 text-white text-[8px] font-black min-w-[14px] h-[14px] px-0.5 rounded-full flex items-center justify-center ring-1 ring-white">
+                  {wishlistCount > 99 ? '99+' : wishlistCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] font-bold leading-none">Wishlist</span>
+          </Link>
+
+          {/* Account */}
+          <Link
+            href={user ? '/orders' : '/login'}
+            className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all duration-200 min-w-[56px] ${
+              pathname.startsWith('/account') || pathname.startsWith('/orders') || pathname.startsWith('/login')
+                ? 'bg-[#50563D] text-white shadow-xs'
+                : 'text-[#6F776B] hover:text-[#50563D] hover:bg-[#F3F6EF]'
+            }`}
+          >
+            <UserRound className="w-4.5 h-4.5 mb-0.5" />
+            <span className="text-[10px] font-bold leading-none">{user ? 'Orders' : 'Account'}</span>
+          </Link>
+        </div>
       </div>
     </>
   );
 }
+

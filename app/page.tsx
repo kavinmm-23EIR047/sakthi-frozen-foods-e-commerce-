@@ -138,6 +138,61 @@ interface CategoryItem {
   description?: string;
 }
 
+function formatCategoryTitle(name: string): string {
+  if (!name) return '';
+  const clean = name.trim();
+  if (clean === clean.toUpperCase()) {
+    return clean
+      .toLowerCase()
+      .split(' ')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ')
+      .replace(' Retail Pack', ' (Retail)')
+      .replace(' Alternatives', '');
+  }
+  return clean.replace(' Retail Pack', ' (Retail)').replace(' Alternatives', '');
+}
+
+// Default Authentic Brand Categories for Immediate Rendering
+const DEFAULT_HOMEPAGE_CATEGORIES: CategoryItem[] = [
+  {
+    name: 'Mock Meat',
+    link: '/shop?category=Mock%20Meat',
+    img: '/assets/0e18a4d9-5d57-4c36-8768-8e7d790a4b5d.jpg',
+    description: '100% Plant-Based Mutton & Chicken',
+  },
+  {
+    name: 'Mock Seafood',
+    link: '/shop?category=Mock%20Seafood',
+    img: 'https://res.cloudinary.com/thk8htfr/image/upload/v1783830077/thenggiri_fish_qsc1ey.png',
+    description: 'Vanjaram Fish & Prawn Alternatives',
+  },
+  {
+    name: 'Veg Starters',
+    link: '/shop?category=Veg%20Starters',
+    img: '/assets/813a46d7-0030-47c9-af6a-3db11c6edbc7.jpg',
+    description: 'Crisp Corn Cheese Balls & Kebabs',
+  },
+  {
+    name: 'Hand Made Starters',
+    link: '/shop?category=Hand%20Made%20Starters',
+    img: '/assets/928db126-f62c-4d88-a874-f3d8c08d68bd.jpg',
+    description: 'Paneer Lollipops & Veg Cutlets',
+  },
+  {
+    name: 'Frozen Foods',
+    link: '/shop?category=Frozen%20Foods',
+    img: '/assets/c0410062-941f-4ab6-bcc8-b9b2ffd98cc1.jpg',
+    description: 'Sweet Corn, Green Peas & Fries',
+  },
+  {
+    name: 'Frozen Snacks',
+    link: '/shop?category=Frozen%20Snacks',
+    img: '/assets/a677a7a9-c56a-4885-a823-51be3e0177b3.jpg',
+    description: 'Samosas, Rolls & Momos',
+  },
+];
+
 // FAQs Data
 const FAQS = [
   {
@@ -363,7 +418,7 @@ export default function StorefrontHomePage() {
   const [heroDishIndex, setHeroDishIndex] = useState(0);
   const [isHeroHovered, setIsHeroHovered] = useState(false);
   const [topProducts, setTopProducts] = useState<UnifiedProduct[]>([]);
-  const [categoriesList, setCategoriesList] = useState<CategoryItem[]>([]);
+  const [categoriesList, setCategoriesList] = useState<CategoryItem[]>(DEFAULT_HOMEPAGE_CATEGORIES);
   const [reviews, setReviews] = useState<ReviewType[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeReviewIndex, setActiveReviewIndex] = useState(0);
@@ -817,58 +872,46 @@ export default function StorefrontHomePage() {
               overscrollBehaviorX: 'contain',
               scrollBehavior: 'smooth',
             }}
-            className="w-full flex gap-3 sm:gap-4 overflow-x-auto pb-3 pt-1 scrollbar-hide [-ms-overflow-style:none] [scrollbar-width:none] select-none cursor-grab active:cursor-grabbing snap-x snap-mandatory md:grid md:grid-cols-4 lg:grid-cols-6 md:overflow-visible md:cursor-default md:active:cursor-default"
+            className="w-full flex gap-2.5 sm:gap-3.5 overflow-x-auto pb-3 pt-1 scrollbar-hide [-ms-overflow-style:none] [scrollbar-width:none] select-none cursor-grab active:cursor-grabbing snap-x snap-mandatory md:grid md:grid-cols-4 lg:grid-cols-7 md:overflow-visible md:cursor-default md:active:cursor-default"
           >
             {/* All Categories Item */}
             <div
               onClick={(e) => handleCategoryItemClick(e, '/shop')}
-              className="group flex w-[132px] sm:w-[160px] md:w-auto min-w-0 bg-[#50563D] hover:bg-[#3E442F] text-white rounded-2xl p-3 sm:p-4 flex-col items-center justify-center shrink-0 md:shrink h-28 sm:h-32 md:h-36 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98] cursor-pointer snap-start border border-[#50563D]"
+              className="flex w-[100px] sm:w-[115px] md:w-auto min-w-0 bg-[#50563D] text-white rounded-2xl p-2.5 sm:p-3 flex-col items-center justify-center shrink-0 md:shrink h-[105px] sm:h-[115px] md:h-[125px] shadow-xs border border-[#50563D] active:scale-[0.98] cursor-pointer snap-start transition-transform"
             >
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/10 flex items-center justify-center mb-1.5 sm:mb-2 group-hover:scale-110 transition-transform">
-                <LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6 text-[#EAF0E5]" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/15 flex items-center justify-center ring-1 ring-white/20 shadow-2xs shrink-0 mb-1.5">
+                <LayoutGrid className="w-5 h-5 text-[#EAF0E5]" />
               </div>
-              <span className="text-xs sm:text-sm font-black text-white text-center leading-tight">
+              <span className="text-[11px] sm:text-xs font-black text-white leading-tight tracking-tight text-center">
                 All Products
-              </span>
-              <span className="text-[10px] sm:text-[11px] text-[#EAF0E5]/80 mt-0.5 font-semibold">
-                Explore
               </span>
             </div>
 
-            {/* Dynamic Category Items Connected to Backend */}
-            {categoriesList.length > 0 ? (
-              categoriesList.map((cat, idx) => (
-                <div
-                  key={cat.id || idx}
-                  onClick={(e) => handleCategoryItemClick(e, cat.link)}
-                  className="group flex w-[132px] sm:w-[160px] md:w-auto min-w-0 bg-white hover:bg-[#F9FCF7] rounded-2xl p-2.5 sm:p-3.5 flex-col items-center justify-center shrink-0 md:shrink h-28 sm:h-32 md:h-36 shadow-xs hover:shadow-md border border-stone-200/80 hover:border-[#656B4F]/40 transition-all hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer snap-start"
-                >
-                  <div className="w-13 h-13 sm:w-16 sm:h-16 md:w-18 md:h-18 rounded-full overflow-hidden p-0.5 bg-stone-100 border-2 border-white shadow-xs group-hover:scale-110 group-hover:border-[#656B4F]/40 transition-all shrink-0">
-                    <img
-                      src={cat.img}
-                      alt={cat.name}
-                      className="w-full h-full rounded-full object-cover pointer-events-none"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = getCategoryFallbackImage(cat.name);
-                      }}
-                    />
-                  </div>
-                  <span className="mt-1.5 sm:mt-2 text-xs sm:text-sm font-extrabold text-[#1E201D] group-hover:text-[#50563D] transition-colors text-center leading-tight line-clamp-2 px-1">
-                    {cat.name}
-                  </span>
+            {/* Clean Category Items */}
+            {categoriesList.map((cat, idx) => (
+              <div
+                key={cat.id || cat.name || idx}
+                onClick={(e) => handleCategoryItemClick(e, cat.link)}
+                className="flex w-[100px] sm:w-[115px] md:w-auto min-w-0 bg-white rounded-2xl p-2.5 sm:p-3 flex-col items-center justify-center shrink-0 md:shrink h-[105px] sm:h-[115px] md:h-[125px] shadow-2xs border border-[#DFE7DB] active:scale-[0.98] cursor-pointer snap-start transition-transform hover:border-[#656B4F]/40"
+              >
+                {/* Circular Food Image */}
+                <div className="relative w-11 h-11 sm:w-13 sm:h-13 rounded-full p-0.5 bg-[#FAFBF7] border border-[#D5DFD0] shadow-xs shrink-0 mb-1.5">
+                  <img
+                    src={cat.img}
+                    alt={cat.name}
+                    className="w-full h-full rounded-full object-cover pointer-events-none"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = getCategoryFallbackImage(cat.name);
+                    }}
+                  />
                 </div>
-              ))
-            ) : loading ? (
-              [1, 2, 3, 4, 5].map((n) => (
-                <div
-                  key={n}
-                  className="flex w-[132px] sm:w-[160px] md:w-auto min-w-0 bg-white rounded-2xl p-2.5 sm:p-3.5 flex-col items-center justify-center shrink-0 md:shrink h-28 sm:h-32 md:h-36 shadow-xs border border-stone-200/80 animate-pulse snap-start"
-                >
-                  <div className="w-13 h-13 sm:w-16 sm:h-16 md:w-18 md:h-18 rounded-full bg-stone-200 shrink-0" />
-                  <div className="mt-2.5 h-3.5 bg-stone-200 rounded w-16" />
-                </div>
-              ))
-            ) : null}
+
+                {/* Clean Category Title */}
+                <span className="text-[11px] sm:text-xs font-bold text-[#1E201D] leading-tight line-clamp-2 px-0.5 text-center tracking-tight">
+                  {formatCategoryTitle(cat.name)}
+                </span>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -903,23 +946,26 @@ export default function StorefrontHomePage() {
               </div>
 
               <div className="space-y-3 flex-1 z-10">
-                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 border border-[#656B4F]/25 text-[#50563D] text-[10px] font-extrabold uppercase tracking-wider shadow-2xs">
-                  <Leaf className="w-3 h-3 text-[#656B4F]" />
-                  <span>Sakthi Frozen</span>
+                <div className="flex items-center gap-2">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/90 border border-[#656B4F]/25 text-[#50563D] text-[10px] font-extrabold uppercase tracking-wider shadow-2xs">
+                    <Leaf className="w-3 h-3 text-[#656B4F]" />
+                    <span>Sakthi Frozen</span>
+                  </div>
+                  <span className="font-script text-base text-[#50563D] font-bold">100% Plant Meat ✨</span>
                 </div>
 
-                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#50563D] font-display tracking-tight leading-tight">
-                  Good Food Does Good
+                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#50563D] tracking-tight leading-tight">
+                  Good Food <span className="font-serif-italic font-normal text-[#363B26]">Does Good</span>
                 </h3>
 
                 <p className="text-xs sm:text-sm text-[#4E5E4C] leading-relaxed font-medium">
-                  We create authentic plant-based meats that taste amazing, nourish your body, and bring pure culinary joy to every meal.
+                  Authentic plant-based meats that taste delicious, nourish your body, and bring pure culinary joy to every meal.
                 </p>
 
                 <div className="pt-2">
                   <Link
                     href="/shop"
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-white hover:bg-stone-50 text-[#50563D] font-extrabold text-xs shadow-md shadow-black/5 border border-stone-200/80 transition-all hover:scale-105 active:scale-95 group"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white hover:bg-stone-50 text-[#50563D] font-black text-xs shadow-md shadow-black/5 border border-stone-200/80 transition-all hover:scale-105 active:scale-95 group"
                   >
                     <span>Explore Products</span>
                     <ArrowRight className="w-3.5 h-3.5 text-[#656B4F] group-hover:translate-x-1 transition-transform" />
@@ -931,91 +977,81 @@ export default function StorefrontHomePage() {
             {/* Right Column: 2 Dedicated Product Categories (Raw Meats & Ready-to-Fry Starters) */}
             <div className="lg:col-span-5 flex flex-col gap-4 justify-between">
               
-              {/* Card 1: Vegan Meats (Raw Material for Gravy, Biryani, Fries) */}
+              {/* Card 1: Raw Meat Cooking Base */}
               <div className="flex-1 bg-gradient-to-br from-[#FCFDF9] via-[#F4F8EE] to-[#EAF0E5] rounded-[24px] sm:rounded-[28px] p-4 sm:p-5 border border-[#656B4F]/25 shadow-xs flex flex-col justify-between gap-3 text-left relative overflow-hidden group hover:shadow-md hover:border-[#656B4F]/40 transition-all duration-300">
                 <div className="absolute -top-8 -right-8 w-24 h-24 bg-[#656B4F]/10 rounded-full blur-xl pointer-events-none group-hover:scale-150 transition-transform" />
                 
                 <div className="space-y-2 relative z-10">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/90 border border-[#656B4F]/25 text-[#50563D] text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider shadow-2xs">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/90 border border-[#656B4F]/25 text-[#50563D] text-[10px] font-black uppercase tracking-wider shadow-2xs">
                       <Utensils className="w-3 h-3 text-[#656B4F]" />
                       <span>Raw Cooking Base</span>
                     </div>
-                    <span className="text-[10px] font-bold text-[#656B4F] bg-[#EAF0E5] px-2 py-0.5 rounded-md border border-[#656B4F]/15">
-                      100% Pure Veg
-                    </span>
+                    <span className="font-script text-base text-[#50563D] font-bold">Chef's Choice 🌿</span>
                   </div>
 
                   <div>
-                    <h4 className="text-base sm:text-lg font-black text-[#1E201D] tracking-tight font-display">
-                      Vegan Meats <span className="text-[#50563D] font-bold text-xs sm:text-sm font-sans">(Raw Material)</span>
+                    <h4 className="text-lg sm:text-xl font-black text-[#1E201D] tracking-tight">
+                      Raw Cooking <span className="font-serif-italic font-normal text-[#50563D]">Cuts</span>
                     </h4>
-                    <p className="text-[11px] sm:text-xs text-[#4E5E4C] leading-relaxed font-medium mt-1">
-                      Works just like raw meat cuts! Cook rich <strong>Gravy, Spicy Curry, Biryani, Pepper Fry, Sukka &amp; Roasts</strong>. Deeply absorbs all your homemade spices.
+                    <p className="text-xs text-[#4E5E4C] leading-relaxed font-medium mt-1">
+                      Cooks just like tender meat. Deeply absorbs spices for rich home gravies, biryani &amp; roasts.
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    <span className="text-[9px] sm:text-[9.5px] font-extrabold text-[#50563D] bg-white/90 border border-[#656B4F]/20 px-2 py-0.5 rounded-md shadow-2xs">
-                      🍛 Gravy &amp; Curry
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <span className="text-[10px] font-extrabold text-[#50563D] bg-white/90 border border-[#656B4F]/20 px-2.5 py-0.5 rounded-md shadow-2xs">
+                      🥘 Rich Gravy &amp; Biryani
                     </span>
-                    <span className="text-[9px] sm:text-[9.5px] font-extrabold text-[#50563D] bg-white/90 border border-[#656B4F]/20 px-2 py-0.5 rounded-md shadow-2xs">
-                      🍚 Biryani
-                    </span>
-                    <span className="text-[9px] sm:text-[9.5px] font-extrabold text-[#50563D] bg-white/90 border border-[#656B4F]/20 px-2 py-0.5 rounded-md shadow-2xs">
-                      🍳 Pepper Fry &amp; Sukka
+                    <span className="text-[10px] font-extrabold text-[#50563D] bg-white/90 border border-[#656B4F]/20 px-2.5 py-0.5 rounded-md shadow-2xs">
+                      🥩 High Protein
                     </span>
                   </div>
                 </div>
 
                 <Link
-                  href="/shop"
+                  href="/shop?category=Mock%20Meat"
                   className="relative z-10 inline-flex items-center justify-between w-full px-4 py-2.5 rounded-xl bg-[#50563D] hover:bg-[#3E432E] text-white font-extrabold text-xs shadow-xs transition-all hover:scale-[1.01] active:scale-98 group/btn"
                 >
-                  <span>Shop Vegan Meats</span>
+                  <span>Shop Raw Cuts</span>
                   <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
                 </Link>
               </div>
 
-              {/* Card 2: Vegan Starters (Ready to Fry, No Marination Needed) */}
+              {/* Card 2: Ready to Fry Starters */}
               <div className="flex-1 bg-gradient-to-br from-[#FFFDF8] via-[#FEF6EC] to-[#FDEEE9] rounded-[24px] sm:rounded-[28px] p-4 sm:p-5 border border-[#EA580C]/25 shadow-xs flex flex-col justify-between gap-3 text-left relative overflow-hidden group hover:shadow-md hover:border-[#EA580C]/40 transition-all duration-300">
                 <div className="absolute -bottom-8 -right-8 w-24 h-24 bg-[#EA580C]/10 rounded-full blur-xl pointer-events-none group-hover:scale-150 transition-transform" />
 
                 <div className="space-y-2 relative z-10">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/90 border border-[#EA580C]/25 text-[#EA580C] text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider shadow-2xs">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/90 border border-[#EA580C]/25 text-[#EA580C] text-[10px] font-black uppercase tracking-wider shadow-2xs">
                       <Flame className="w-3 h-3 text-[#EA580C]" />
-                      <span>No Marination Needed</span>
+                      <span>Ready to Fry</span>
                     </div>
-                    <span className="text-[10px] font-bold text-[#EA580C] bg-[#FEEBEA] px-2 py-0.5 rounded-md border border-[#EA580C]/15">
-                      Ready in 3 Mins
-                    </span>
+                    <span className="font-script text-base text-[#EA580C] font-bold">Ready in 3 Mins! ⚡</span>
                   </div>
 
                   <div>
-                    <h4 className="text-base sm:text-lg font-black text-[#1E201D] tracking-tight font-display">
-                      Vegan Starters <span className="text-[#EA580C] font-bold text-xs sm:text-sm font-sans">(Ready to Fry)</span>
+                    <h4 className="text-lg sm:text-xl font-black text-[#1E201D] tracking-tight">
+                      Crispy <span className="font-serif-italic font-normal text-[#EA580C]">Starters</span>
                     </h4>
-                    <p className="text-[11px] sm:text-xs text-[#7C2D12] leading-relaxed font-medium mt-1">
-                      Pre-seasoned and perfectly crafted. <strong>No marination needed</strong> — simply deep fry in hot oil or air fry for instant crispy, golden &amp; juicy appetizers!
+                    <p className="text-xs text-[#7C2D12] leading-relaxed font-medium mt-1">
+                      Zero marination needed. Flash-fry or air-fry for instant hot, crunchy &amp; juicy snacks.
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    <span className="text-[9px] sm:text-[9.5px] font-extrabold text-[#9A3412] bg-white/90 border border-[#EA580C]/20 px-2 py-0.5 rounded-md shadow-2xs">
-                      ⚡ Direct Oil Fry
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <span className="text-[10px] font-extrabold text-[#9A3412] bg-white/90 border border-[#EA580C]/20 px-2.5 py-0.5 rounded-md shadow-2xs">
+                      ⚡ 3-Min Flash Fry
                     </span>
-                    <span className="text-[9px] sm:text-[9.5px] font-extrabold text-[#9A3412] bg-white/90 border border-[#EA580C]/20 px-2 py-0.5 rounded-md shadow-2xs">
-                      🚫 Zero Marination
-                    </span>
-                    <span className="text-[9px] sm:text-[9.5px] font-extrabold text-[#9A3412] bg-white/90 border border-[#EA580C]/20 px-2 py-0.5 rounded-md shadow-2xs">
-                      🍗 Crispy &amp; Juicy
+                    <span className="text-[10px] font-extrabold text-[#9A3412] bg-white/90 border border-[#EA580C]/20 px-2.5 py-0.5 rounded-md shadow-2xs">
+                      🚫 Zero Prep Needed
                     </span>
                   </div>
                 </div>
 
                 <Link
-                  href="/shop"
+                  href="/shop?category=Veg%20Starters"
                   className="relative z-10 inline-flex items-center justify-between w-full px-4 py-2.5 rounded-xl bg-[#EA580C] hover:bg-[#C2410C] text-white font-extrabold text-xs shadow-xs transition-all hover:scale-[1.01] active:scale-98 group/btn"
                 >
                   <span>Shop Starters</span>
@@ -1433,7 +1469,7 @@ export default function StorefrontHomePage() {
         {/* 7. LOVED BY CUSTOMERS & FAQS */}
         {/* ========================================================================= */}
         <section className="py-10 md:py-14 site-shell">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
 
             <div className="lg:col-span-5 bg-[#EAF3E7] rounded-[28px] sm:rounded-[36px] p-5 sm:p-7 border border-[#DFEBE0] shadow-xs flex flex-col justify-between text-left relative overflow-hidden space-y-4">
               <div className="space-y-1">
@@ -1558,7 +1594,7 @@ export default function StorefrontHomePage() {
               )}
             </div>
 
-            <div className="lg:col-span-7 flex flex-col justify-between space-y-4">
+            <div className="lg:col-span-7 flex flex-col space-y-4">
               <div className="flex items-start sm:items-end justify-between gap-3">
                 <div className="text-left space-y-1 min-w-0">
                   <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#50563D] tracking-tight font-display">
@@ -1577,7 +1613,7 @@ export default function StorefrontHomePage() {
                 </Link>
               </div>
 
-              <div className="space-y-3 flex-1 flex flex-col justify-between">
+              <div className="space-y-3">
                 {FAQS.map((faq, idx) => {
                   const isOpen = openFaqIndex === idx;
                   return (
@@ -1587,7 +1623,7 @@ export default function StorefrontHomePage() {
                     >
                       <button
                         onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
-                        className="w-full p-4 sm:p-4.5 text-left font-bold text-xs sm:text-sm text-[#50563D] flex items-center justify-between gap-3 group"
+                        className="w-full p-4 sm:p-4.5 text-left font-bold text-xs sm:text-sm text-[#50563D] flex items-center justify-between gap-3 group cursor-pointer"
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-5 h-5 rounded-full bg-[#50563D] text-white flex items-center justify-center shrink-0">
