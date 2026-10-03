@@ -792,7 +792,7 @@ export default function CheckoutPage() {
                               <span>FREE Delivery applied for order over ₹2999!</span>
                             </span>
                           ) : deliveryCalc.mode === 'BIKE' ? (
-                            `Coimbatore rate: ₹10 per km from Sakthi store (minimum ₹40, maximum ₹250)`
+                            `Coimbatore rate: ₹10 per km from Sakthi Frozen store (minimum ₹40, maximum ₹250)`
                           ) : (
                             `Dispatched via reliable ${deliveryCalc.mode === 'BUS' ? 'Bus' : 'Travels'} parcel service to destination office`
                           )}

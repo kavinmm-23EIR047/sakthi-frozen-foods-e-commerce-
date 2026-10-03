@@ -53,6 +53,7 @@ import {
 } from 'lucide-react';
 import { ProductType, OrderType, UserType, CategoryType } from '@/lib/types';
 import { fetchApi, getCachedData, setCachedData, invalidateCache } from '@/lib/apiConfig';
+import { printCommercialBill } from '@/lib/printUtils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import ImageUploader from '@/components/ImageUploader';
 import OptimizedImage from '@/components/OptimizedImage';
@@ -499,7 +500,7 @@ export default function AdminPortalPage() {
     const cleanPhone = rawPhone.replace(/\D/g, '');
     const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
     const msg = encodeURIComponent(
-      `Hello ${ord.customerName}! 🌿\n\nThis is regarding your Sakthi Plant-Based Meat Order #${ord.orderNumber}.\n\n📦 Order Status: ${ord.status}\n💰 Total Amount: ₹${ord.totalAmount}\n📍 Delivery Address: ${ord.shippingAddress}\n\nThank you for choosing Sakthi Frozen Foods! For queries, reply directly to this chat.`
+      `Hello ${ord.customerName}! 🌿\n\nThis is regarding your Sakthi Frozen Plant-Based Meat Order #${ord.orderNumber}.\n\n📦 Order Status: ${ord.status}\n💰 Total Amount: ₹${ord.totalAmount}\n📍 Delivery Address: ${ord.shippingAddress}\n\nThank you for choosing Sakthi Frozen Foods! For queries, reply directly to this chat.`
     );
     return `https://wa.me/${phoneWithCountry}?text=${msg}`;
   };
@@ -747,7 +748,7 @@ export default function AdminPortalPage() {
             </div>
             <div className="min-w-0">
               <span className="block truncate text-xs font-extrabold leading-none tracking-tight sm:text-lg font-poppins">
-                SAKTHI ADMIN PORTAL
+                SAKTHI FROZEN ADMIN PORTAL
               </span>
               <span className="mt-0.5 hidden text-[10px] font-semibold uppercase tracking-widest text-[#A7ADA9] sm:block">
                 Live E-Commerce Control Center
@@ -3243,16 +3244,26 @@ export default function AdminPortalPage() {
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setInvoiceOrder(selectedOrderModal)}
-                  className="px-4 py-2 rounded-xl bg-white hover:bg-[#EAF0E5] border border-[#4F534C]/20 text-[#1E201D] font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors"
+                  onClick={() => printCommercialBill(selectedOrderModal)}
+                  className="px-4 py-2 rounded-xl bg-white hover:bg-[#EAF0E5] border border-[#4F534C]/20 text-[#1E201D] font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                  title="Print clean 1-page commercial packing slip"
                 >
                   <Printer className="w-3.5 h-3.5 text-[#656B4F]" />
-                  <span>Print Bill</span>
+                  <span>Print Slip (1-Page)</span>
+                </button>
+
+                <button
+                  onClick={() => setInvoiceOrder(selectedOrderModal)}
+                  className="px-4 py-2 rounded-xl bg-[#2D3823] hover:bg-[#1E201D] text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                  title="Preview Full Tax Bill"
+                >
+                  <FileText className="w-3.5 h-3.5 text-[#B4CEB1]" />
+                  <span>View Bill</span>
                 </button>
 
                 <button
                   onClick={() => setSelectedOrderModal(null)}
-                  className="px-5 py-2 rounded-xl bg-[#656B4F] hover:bg-[#3d4732] text-white font-bold text-xs shadow-xs transition-colors"
+                  className="px-5 py-2 rounded-xl bg-[#656B4F] hover:bg-[#3d4732] text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
                 >
                   Close
                 </button>
@@ -3262,150 +3273,274 @@ export default function AdminPortalPage() {
         </div>
       )}
 
-      {/* PRINTABLE PACKING SLIP & INVOICE MODAL */}
+      {/* ══════════════════════════════════════════════════════════════════════════ */}
+      {/* EXECUTIVE COMMERCIAL PACKING SLIP & BILL (Strict 1-Page Clean Format)     */}
+      {/* ══════════════════════════════════════════════════════════════════════════ */}
       {invoiceOrder && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-xl w-full my-auto shadow-2xl border border-gray-300 max-h-[95vh] flex flex-col overflow-hidden">
-            {/* Header Toolbar */}
-            <div className="bg-[#1E201D] text-white px-5 py-3 flex items-center justify-between shrink-0 print:hidden">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto print:p-0 print:m-0 print:bg-white print:static">
+          <div className="bg-white rounded-2xl max-w-2xl w-full my-auto shadow-2xl border border-stone-300 max-h-[96vh] flex flex-col overflow-hidden print:max-w-none print:w-full print:border-none print:shadow-none print:rounded-none print:max-h-none print:m-0">
+            {/* Header Action Toolbar (Hidden in Print) */}
+            <div className="bg-[#1E201D] text-white px-4 sm:px-6 py-3 flex items-center justify-between shrink-0 print:hidden">
               <div className="flex items-center gap-2">
                 <Printer className="w-4 h-4 text-[#A9B896]" />
-                <span className="font-bold text-sm">Delivery Packing Slip / Bill</span>
+                <span className="font-bold text-xs sm:text-sm">Delivery Packing Slip & Tax Bill</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => {
                     const token = typeof window !== 'undefined' ? sessionStorage.getItem('auth_token') || '' : '';
-                    window.open(`/api/orders/${invoiceOrder.id}/invoice?token=${encodeURIComponent(token)}`, '_blank');
+                    window.open(`/api/orders/${invoiceOrder.id || (invoiceOrder as any)._id}/invoice?token=${encodeURIComponent(token)}`, '_blank');
                   }}
-                  className="px-3 py-1 bg-[#2D3823] hover:bg-[#1E201D] text-white rounded-lg font-bold text-xs flex items-center gap-1 shadow-xs transition-colors"
+                  className="px-3 py-1.5 bg-[#2D3823] hover:bg-[#1E201D] text-white rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                  title="Download Official Vector PDF Invoice"
                 >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>Tax Invoice HTML</span>
+                  <FileText className="w-3.5 h-3.5 text-[#B4CEB1]" />
+                  <span>Download PDF</span>
                 </button>
                 <button
-                  onClick={() => window.print()}
-                  className="px-3 py-1 bg-[#656B4F] hover:bg-[#50563D] text-white rounded-lg font-bold text-xs flex items-center gap-1 shadow-xs transition-colors"
+                  onClick={() => printCommercialBill(invoiceOrder)}
+                  className="px-3.5 py-1.5 bg-[#656B4F] hover:bg-[#50563D] text-white rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                  title="Print clean 1-page packing slip"
                 >
                   <Printer className="w-3.5 h-3.5" />
-                  <span>Print Document</span>
+                  <span>Print Slip (1-Page)</span>
                 </button>
                 <button
                   onClick={() => setInvoiceOrder(null)}
-                  className="p-1 rounded-full hover:bg-white/20 text-white"
+                  className="p-1 rounded-full hover:bg-white/20 text-white cursor-pointer ml-1"
+                  aria-label="Close"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Printable Content Frame */}
-            <div className="p-6 sm:p-8 space-y-6 text-xs text-[#1E201D] overflow-y-auto font-sans print:p-0 print:text-black">
-              {/* Brand Header */}
-              <div className="flex items-start justify-between border-b border-gray-300 pb-4">
-                <div>
-                  <h2 className="text-xl font-black text-[#656B4F] font-poppins">SAKTHI FROZEN FOODS</h2>
-                  <p className="text-[11px] text-[#61665D] font-medium mt-0.5">100% Plant-Based Meat & Vegan Delicacies</p>
-                  <p className="text-[10px] text-gray-500 mt-1">FSSAI Lic No: 12421008000456 • Cold Chain Dispatch</p>
+            {/* Printable Bill Slip Container */}
+            <div
+              id="printable-slip"
+              className="p-4 sm:p-6 space-y-3.5 text-[#1E201D] overflow-y-auto font-sans print:p-0 print:m-0 print:overflow-visible print:text-black bg-white"
+            >
+              {/* 1. Header Box Section */}
+              <div className="border border-[#50563D] rounded-xl p-3 sm:p-3.5 bg-[#FAFBF7] flex flex-col sm:flex-row justify-between gap-3 relative overflow-hidden">
+                <div className="space-y-0.5 sm:max-w-[60%]">
+                  <h2 className="text-base sm:text-lg font-black text-[#50563D] tracking-tight leading-tight">
+                    SAKTHI FROZEN FOODS
+                  </h2>
+                  <p className="text-[10.5px] font-extrabold text-[#656B4F] uppercase tracking-wider">
+                    100% Plant-Based Meat & Vegan Delicacies
+                  </p>
+                  <p className="text-[10px] text-stone-600 leading-tight pt-0.5">
+                    Peons Colony, Kalpana Theatre, opposite Edayarpalayam - Koundampalayam Road, Coimbatore - 641030
+                  </p>
+                  <p className="text-[10px] text-stone-600">
+                    Phone: <strong>+91 80563 89214</strong> | Email: <strong>sakthifrozenfoods@gmail.com</strong>
+                  </p>
+                  <p className="text-[10px] text-[#50563D] font-bold">
+                    Website: <strong className="text-[#656B4F]">buy.tnmockmeat.com</strong> | FSSAI Lic. No: <strong>12421008000456</strong>
+                  </p>
                 </div>
-                <div className="text-right">
-                  <span className="font-mono font-black text-base text-[#1E201D] block">#{invoiceOrder.orderNumber}</span>
-                  <span className="text-[11px] text-gray-600 block">{formatOrderDate(invoiceOrder.createdAt)}</span>
-                  <span className="inline-block mt-1 px-2 py-0.5 rounded bg-gray-100 text-gray-800 text-[10px] font-bold uppercase">
-                    {invoiceOrder.status}
+
+                <div className="text-left sm:text-right space-y-0.5 sm:border-l sm:border-stone-200 sm:pl-3 sm:min-w-[36%] shrink-0">
+                  <span className="text-[11px] font-black uppercase text-[#50563D] block tracking-wider">
+                    DELIVERY SLIP & TAX INVOICE
                   </span>
-                </div>
-              </div>
-
-              {/* Customer & Delivery Breakdown */}
-              <div className="grid grid-cols-2 gap-4 border-b border-gray-200 pb-4">
-                <div>
-                  <h4 className="font-bold text-xs uppercase tracking-wider text-gray-500 mb-1">Customer / Bill To</h4>
-                  <p className="font-bold text-sm text-[#1E201D]">{invoiceOrder.customerName}</p>
-                  <p className="text-xs text-gray-700 mt-0.5">Phone: {invoiceOrder.customerPhone}</p>
-                  <p className="text-xs text-gray-600 truncate">{invoiceOrder.customerEmail}</p>
-                </div>
-
-                <div>
-                  <h4 className="font-bold text-xs uppercase tracking-wider text-gray-500 mb-1">Ship To / Destination</h4>
-                  <p className="text-xs text-gray-800 leading-relaxed">{invoiceOrder.shippingAddress}</p>
-                  {invoiceOrder.landmark && (
-                    <p className="text-[11px] text-gray-600 font-medium mt-0.5">Landmark: {invoiceOrder.landmark}</p>
+                  <span className="font-mono font-black text-xs sm:text-sm text-[#1E201D] block break-all">
+                    #{invoiceOrder.orderNumber}
+                  </span>
+                  <span className="text-[10px] text-stone-600 block">
+                    Date: {formatOrderDate(invoiceOrder.createdAt)}
+                  </span>
+                  <div className="pt-0.5">
+                    <span
+                      className={`inline-block px-2 py-0.5 rounded text-[9.5px] font-black uppercase tracking-wider ${
+                        invoiceOrder.paymentStatus === 'Paid' || invoiceOrder.status === 'Confirmed'
+                          ? 'bg-[#EAF0E5] text-[#2D3823] border border-[#656B4F]/30'
+                          : 'bg-amber-100 text-amber-900 border border-amber-200'
+                      }`}
+                    >
+                      {invoiceOrder.paymentStatus === 'Paid' ? 'PAID (Verified)' : invoiceOrder.status}
+                    </span>
+                  </div>
+                  <p className="text-[9.5px] text-stone-600 pt-0.5">
+                    Payment: <strong>{invoiceOrder.paymentMethod || 'Online Gateway'}</strong>
+                  </p>
+                  {invoiceOrder.deliveryMode && (
+                    <p className="text-[9.5px] text-[#50563D] font-bold">
+                      Mode: {invoiceOrder.deliveryMode} Express (-18°C)
+                    </p>
                   )}
                 </div>
               </div>
 
-              {/* Itemized Table */}
-              <div>
+              {/* 2. Customer & Delivery Breakdown (2-Column Cards) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                <div className="border border-[#D4DBC9] rounded-xl overflow-hidden bg-white">
+                  <div className="bg-[#EAF0E5] px-3 py-1 border-b border-[#D4DBC9]">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-[#50563D]">
+                      CUSTOMER / BILLED TO
+                    </span>
+                  </div>
+                  <div className="p-2.5 space-y-0.5 text-[11px]">
+                    <p className="font-black text-[#1E201D] text-xs">{invoiceOrder.customerName}</p>
+                    <p className="text-stone-700">Phone: <strong>+91 {invoiceOrder.customerPhone}</strong></p>
+                    {invoiceOrder.customerEmail && (
+                      <p className="text-stone-600 truncate">Email: {invoiceOrder.customerEmail}</p>
+                    )}
+                    <p className="text-stone-600 text-[10.5px] line-clamp-2 leading-tight">
+                      Address: {invoiceOrder.shippingAddress}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="border border-[#D4DBC9] rounded-xl overflow-hidden bg-white">
+                  <div className="bg-[#EAF0E5] px-3 py-1 border-b border-[#D4DBC9]">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-[#50563D]">
+                      SHIP TO / DELIVERY DESTINATION
+                    </span>
+                  </div>
+                  <div className="p-2.5 space-y-0.5 text-[11px]">
+                    <p className="font-black text-[#1E201D] text-xs">{invoiceOrder.customerName}</p>
+                    <p className="text-stone-700 line-clamp-2 text-[10.5px] leading-tight">
+                      {invoiceOrder.shippingAddress}
+                    </p>
+                    {invoiceOrder.landmark && (
+                      <p className="text-[10px] text-[#50563D] font-bold">
+                        Landmark: {invoiceOrder.landmark}
+                      </p>
+                    )}
+                    <p className="text-[10px] text-stone-600">
+                      {[invoiceOrder.city, invoiceOrder.district, invoiceOrder.state].filter(Boolean).join(', ')}
+                      {invoiceOrder.pincode ? ` - ${invoiceOrder.pincode}` : ''}
+                    </p>
+                    <p className="text-[9.5px] text-[#50563D] font-bold pt-0.5">
+                      Dispatch Condition: Frozen Thermal Box (-18°C)
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Itemized Products Table */}
+              <div className="border border-[#656B4F] rounded-xl overflow-hidden">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b-2 border-gray-300 text-gray-600 font-bold uppercase text-[10px]">
-                      <th className="py-2">Item Description</th>
-                      <th className="py-2 text-center">Pack</th>
-                      <th className="py-2 text-center">Qty</th>
-                      <th className="py-2 text-right">Price</th>
-                      <th className="py-2 text-right">Total</th>
+                    <tr className="bg-[#50563D] text-white font-extrabold uppercase text-[9.5px] tracking-wider">
+                      <th className="py-1.5 px-2 text-center w-8 border-r border-[#656B4F]/40">#</th>
+                      <th className="py-1.5 px-3 border-r border-[#656B4F]/40">Item Description</th>
+                      <th className="py-1.5 px-2 text-center border-r border-[#656B4F]/40">Pack</th>
+                      <th className="py-1.5 px-2 text-center border-r border-[#656B4F]/40">Qty</th>
+                      <th className="py-1.5 px-2.5 text-right border-r border-[#656B4F]/40">Unit Price</th>
+                      <th className="py-1.5 px-3 text-right">Amount</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-stone-200 text-[11px]">
                     {invoiceOrder.items?.map((item, idx) => (
-                      <tr key={idx}>
-                        <td className="py-2.5 font-bold text-[#1E201D]">{item.name}</td>
-                        <td className="py-2.5 text-center text-gray-600">{item.weight}</td>
-                        <td className="py-2.5 text-center font-bold text-gray-800">{item.quantity}</td>
-                        <td className="py-2.5 text-right text-gray-700">₹{item.price}</td>
-                        <td className="py-2.5 text-right font-black text-[#1E201D]">₹{item.price * item.quantity}</td>
+                      <tr key={idx} className={idx % 2 === 1 ? 'bg-[#FAFBF7]' : 'bg-white'}>
+                        <td className="py-1.5 px-2 text-center font-bold text-[#50563D] border-r border-stone-200">
+                          {idx + 1}
+                        </td>
+                        <td className="py-1.5 px-3 font-bold text-[#1E201D] border-r border-stone-200">
+                          <span>{item.name}</span>
+                          <span className="block text-[9.5px] font-normal text-stone-500 italic">
+                            100% Pure Veg Frozen Alternative
+                          </span>
+                        </td>
+                        <td className="py-1.5 px-2 text-center text-stone-700 font-bold border-r border-stone-200">
+                          {item.weight || '1 KG'}
+                        </td>
+                        <td className="py-1.5 px-2 text-center font-black text-[#1E201D] border-r border-stone-200">
+                          {item.quantity}
+                        </td>
+                        <td className="py-1.5 px-2.5 text-right text-stone-700 border-r border-stone-200">
+                          ₹{Number(item.price).toFixed(2)}
+                        </td>
+                        <td className="py-1.5 px-3 text-right font-black text-[#50563D]">
+                          ₹{Number(item.price * item.quantity).toFixed(2)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
-              {/* Financial Calculation Summary */}
-              <div className="border-t border-gray-300 pt-3 space-y-1.5 max-w-xs ml-auto text-xs">
-                <div className="flex justify-between text-gray-600">
-                  <span>Subtotal:</span>
-                  <span>₹{invoiceOrder.subtotal ?? (invoiceOrder.totalAmount - (invoiceOrder.deliveryFee || 0))}</span>
+              {/* 4. Financial Calculation & Guidelines Section */}
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-start text-xs pt-0.5">
+                {/* Left side: Cold Storage Directive & Declarations */}
+                <div className="sm:col-span-7 space-y-2">
+                  <div className="p-2.5 rounded-xl bg-[#F7FAF4] border border-[#D4DBC9] space-y-1">
+                    <p className="font-extrabold text-[10.5px] text-[#50563D] flex items-center gap-1.5">
+                      <Snowflake className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span>Cold Chain & Quality Guidelines:</span>
+                    </p>
+                    <p className="text-[9.5px] text-stone-600 leading-tight">
+                      Store immediately at <strong>-18°C</strong> or colder upon delivery. Keep sealed until preparation. Do not refreeze once thawed.
+                    </p>
+                    <p className="text-[9px] text-[#656B4F] pt-0.5 font-bold">
+                      Helpline / WhatsApp: +91 80563 89214 | Store: buy.tnmockmeat.com
+                    </p>
+                  </div>
+                  <p className="text-[8.5px] text-stone-400 italic">
+                    Certified 100% Pure Vegetarian Plant-Based Products. Computer generated commercial delivery bill.
+                  </p>
                 </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Cold Chain Delivery Fee:</span>
-                  <span>{(invoiceOrder.deliveryFee || 0) === 0 ? 'FREE' : `₹${invoiceOrder.deliveryFee}`}</span>
-                </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Payment Method:</span>
-                  <span className="font-semibold">{invoiceOrder.paymentMethod}</span>
-                </div>
-                <div className="flex justify-between text-base font-black text-[#656B4F] border-t-2 border-gray-400 pt-2">
-                  <span>Grand Total:</span>
-                  <span>₹{invoiceOrder.totalAmount}</span>
+
+                {/* Right side: Calculation Breakdown */}
+                <div className="sm:col-span-5 border border-[#D4DBC9] rounded-xl overflow-hidden bg-white text-[11px] shadow-2xs">
+                  <div className="p-2.5 space-y-1">
+                    <div className="flex justify-between text-stone-600">
+                      <span>Items Subtotal:</span>
+                      <span className="font-bold text-[#1E201D]">
+                        ₹{Number(invoiceOrder.subtotal ?? (invoiceOrder.totalAmount - (invoiceOrder.deliveryFee || 0) - (invoiceOrder.convenienceFee || 0))).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-stone-600">
+                      <span>Cold Chain Delivery:</span>
+                      <span className="font-bold text-[#1E201D]">
+                        {(invoiceOrder.deliveryFee || 0) === 0 ? 'FREE' : `₹${Number(invoiceOrder.deliveryFee).toFixed(2)}`}
+                      </span>
+                    </div>
+                    {Boolean(invoiceOrder.convenienceFee) && (
+                      <div className="flex justify-between text-stone-600">
+                        <span>Convenience Fee (2.5%):</span>
+                        <span className="font-bold text-[#1E201D]">₹{Number(invoiceOrder.convenienceFee).toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-[10px] text-stone-500 pt-0.5 border-t border-stone-100">
+                      <span>GST (Food Products):</span>
+                      <span>Inclusive in MRP</span>
+                    </div>
+                  </div>
+
+                  {/* Grand Total Bar */}
+                  <div className="bg-[#50563D] text-white p-2 px-3 flex justify-between items-center">
+                    <span className="font-black text-xs uppercase tracking-wider">Total Amount:</span>
+                    <span className="font-black text-sm sm:text-base">₹{Number(invoiceOrder.totalAmount).toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Cold Storage & Delivery Instructions */}
-              <div className="p-3 rounded-xl bg-[#FBFDF2] border border-[#656B4F]/20 text-[10px] text-[#4F534C] space-y-1">
-                <p className="font-bold text-[#656B4F] flex items-center gap-1">
-                  <Snowflake className="w-3.5 h-3.5 text-blue-600 inline" />
-                  <span>Cold Storage Guidelines:</span>
-                </p>
-                <p>Store immediately at -18°C upon delivery. Keep sealed until cooking. Do not refreeze once thawed.</p>
-                <p className="text-gray-500 pt-1">For support or queries, contact us on WhatsApp or call +91 80563 89214 / +91 90425 39214.</p>
+              {/* 5. Bottom Signatory Strip */}
+              <div className="pt-2 border-t border-stone-200 flex items-center justify-between text-[9px] text-stone-500">
+                <span>Thank you for choosing Sakthi Frozen Foods!</span>
+                <span className="font-bold text-[#50563D] uppercase">
+                  For SAKTHI FROZEN FOODS • [ Authorized Digital Signatory ]
+                </span>
               </div>
             </div>
 
-            {/* Print Bottom Bar */}
-            <div className="p-4 bg-gray-100 border-t border-gray-300 flex items-center justify-between shrink-0 print:hidden">
-              <span className="text-xs text-gray-500">Receipt generated by Sakthi Admin Console</span>
+            {/* Bottom Modal Toolbar (Hidden in Print) */}
+            <div className="p-3.5 bg-stone-100 border-t border-stone-300 flex items-center justify-between shrink-0 print:hidden">
+              <span className="text-[11px] text-stone-500">Official 1-Page Commercial Bill Slip</span>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => window.print()}
-                  className="px-4 py-2 rounded-xl bg-[#656B4F] hover:bg-[#50563D] text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors"
+                  onClick={() => printCommercialBill(invoiceOrder)}
+                  className="px-4 py-2 rounded-xl bg-[#656B4F] hover:bg-[#50563D] text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
                 >
-                  <Printer className="w-4 h-4" />
+                  <Printer className="w-3.5 h-3.5" />
                   <span>Print Slip</span>
                 </button>
                 <button
                   onClick={() => setInvoiceOrder(null)}
-                  className="px-4 py-2 rounded-xl bg-gray-200 text-gray-800 font-bold text-xs"
+                  className="px-4 py-2 rounded-xl bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold text-xs cursor-pointer transition-colors"
                 >
                   Close
                 </button>

@@ -28,7 +28,9 @@ import {
   Loader2,
   Lock,
   XCircle,
+  Printer,
 } from 'lucide-react';
+import { printCommercialBill } from '@/lib/printUtils';
 import OptimizedImage from '@/components/OptimizedImage';
 
 declare global {
@@ -548,15 +550,26 @@ export default function OrderDetailPage() {
                   )}
 
                   {isPaid && (
-                    <a
-                      href={`/api/orders/${order.id}/invoice`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-stone-300 hover:bg-stone-50 font-bold text-xs text-[#1E201D] transition-colors"
-                    >
-                      <FileText className="w-4 h-4 text-[#50563D]" />
-                      <span>Download Invoice (PDF)</span>
-                    </a>
+                    <>
+                      <button
+                        onClick={() => printCommercialBill(order)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white hover:bg-[#EAF0E5] border border-[#656B4F]/40 font-bold text-xs text-[#1E201D] transition-colors shadow-2xs cursor-pointer"
+                        title="Print clean 1-page commercial slip"
+                      >
+                        <Printer className="w-4 h-4 text-[#656B4F]" />
+                        <span>Print Slip</span>
+                      </button>
+
+                      <a
+                        href={`/api/orders/${order.id}/invoice`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-stone-300 hover:bg-stone-50 font-bold text-xs text-[#1E201D] transition-colors"
+                      >
+                        <FileText className="w-4 h-4 text-[#50563D]" />
+                        <span>Download PDF</span>
+                      </a>
+                    </>
                   )}
 
                   <Link

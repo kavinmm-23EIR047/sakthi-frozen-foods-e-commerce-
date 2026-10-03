@@ -18,7 +18,7 @@ const INITIAL_REVIEWS = [
     authorName: 'Arun Kumar',
     location: 'Bangalore, Karnataka',
     rating: 5,
-    comment: 'Switched to plant-based 6 months ago. Sakthi Fish Fingers and Prawns are a game changer! High protein, zero cholesterol.',
+    comment: 'Switched to plant-based 6 months ago. Sakthi Frozen Fish Fingers and Prawns are a game changer! High protein, zero cholesterol.',
     avatar: '',
     dateText: '1 week ago',
     isGoogleReview: true,

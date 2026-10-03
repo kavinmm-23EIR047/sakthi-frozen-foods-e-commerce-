@@ -451,7 +451,7 @@ export default function Navbar({
               </div>
               <div className="flex-1 overflow-y-auto px-4 py-4">
                 <div className="mb-4 rounded-2xl bg-[#EAF3E7] p-3">
-                  <p className="text-xs font-bold text-[#50563D]">Welcome{user?.name ? `, ${user.name}` : ' to Sakthi'}</p>
+                  <p className="text-xs font-bold text-[#50563D]">Welcome{user?.name ? `, ${user.name}` : ' to Sakthi Frozen'}</p>
                   <p className="mt-1 text-[11px] text-[#647160]">Pure vegetarian - Plant based - Delivered frozen</p>
                 </div>
                 <nav className="space-y-1">
@@ -467,7 +467,7 @@ export default function Navbar({
                     )}
                   </Link>
                   <Link href={user ? '/orders' : '/login'} onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"><UserRound className="h-4 w-4" />{user ? 'My account & orders' : 'Sign in / Create account'}</Link>
-                  <a href="#about" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"><Leaf className="h-4 w-4" />About Sakthi</a>
+                  <a href="#about" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"><Leaf className="h-4 w-4" />About Sakthi Frozen</a>
                   <a href="#contact" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"><HelpCircle className="h-4 w-4" />Help & contact</a>
                 </nav>
                 <div className="mt-6 border-t border-[#e4e9df] pt-4">

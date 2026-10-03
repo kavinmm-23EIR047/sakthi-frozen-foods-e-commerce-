@@ -217,7 +217,7 @@ export default function DeliveryLoadingScreen({ message = 'Preparing secure chec
                   <circle cx="109" cy="72" r="5" fill="#0284C7" />
                   <text x="109" y="75" textAnchor="middle" fontSize="7" fill="#FFFFFF" fontWeight="bold">❄</text>
                   {/* Brand Text */}
-                  <text x="118" y="68" fontSize="6.5" fill="#1A1E16" fontWeight="900" fontFamily="sans-serif" letterSpacing="0.3">SAKTHI</text>
+                  <text x="118" y="68" fontSize="5.5" fill="#1A1E16" fontWeight="900" fontFamily="sans-serif" letterSpacing="0.2">SAKTHI FROZEN</text>
                   <text x="118" y="77" fontSize="5" fill="#656B4F" fontWeight="800" fontFamily="sans-serif" letterSpacing="0.5">EXPRESS -18°C</text>
                 </g>
                   {/* ─── Animated Rotating Wheels (Inside van body so they naturally bounce together) ─── */}

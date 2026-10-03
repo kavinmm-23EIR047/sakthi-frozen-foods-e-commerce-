@@ -268,7 +268,7 @@ export default function SearchOverlay() {
     const q = debouncedQuery.toLowerCase().trim();
     const baseRecipes = [
       {
-        title: 'Sakthi Veg Mutton Pepper Chukka',
+        title: 'Sakthi Frozen Veg Mutton Pepper Chukka',
         time: '20 mins',
         tag: 'South Indian Spicy',
         icon: Beef,
@@ -738,7 +738,7 @@ export default function SearchOverlay() {
                       </div>
 
                       <div className="mt-3 pt-2.5 border-t border-stone-200/60 flex items-center justify-between text-[11px] font-bold text-[#50563D]">
-                        <span>Cook with Sakthi Plant Meat</span>
+                        <span>Cook with Sakthi Frozen Plant Meat</span>
                         <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                       </div>
                     </div>

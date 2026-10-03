@@ -1771,7 +1771,7 @@ function ShopContent() {
                   </span>
                 </div>
                 <p className="text-[9.5px] sm:text-[10px] text-white/70 truncate">
-                  Ready in your Sakthi cart
+                  Ready in your Sakthi Frozen cart
                 </p>
               </div>
             </div>

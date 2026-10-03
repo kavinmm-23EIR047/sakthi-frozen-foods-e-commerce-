@@ -220,7 +220,7 @@ export function getDeliveryCalculation({
         zoneId: 'coimbatore',
         zoneName: 'Coimbatore (Within 25 KM)',
         distanceKm: Number(dist.toFixed(1)),
-        details: `Doorstep delivery (${dist.toFixed(1)} km from Sakthi Store)`,
+        details: `Doorstep delivery (${dist.toFixed(1)} km from Sakthi Frozen store)`,
         notes: '₹10 per km (₹40 minimum, ₹250 maximum)',
       };
     }

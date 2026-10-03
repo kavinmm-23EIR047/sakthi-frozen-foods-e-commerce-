@@ -8,9 +8,10 @@ import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { fetchApi, fetchCachedApi, getCachedData } from '@/lib/apiConfig';
 import { OrderType } from '@/lib/types';
-import { Package, Clock, CheckCircle2, XCircle, CreditCard, Lock, FileText, Copy, MessageCircle, Loader2 } from 'lucide-react';
+import { Package, Clock, CheckCircle2, XCircle, CreditCard, Lock, FileText, Copy, MessageCircle, Loader2, Printer } from 'lucide-react';
 import Link from 'next/link';
 import NotificationManager from '@/components/NotificationManager';
+import { printCommercialBill } from '@/lib/printUtils';
 
 declare global {
   interface Window {
@@ -453,29 +454,48 @@ export default function OrdersPage() {
                             </button>
                           )}
 
-                          {/* Left and Right Horizontal Action Buttons */}
-                          <div className="grid grid-cols-2 gap-2 w-full">
-                            {(isPaid || isCOD || order.status === 'Confirmed') ? (
+                          {/* Horizontal Action Buttons */}
+                          {(isPaid || isCOD || order.status === 'Confirmed') ? (
+                            <div className="grid grid-cols-2 gap-2 w-full">
+                              <button
+                                onClick={() => printCommercialBill(order)}
+                                className="w-full rounded-xl border border-[#656B4F]/40 bg-[#F9FAF6] hover:bg-[#EAF0E5] px-2 sm:px-3 py-2 text-[11px] sm:text-xs font-black text-[#656B4F] transition-colors shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer text-center"
+                                title="Print clean 1-page commercial packing slip"
+                              >
+                                <Printer className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">Print Slip</span>
+                              </button>
+
                               <button
                                 onClick={() => openInvoice(order.id)}
-                                className="w-full rounded-xl border border-[#656B4F]/40 bg-[#F9FAF6] hover:bg-[#EAF0E5] px-2 sm:px-3.5 py-2.5 text-[11px] sm:text-xs font-black text-[#656B4F] transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-center"
+                                className="w-full rounded-xl border border-stone-300 bg-white hover:bg-stone-50 px-2 sm:px-3 py-2 text-[11px] sm:text-xs font-black text-[#1E201D] transition-colors shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer text-center"
+                                title="Download PDF invoice"
                               >
-                                <FileText className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate">Download PDF</span>
+                                <FileText className="w-3.5 h-3.5 shrink-0 text-[#50563D]" />
+                                <span className="truncate">PDF Invoice</span>
                               </button>
-                            ) : null}
 
-                            {/* WhatsApp Direct Help Button */}
+                              <a
+                                href={whatsappQueryUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="col-span-2 w-full rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] px-2 sm:px-3 py-2 text-[11px] sm:text-xs font-black text-white transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-center"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">WhatsApp Support</span>
+                              </a>
+                            </div>
+                          ) : (
                             <a
                               href={whatsappQueryUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className={`w-full rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] px-2 sm:px-3.5 py-2.5 text-[11px] sm:text-xs font-black text-white transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-center ${(isPaid || isCOD || order.status === 'Confirmed') ? '' : 'col-span-2'}`}
+                              className="w-full rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] px-2 sm:px-3.5 py-2.5 text-[11px] sm:text-xs font-black text-white transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-center"
                             >
                               <MessageCircle className="w-3.5 h-3.5 shrink-0" />
                               <span className="truncate">WhatsApp Help</span>
                             </a>
-                          </div>
+                          )}
 
                           {(order.status === 'Pending' || order.status === 'Awaiting Payment') && !isExpiredFailed && (
                             <button

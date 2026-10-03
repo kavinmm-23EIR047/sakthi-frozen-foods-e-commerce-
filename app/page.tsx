@@ -139,7 +139,7 @@ interface CategoryItem {
 // FAQs Data
 const FAQS = [
   {
-    q: 'Is Sakthi mock meat completely plant-based?',
+    q: 'Is Sakthi Frozen mock meat completely plant-based?',
     a: 'Yes, all our products are 100% plant-based and contain no animal meat, artificial preservatives or additives. Made purely with non-GMO soy, pea isolate, and authentic botanical spices.',
   },
   {
@@ -1285,7 +1285,7 @@ export default function StorefrontHomePage() {
 
                   <div className="flex flex-wrap items-baseline gap-x-2 sm:gap-x-3 gap-y-0.5 mt-0.5 sm:mt-1">
                     <h2 className="text-sm xs:text-base sm:text-2xl lg:text-[26px] font-black text-white tracking-tight font-display leading-tight">
-                      How Sakthi Mock Meat Is Made
+                      How Sakthi Frozen Mock Meat Is Made
                     </h2>
                     <span className="text-[10px] sm:text-xs text-[#B4CEB1] font-medium hidden md:inline-block">
                       — Simple ingredients. Advanced processes. Real taste.
@@ -1516,7 +1516,7 @@ export default function StorefrontHomePage() {
                     ))}
                   </div>
                   <p className="text-xs sm:text-sm text-[#2C382A] font-medium">
-                    Be the first to share your experience with Sakthi Plant-Based Foods!
+                    Be the first to share your experience with Sakthi Frozen Plant-Based Foods!
                   </p>
                   <button
                     onClick={() => setIsReviewModalOpen(true)}
@@ -1698,7 +1698,7 @@ export default function StorefrontHomePage() {
               <div className="w-28 sm:w-44 md:w-56 lg:w-64 h-24 sm:h-36 md:h-40 overflow-visible flex items-center justify-end">
                 <img
                   src="/assets/whatsapp-phone-nobg.png"
-                  alt="Sakthi WhatsApp Direct Assistance on Smartphone"
+                  alt="Sakthi Frozen WhatsApp Direct Assistance on Smartphone"
                   className="w-full h-full object-contain object-right scale-105 hover:scale-110 transition-transform duration-700"
                 />
               </div>
@@ -1774,7 +1774,7 @@ export default function StorefrontHomePage() {
                 <textarea
                   required
                   rows={3}
-                  placeholder="Share your experience cooking Sakthi Plant-Based Meats..."
+                  placeholder="Share your experience cooking Sakthi Frozen Plant-Based Meats..."
                   value={reviewForm.comment}
                   onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
                   className="w-full px-3.5 py-2 rounded-xl bg-stone-50 border border-stone-200 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#50563D]"

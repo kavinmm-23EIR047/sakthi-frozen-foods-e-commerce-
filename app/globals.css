@@ -252,3 +252,63 @@ input, input:focus, input:focus-visible, textarea, textarea:focus, textarea:focu
 .shine-container:hover::after {
   animation: shine-sweep 1.2s ease forwards;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════ */
+/* STRICT COMMERCIAL 1-PAGE PRINT MEDIA STYLES (Zero Duplicate Pages)        */
+/* ══════════════════════════════════════════════════════════════════════════ */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm;
+  }
+
+  html, body {
+    background: #FFFFFF !important;
+    color: #1A1E16 !important;
+    font-size: 10pt !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide navigation, headers, toolbars and non-printable elements */
+  nav, header, footer, aside, .print-hide, .print\:hidden {
+    display: none !important;
+  }
+
+  /* Reset outer overlay positioning and backdrops */
+  .fixed.inset-0 {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    box-shadow: none !important;
+  }
+
+  .shadow-2xl, .shadow-xl, .shadow-lg, .shadow-md, .shadow-sm, .shadow-xs {
+    box-shadow: none !important;
+  }
+
+  #printable-slip {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: #FFFFFF !important;
+    page-break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+
+
