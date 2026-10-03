@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
 import { CheckCircle2, ShoppingBag, CreditCard, Truck, ArrowLeft, ShieldCheck, Lock, UserCheck, LogIn, ArrowRight, Search, ChevronDown, Package, Sparkles, Loader2 } from 'lucide-react';

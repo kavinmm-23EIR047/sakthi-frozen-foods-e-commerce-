@@ -8,6 +8,7 @@ import ProductDetailModal from '@/components/ProductDetailModal';
 import PushNotificationPrompt from '@/components/PushNotificationPrompt';
 import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans, Manrope, Bricolage_Grotesque } from 'next/font/google';
+import { SITE_URL, MAIN_SITE_URL } from '@/lib/config';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -16,63 +17,28 @@ export const viewport: Viewport = {
   themeColor: '#50563D',
 };
 
-const SITE_URL = 'https://buy.tnmockmeat.com';
-
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Sakthi Frozen Foods | India's Best Plant-Based Mock Meat & Vegan Meat Online",
-    template: "%s | Sakthi Frozen Foods - India's Best Vegan Meat",
+    default: "Sakthi Frozen Foods | Buy India's Best Plant-Based Mock Meat Online",
+    template: "%s | Sakthi Frozen Foods Online Store",
   },
   description:
     "Buy India's best plant-based mock meat & vegan meat online from Sakthi Frozen Foods. 100% pure vegetarian soya & wheat protein mock mutton chukka, veg chicken, mock fish fingers, vegan prawns & seekh kebabs. Express -18°C frozen cold chain doorstep delivery across Coimbatore (Peelamedu, RS Puram, Gandhipuram, Saravanampatti) and all Tamil Nadu districts.",
   keywords: [
-    // Primary Brands & Themes
-    "India's best mock meat",
-    "best vegan meat India",
-    "Sakthi Frozen Foods",
-    "Sakthi mock meat Coimbatore",
-    "plant based meat online",
+    "buy mock meat online",
+    "mock meat online ordering",
+    "vegan meat online delivery Coimbatore",
+    "plant based meat online shopping",
     "buy vegan meat Tamil Nadu",
-    "pure vegetarian meat alternative",
-    "mock meat online shopping",
-    "100% veg chicken Coimbatore",
-    "vegan mutton chukka",
-    "plant based fish fingers",
-    "vegan prawns online",
-    "soya chaap mock meat",
-    "plant protein frozen food",
-    "high protein vegan food India",
-    // Local Coimbatore SEO Keywords
-    "mock meat Coimbatore",
-    "vegan food delivery Coimbatore",
-    "plant based meat Peelamedu",
-    "vegan meat Gandhipuram",
-    "mock meat RS Puram",
-    "plant meat Saravanampatti",
-    "vegan meat Saibaba Colony",
-    "mock meat Vadavalli",
-    "vegan frozen food Thudiyalur",
-    "mock meat Koundampalayam",
-    "mock meat Singanallur",
-    "mock meat Kuniyamuthur",
-    "mock meat Pollachi",
-    "mock meat Mettupalayam",
-    // All Tamil Nadu Districts & South India Coverage
-    "vegan meat Tirupur",
-    "mock meat Erode",
-    "plant based meat Salem",
-    "vegan meat Chennai",
-    "mock meat Madurai",
-    "plant based meat Trichy",
-    "vegan meat Nilgiris Ooty",
-    "mock meat Karur",
-    "mock meat Dindigul",
-    "mock meat Namakkal",
-    "mock meat Tirunelveli",
-    "mock meat Vellore",
-    "frozen meat alternative delivery -18C",
-    "FSSAI approved mock meat",
+    "pure vegetarian meat alternative online",
+    "mock meat prices",
+    "veg chicken home delivery",
+    "vegan mutton chukka buy online",
+    "plant based fish fingers online",
+    "vegan prawns buy online",
+    "frozen mock meat doorstep delivery",
+    "Sakthi Frozen Foods online store",
   ],
   authors: [{ name: 'Sakthi Frozen Foods', url: SITE_URL }],
   creator: 'Sakthi Frozen Foods',
@@ -89,8 +55,8 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_IN',
     url: SITE_URL,
-    siteName: 'Sakthi Frozen Foods',
-    title: "Sakthi Frozen Foods | India's Best Plant-Based Mock Meat & Vegan Meat Online",
+    siteName: 'Sakthi Frozen Foods Online Store',
+    title: "Sakthi Frozen Foods | Buy Plant-Based Mock Meat Online",
     description:
       "100% Pure Vegetarian Plant-Based Meat Alternatives. Juicy Veg Mutton, Chicken, Fish & Prawns delivered frozen at -18°C across Coimbatore & Tamil Nadu.",
     images: [
@@ -98,13 +64,13 @@ export const metadata: Metadata = {
         url: `${SITE_URL}/logo.png`,
         width: 800,
         height: 800,
-        alt: 'Sakthi Frozen Foods - Pure Vegetarian Plant-Based Mock Meat',
+        alt: 'Sakthi Frozen Foods - Pure Vegetarian Plant-Based Mock Meat Online Store',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: "Sakthi Frozen Foods | India's Best Plant-Based Mock Meat",
+    title: "Sakthi Frozen Foods | Online Store",
     description:
       "Order 100% Pure Vegetarian Plant-Based Meat Online. Cold-chain delivery at -18°C across Coimbatore & all districts.",
     images: [`${SITE_URL}/logo.png`],
@@ -154,22 +120,28 @@ const bricolage = Bricolage_Grotesque({
   variable: '--font-bricolage',
 });
 
-// Rich Structured Data (JSON-LD) for LocalBusiness / FoodEstablishment / Organization
-const structuredDataLocalBusiness = {
+// Rich Structured Data (JSON-LD) for OnlineStore / FoodEstablishment / Store
+const structuredDataOnlineStore = {
   '@context': 'https://schema.org',
-  '@type': ['FoodEstablishment', 'Store', 'LocalBusiness'],
+  '@type': ['OnlineStore', 'Store', 'FoodEstablishment'],
   '@id': `${SITE_URL}/#store`,
-  name: 'Sakthi Frozen Foods',
-  alternateName: "India's Best Plant-Based Mock Meat & Vegan Meat Store",
+  name: 'Sakthi Frozen Foods Online Store',
+  alternateName: "Sakthi Frozen Foods D2C Store",
   url: SITE_URL,
   logo: `${SITE_URL}/logo.png`,
   image: `${SITE_URL}/logo.png`,
   description:
-    "India's premier plant-based mock meat supplier. 100% pure vegetarian vegan mutton, chicken, fish & prawn alternatives delivered at -18°C frozen cold chain.",
+    "India's premier plant-based mock meat online store. 100% pure vegetarian vegan mutton, chicken, fish & prawn alternatives delivered at -18°C frozen cold chain.",
   telephone: '+918056389214',
   email: 'sakthifrozenfoods@gmail.com',
   priceRange: '₹₹',
   servesCuisine: ['Plant-Based', 'Vegan', 'Pure Vegetarian', 'Mock Meat'],
+  parentOrganization: {
+    '@type': 'Organization',
+    '@id': `${MAIN_SITE_URL}/#organization`,
+    name: 'Sakthi Frozen Foods Traders',
+    url: MAIN_SITE_URL,
+  },
   hasMerchantReturnPolicy: {
     '@type': 'MerchantReturnPolicy',
     returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
@@ -215,7 +187,8 @@ const structuredDataLocalBusiness = {
     worstRating: '1',
   },
   sameAs: [
-    'https://www.google.com/maps/place/mock+meat+%26+frozen+foods+supplier/@11.0442489,76.7937082,12z/data=!4m10!1m2!2m1!1smock+meat+%26+frozen+foods!3m6!1s0x3ba8590037fcc29d:0x3a840ef21bcac8d5!8m2!3d11.0442489!4d76.9461435!15sChhtb2NrIG1lYXQgJiBmcm96ZW4gZm9vZHNaGiIYbW9jayBtZWF0ICYgZnJvemVuIGZvb2RzkgERZnJvemVuX2Zvb2Rfc3RvcmXgAQA!16s%2Fg%2F11vxl4fb52?entry=ttu&g_ep=EgoyMDI2MDkzMC4wIKXMDSoASAFQAw%3D%3D',
+    'https://wa.me/918056389214',
+    'https://maps.app.goo.gl/gqVoq24rhxrQEgvs8',
   ],
   areaServed: [
     { '@type': 'City', name: 'Coimbatore' },
@@ -228,17 +201,12 @@ const structuredDataLocalBusiness = {
     { '@type': 'City', name: 'Ooty' },
     { '@type': 'AdministrativeArea', name: 'Tamil Nadu' },
   ],
-  sameAs: [
-    'https://wa.me/918056389214',
-    'https://buy.tnmockmeat.com',
-    'https://tnmockmeat.com',
-  ],
 };
 
 const structuredDataWebSite = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
-  name: 'Sakthi Frozen Foods',
+  name: 'Sakthi Frozen Foods Online Store',
   url: SITE_URL,
   potentialAction: {
     '@type': 'SearchAction',
@@ -266,7 +234,7 @@ export default function RootLayout({
         {/* Schema.org Structured Data */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredDataLocalBusiness) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredDataOnlineStore) }}
         />
         <script
           type="application/ld+json"

@@ -1,4 +1,5 @@
 import { MetadataRoute } from 'next';
+import { SITE_URL } from '@/lib/config';
 
 const CATEGORIES = [
   'All',
@@ -11,7 +12,7 @@ const CATEGORIES = [
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://buy.tnmockmeat.com';
+  const baseUrl = SITE_URL;
   const lastModified = new Date();
 
   const staticRoutes: MetadataRoute.Sitemap = [

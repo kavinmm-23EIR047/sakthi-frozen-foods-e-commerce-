@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Phone, Mail, MapPin, ShieldCheck, FileText, RefreshCw, Lock, MessageCircle, X, Star } from 'lucide-react';
+import { Phone, Mail, MapPin, ShieldCheck, FileText, RefreshCw, Lock, MessageCircle, X, ExternalLink, Building2 } from 'lucide-react';
 import { fetchApi } from '@/lib/apiConfig';
+import { MAIN_SITE_URL } from '@/lib/config';
 import GoogleReviewSummary from './GoogleReviewSummary';
 import logo from '../logo.png';
 
@@ -63,7 +64,7 @@ export default function Footer() {
             </Link>
 
             <p className="max-w-sm text-[11px] sm:text-sm leading-relaxed text-white/90">
-              Premium plant-based frozen foods made for everyday cooking and authentic flavour.
+              Premium plant-based frozen foods made for everyday cooking and authentic flavour. Express -18°C doorstep delivery.
             </p>
 
             <div className="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/10 px-2.5 py-1.5 text-[10px] sm:text-xs text-white font-bold">
@@ -97,7 +98,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Column 3: Quick Links & Legal Policies */}
+          {/* Column 3: Quick Links & Corporate Backlinks */}
           <div>
             <h4 className="text-[10px] sm:text-xs font-black text-white uppercase tracking-[0.1em] mb-2">
               Store & Policies
@@ -141,6 +142,39 @@ export default function Footer() {
                 </button>
               </li>
             </ul>
+
+            {/* Corporate & Wholesale Portal Section */}
+            <div className="mt-4 pt-3 border-t border-white/15">
+              <h5 className="text-[9px] sm:text-[11px] font-black text-[#A9F2B7] uppercase tracking-[0.1em] mb-1.5 flex items-center gap-1">
+                <Building2 className="w-3 h-3" /> Corporate & B2B
+              </h5>
+              <ul className="space-y-1 text-[10px] sm:text-xs text-white/80 font-medium">
+                <li>
+                  <a href={`${MAIN_SITE_URL}/about`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition flex items-center gap-1">
+                    <span>About Sakthi Foods</span>
+                    <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                  </a>
+                </li>
+                <li>
+                  <a href={`${MAIN_SITE_URL}/services`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition flex items-center gap-1">
+                    <span>Manufacturing & Cold Storage</span>
+                    <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                  </a>
+                </li>
+                <li>
+                  <a href={`${MAIN_SITE_URL}/gallery`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition flex items-center gap-1">
+                    <span>Photo Gallery</span>
+                    <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                  </a>
+                </li>
+                <li>
+                  <a href={`${MAIN_SITE_URL}/contact`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition flex items-center gap-1">
+                    <span>Wholesale Enquiries</span>
+                    <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                  </a>
+                </li>
+              </ul>
+            </div>
           </div>
 
           {/* Column 4: Contact & Store Location with Google Map */}
@@ -242,7 +276,9 @@ export default function Footer() {
           </div>
         </div>
 
-      </div>
+        </div>
+
+      </footer>
 
       {/* POPUP MODALS FOR LEGAL POLICIES */}
       {activePolicyModal && (
@@ -339,7 +375,6 @@ export default function Footer() {
         </div>
       )}
 
-      </footer>
     </div>
   );
 }
