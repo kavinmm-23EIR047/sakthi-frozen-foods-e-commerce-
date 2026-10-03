@@ -46,11 +46,12 @@ export default function CheckoutModal() {
         }),
       });
 
-      if (data.success) {
-        setOrderConfirmed(data.data);
+      if (data.success && data.data) {
+        setIsCheckoutOpen(false);
         clearCart();
+        router.replace(`/orders/${data.data.id || data.data._id}?success=true`);
       } else {
-        alert('Failed to place order: ' + data.error);
+        alert('Failed to place order: ' + (data.error || 'Server error'));
       }
     } catch (err: any) {
       console.error(err);

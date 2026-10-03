@@ -25,7 +25,10 @@ async function safeParseResponse(res: Response) {
   }
 }
 
-export async function fetchApi(endpoint: string, options: RequestInit = {}) {
+export async function fetchApi<T = any>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<{ success: boolean; data?: T; error?: string; [key: string]: any }> {
   const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const timeoutMs = normalizedEndpoint === '/upload' ? 60000 : 15000;
   const requestController = options.signal ? null : new AbortController();

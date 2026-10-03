@@ -95,4 +95,206 @@ router.post('/:id/retry', protect, admin, async (req, res, next) => {
   }
 });
 
+// ══════════════════════════════════════════════════════════════════════════════
+// WEB PUSH NOTIFICATION ENDPOINTS (Standards-based, Zero 3rd-party)
+// ══════════════════════════════════════════════════════════════════════════════
+
+const PushSubscription = require('../models/PushSubscription');
+const {
+  sendPushNotification,
+  sendTestNotification,
+  isVapidConfigured,
+} = require('../services/pushNotificationService');
+
+// @route   GET /api/notifications/vapid-public-key
+// @desc    Get VAPID public key for frontend subscription
+// @access  Public
+router.get('/vapid-public-key', (req, res) => {
+  const publicKey = process.env.VAPID_PUBLIC_KEY;
+  if (!publicKey) {
+    return res.status(503).json({
+      success: false,
+      error: 'VAPID public key is not configured on the server',
+    });
+  }
+  return res.json({
+    success: true,
+    publicKey,
+  });
+});
+
+// @route   POST /api/notifications/subscribe
+// @desc    Register / update a browser Web Push subscription
+// @access  Private (Authenticated User)
+router.post('/subscribe', protect, async (req, res, next) => {
+  try {
+    const { subscription, userAgent, deviceType, preferences } = req.body || {};
+
+    if (!subscription || !subscription.endpoint || !subscription.keys?.p256dh || !subscription.keys?.auth) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid push subscription payload. Missing endpoint or encryption keys.',
+      });
+    }
+
+    const defaultPreferences = {
+      orderUpdates: true,
+      paymentUpdates: true,
+      deliveryUpdates: true,
+      promotional: false,
+    };
+
+    const mergedPreferences = {
+      ...defaultPreferences,
+      ...(preferences || {}),
+    };
+
+    // Upsert subscription tied securely to authenticated req.user._id
+    const saved = await PushSubscription.findOneAndUpdate(
+      { endpoint: subscription.endpoint },
+      {
+        $set: {
+          userId: req.user._id,
+          endpoint: subscription.endpoint,
+          keys: {
+            p256dh: String(subscription.keys.p256dh).trim(),
+            auth: String(subscription.keys.auth).trim(),
+          },
+          expirationTime: subscription.expirationTime ? new Date(subscription.expirationTime) : null,
+          userAgent: userAgent || req.headers['user-agent'] || '',
+          deviceType: deviceType || 'Unknown',
+          preferences: mergedPreferences,
+          isActive: true,
+          failureCount: 0,
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: 'Subscribed to push notifications successfully',
+      data: {
+        id: saved._id,
+        preferences: saved.preferences,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @route   DELETE /api/notifications/subscribe
+// @desc    Unsubscribe the current browser endpoint
+// @access  Private (Authenticated User)
+router.delete('/subscribe', protect, async (req, res, next) => {
+  try {
+    const { endpoint } = req.body || {};
+
+    if (endpoint) {
+      await PushSubscription.deleteOne({
+        endpoint,
+        userId: req.user._id,
+      });
+    } else {
+      // If no specific endpoint provided, mark user's subscriptions inactive
+      await PushSubscription.updateMany(
+        { userId: req.user._id },
+        { $set: { isActive: false } }
+      );
+    }
+
+    return res.json({
+      success: true,
+      message: 'Unsubscribed from push notifications successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @route   GET /api/notifications/status
+// @desc    Get user's push notification status & active subscription count
+// @access  Private (Authenticated User)
+router.get('/status', protect, async (req, res, next) => {
+  try {
+    const subscriptions = await PushSubscription.find({
+      userId: req.user._id,
+      isActive: true,
+    }).lean();
+
+    const latest = subscriptions[0];
+    const defaultPreferences = {
+      orderUpdates: true,
+      paymentUpdates: true,
+      deliveryUpdates: true,
+      promotional: false,
+    };
+
+    return res.json({
+      success: true,
+      data: {
+        isSubscribed: subscriptions.length > 0,
+        subscriptionCount: subscriptions.length,
+        preferences: latest?.preferences || defaultPreferences,
+        isVapidReady: isVapidConfigured(),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @route   PUT /api/notifications/preferences
+// @desc    Update push notification preferences
+// @access  Private (Authenticated User)
+router.put('/preferences', protect, async (req, res, next) => {
+  try {
+    const { orderUpdates, paymentUpdates, deliveryUpdates, promotional } = req.body || {};
+
+    const updateFields = {};
+    if (typeof orderUpdates === 'boolean') updateFields['preferences.orderUpdates'] = orderUpdates;
+    if (typeof paymentUpdates === 'boolean') updateFields['preferences.paymentUpdates'] = paymentUpdates;
+    if (typeof deliveryUpdates === 'boolean') updateFields['preferences.deliveryUpdates'] = deliveryUpdates;
+    if (typeof promotional === 'boolean') updateFields['preferences.promotional'] = promotional;
+
+    await PushSubscription.updateMany(
+      { userId: req.user._id },
+      { $set: updateFields }
+    );
+
+    return res.json({
+      success: true,
+      message: 'Notification preferences updated successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// @route   POST /api/notifications/test
+// @desc    Send a test Web Push notification to current user's registered devices
+// @access  Private (Authenticated User)
+router.post('/test', protect, async (req, res, next) => {
+  try {
+    const result = await sendTestNotification(req.user._id);
+
+    if (result.total === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No active browser subscriptions found for your account. Please enable notifications in this browser first.',
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: `Test push notification dispatched! Sent to ${result.delivered} of ${result.total} device(s).`,
+      delivered: result.delivered,
+      total: result.total,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

@@ -22,8 +22,10 @@ import {
   Package,
   Snowflake,
   BarChart3,
-  Wind,
   UtensilsCrossed,
+  Loader2,
+  Wind,
+  CheckCircle2,
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
@@ -38,7 +40,7 @@ import OptimizedImage from '@/components/OptimizedImage';
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { addToCart } = useCart();
+  const { cart, addToCart, updateQuantity } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { showToast } = useToast();
 
@@ -108,6 +110,25 @@ export default function ProductDetailPage() {
 
   const isWishlisted = product ? isInWishlist(product.id) : false;
 
+  const targetProductId = activePack?.productId || product?.id || '';
+  const targetWeight = activePack?.weight || product?.weight || '1kg';
+
+  // Check if this exact variant is already in cart
+  const inCartItem = cart.find(
+    (item) => item.productId === targetProductId && item.weight === targetWeight
+  );
+  const inCartQty = inCartItem ? inCartItem.quantity : 0;
+  const isAlreadyInCart = inCartQty > 0;
+
+  // Sync quantity state when variant in-cart status changes
+  useEffect(() => {
+    if (inCartQty > 0) {
+      setQuantity(inCartQty);
+    } else {
+      setQuantity(1);
+    }
+  }, [selectedPackIdx, inCartQty]);
+
   // Related products from same backend category
   const relatedProducts = useMemo(() => {
     if (!product) return [];
@@ -122,18 +143,28 @@ export default function ProductDetailPage() {
     if (!product || !activePack || addingToCart) return;
     setAddingToCart(true);
 
-    addToCart(
-      {
-        ...product,
-        weight: activePack.weight,
-        price: dynamicPrice,
-        mrp: dynamicMrp,
-      },
-      quantity
-    );
+    const customizedProduct = {
+      ...product,
+      id: targetProductId,
+      weight: targetWeight,
+      price: dynamicPrice,
+      mrp: dynamicMrp,
+    };
 
-    showToast(`Added ${quantity}x ${product.name} (${activePack.label}) to cart`, 'success');
+    if (isAlreadyInCart) {
+      if (quantity === inCartQty) {
+        // Already in cart with same quantity - go straight to cart
+        router.push('/cart');
+        return;
+      }
+      // User changed quantity on this page - update cart directly without duplicating
+      updateQuantity(targetProductId, targetWeight, quantity);
+      showToast(`Updated ${product.name} quantity to ${quantity}`, 'success');
+      router.push('/cart');
+      return;
+    }
 
+    addToCart(customizedProduct, quantity);
     // Directly navigate to cart page on Add to Cart click
     router.push('/cart');
   };
@@ -263,22 +294,22 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Key Trust Signals (Compact 4-grid aligned at bottom) */}
-            <div className="grid grid-cols-4 gap-2 pt-0.5 shrink-0">
-              <div className="p-2 sm:p-2.5 rounded-xl bg-[#FAFAF5] border border-[#D4DBC9]/60 text-center space-y-0.5">
-                <Leaf className="w-4 h-4 text-[#656B4F] mx-auto" />
-                <span className="text-[9px] sm:text-[10px] font-extrabold text-[#1E201D] block truncate">Plant Meat</span>
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-2 pt-0.5 shrink-0">
+              <div className="p-1.5 sm:p-2.5 rounded-xl bg-[#FAFAF5] border border-[#D4DBC9]/60 text-center space-y-0.5">
+                <Leaf className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#656B4F] mx-auto" />
+                <span className="text-[8.5px] sm:text-[10px] font-extrabold text-[#1E201D] block leading-tight">Plant Meat</span>
               </div>
-              <div className="p-2 sm:p-2.5 rounded-xl bg-[#FAFAF5] border border-[#D4DBC9]/60 text-center space-y-0.5">
-                <Flame className="w-4 h-4 text-amber-700 mx-auto" />
-                <span className="text-[9px] sm:text-[10px] font-extrabold text-[#1E201D] block truncate">High Protein</span>
+              <div className="p-1.5 sm:p-2.5 rounded-xl bg-[#FAFAF5] border border-[#D4DBC9]/60 text-center space-y-0.5">
+                <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-700 mx-auto" />
+                <span className="text-[8.5px] sm:text-[10px] font-extrabold text-[#1E201D] block leading-tight">High Protein</span>
               </div>
-              <div className="p-2 sm:p-2.5 rounded-xl bg-[#FAFAF5] border border-[#D4DBC9]/60 text-center space-y-0.5">
-                <Ban className="w-4 h-4 text-rose-700 mx-auto" />
-                <span className="text-[9px] sm:text-[10px] font-extrabold text-[#1E201D] block truncate">0% Cholesterol</span>
+              <div className="p-1.5 sm:p-2.5 rounded-xl bg-[#FAFAF5] border border-[#D4DBC9]/60 text-center space-y-0.5">
+                <Ban className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-700 mx-auto" />
+                <span className="text-[8.5px] sm:text-[10px] font-extrabold text-[#1E201D] block leading-tight">0% Cholesterol</span>
               </div>
-              <div className="p-2 sm:p-2.5 rounded-xl bg-[#FAFAF5] border border-[#D4DBC9]/60 text-center space-y-0.5">
-                <Snowflake className="w-4 h-4 text-blue-700 mx-auto" />
-                <span className="text-[9px] sm:text-[10px] font-extrabold text-[#1E201D] block truncate">Keep -18°C</span>
+              <div className="p-1.5 sm:p-2.5 rounded-xl bg-[#FAFAF5] border border-[#D4DBC9]/60 text-center space-y-0.5">
+                <Snowflake className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-700 mx-auto" />
+                <span className="text-[8.5px] sm:text-[10px] font-extrabold text-[#1E201D] block leading-tight">Keep -18°C</span>
               </div>
             </div>
           </div>
@@ -299,10 +330,17 @@ export default function ProductDetailPage() {
                     SKU: {product.code}
                   </span>
                 )}
-                <span className="text-[11px] sm:text-xs font-bold text-[#50563D] bg-[#EAF0E5] border border-[#656B4F]/30 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 whitespace-nowrap ml-auto">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#656B4F] animate-pulse" />
-                  {product.stock && product.stock > 0 ? `${product.stock} in stock` : 'In Stock'}
-                </span>
+                {product.stock !== undefined && product.stock <= 0 ? (
+                  <span className="text-[11px] sm:text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 whitespace-nowrap ml-auto">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                    Out of Stock
+                  </span>
+                ) : (
+                  <span className="text-[11px] sm:text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 whitespace-nowrap ml-auto">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    In Stock (Live)
+                  </span>
+                )}
               </div>
 
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#1E201D] leading-tight font-poppins">
@@ -335,42 +373,93 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            {/* Pack Size Selection */}
-            <div className="space-y-1.5">
+            {/* Pack Size Selection Toggle Control */}
+            <div className="space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <label className="font-black text-[#1E201D] uppercase tracking-wider text-[11px]">
-                  Select Pack Size ({packOptions.length} available):
+                <label className="font-black text-[#1E201D] uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#656B4F]" />
+                  <span>Select Pack Size ({packOptions.length} available):</span>
                 </label>
-                <span className="font-bold text-[#656B4F] text-[11px]">
-                  Selected: {activePack?.label}
+                <span className="font-black text-[#50563D] text-[11px] bg-[#E8EEE0] px-2.5 py-0.5 rounded-full border border-[#656B4F]/20">
+                  Active: {activePack?.label}
                 </span>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                {packOptions.map((opt, idx) => (
-                  <button
-                    key={opt.weight}
-                    type="button"
-                    onClick={() => setSelectedPackIdx(idx)}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
-                      selectedPackIdx === idx
-                        ? 'bg-[#50563D] text-white border-[#50563D] shadow-xs scale-[1.01]'
-                        : 'bg-white text-[#4F534C] border-[#D4DBC9] hover:border-[#656B4F] hover:bg-[#F3FBEE]'
-                    }`}
-                  >
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-black uppercase ${
-                      selectedPackIdx === idx
-                        ? 'bg-white/20 text-white'
-                        : opt.packType === 'retail' ? 'bg-amber-100 text-amber-900' : 'bg-[#D6DFC9] text-[#2D3823]'
-                    }`}>
-                      {opt.badge}
-                    </span>
-                    <span className="font-extrabold">{opt.weight}</span>
-                    <span className={selectedPackIdx === idx ? 'text-[#E8F0E5] font-black' : 'text-[#656B4F] font-black'}>
-                      • ₹{opt.price}
-                    </span>
-                  </button>
-                ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-1.5 bg-[#E8EEE0] rounded-2xl border border-[#4F534C]/20 shadow-inner">
+                {packOptions.map((opt, idx) => {
+                  const isSelected = selectedPackIdx === idx;
+                  return (
+                    <button
+                      key={opt.weight}
+                      type="button"
+                      onClick={() => setSelectedPackIdx(idx)}
+                      className={`p-3 rounded-xl text-left transition-all flex items-center justify-between gap-3 cursor-pointer border relative ${
+                        isSelected
+                          ? 'bg-[#50563D] text-white border-[#50563D] shadow-sm scale-[1.01]'
+                          : 'bg-white hover:bg-[#F9FCF6] text-[#1E201D] border-stone-200/90 hover:border-[#656B4F]/50 shadow-2xs'
+                      }`}
+                      aria-pressed={isSelected}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {/* Radio Switch Indicator */}
+                        <div
+                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                            isSelected
+                              ? 'border-white bg-[#86EFAC]'
+                              : 'border-stone-300 bg-stone-50'
+                          }`}
+                        >
+                          {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[#1E201D]" />}
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded tracking-wider ${
+                                isSelected
+                                  ? 'bg-white/20 text-[#EAF0E5]'
+                                  : opt.packType === 'retail'
+                                  ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                                  : 'bg-[#D6DFC9] text-[#2D3823] border border-[#656B4F]/20'
+                              }`}
+                            >
+                              {opt.badge}
+                            </span>
+                            <span className="font-extrabold text-xs sm:text-sm truncate">
+                              {opt.weight}
+                            </span>
+                          </div>
+                          <p
+                            className={`text-[10px] mt-0.5 ${
+                              isSelected ? 'text-white/80' : 'text-stone-500'
+                            }`}
+                          >
+                            {opt.packType === 'retail' ? 'Consumer Pack' : 'Wholesale Master Pack'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span
+                          className={`text-sm sm:text-base font-black ${
+                            isSelected ? 'text-[#86EFAC]' : 'text-[#50563D]'
+                          }`}
+                        >
+                          ₹{opt.price}
+                        </span>
+                        {opt.mrp > opt.price && (
+                          <p
+                            className={`text-[10px] line-through ${
+                              isSelected ? 'text-white/60' : 'text-stone-400'
+                            }`}
+                          >
+                            ₹{opt.mrp}
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -397,17 +486,52 @@ export default function ProductDetailPage() {
                   </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleAddToCart}
-                  disabled={addingToCart}
-                  className="flex-1 py-3.5 px-4 sm:px-6 rounded-2xl bg-[#656B4F] hover:bg-[#50563D] text-white text-xs sm:text-sm font-black shadow-md hover:shadow-lg active:scale-98 transition-all flex items-center justify-center gap-2 whitespace-nowrap min-w-0 cursor-pointer"
-                >
-                  <ShoppingBag className="w-4 h-4 shrink-0" />
-                  <span className="truncate font-black">
-                    {addingToCart ? 'Redirecting to Cart...' : `Add to Cart • ₹${dynamicPrice * quantity}`}
-                  </span>
-                </button>
+                {product.stock !== undefined && product.stock <= 0 ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="flex-1 py-3.5 px-4 sm:px-6 rounded-2xl bg-stone-200 text-stone-500 text-xs sm:text-sm font-bold shadow-none cursor-not-allowed opacity-75 flex items-center justify-center gap-2 whitespace-nowrap min-w-0"
+                  >
+                    <span className="truncate font-black">Out of Stock</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleAddToCart}
+                    disabled={addingToCart}
+                    className="flex-1 py-3.5 px-4 sm:px-6 rounded-2xl bg-[#656B4F] hover:bg-[#50563D] text-white text-xs sm:text-sm font-black shadow-md hover:shadow-lg active:scale-98 transition-all flex items-center justify-center gap-2 whitespace-nowrap min-w-0 cursor-pointer disabled:opacity-75"
+                  >
+                    {addingToCart ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-white shrink-0" />
+                        <span className="truncate">Processing...</span>
+                      </>
+                    ) : isAlreadyInCart ? (
+                      quantity === inCartQty ? (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-emerald-300 shrink-0" />
+                          <span className="truncate font-black">
+                            In Cart ({inCartQty}) • View Cart →
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingBag className="w-4 h-4 shrink-0" />
+                          <span className="truncate font-black">
+                            Update Cart to {quantity} • ₹{dynamicPrice * quantity}
+                          </span>
+                        </>
+                      )
+                    ) : (
+                      <>
+                        <ShoppingBag className="w-4 h-4 shrink-0" />
+                        <span className="truncate font-black">
+                          Add to Cart • ₹{dynamicPrice * quantity}
+                        </span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
 

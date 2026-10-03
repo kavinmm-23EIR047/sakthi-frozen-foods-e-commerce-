@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, Star, ShoppingBag, Plus, Minus, ShieldCheck, Flame, Sparkles } from 'lucide-react';
+import { X, Star, ShoppingBag, Plus, Minus, ShieldCheck, Flame, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { getBackendPackOptions, PackOption } from '@/lib/productPacks';
 
 export default function ProductDetailModal() {
   const router = useRouter();
-  const { selectedProductForModal, setSelectedProductForModal, addToCart } = useCart();
+  const { selectedProductForModal, setSelectedProductForModal, addToCart, cart, updateQuantity } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [selectedWeightIdx, setSelectedWeightIdx] = useState(0);
   const [lastProductId, setLastProductId] = useState<string | null>(null);
@@ -38,14 +38,46 @@ export default function ProductDetailModal() {
   const dynamicPrice = currentOption.price;
   const dynamicMrp = currentOption.mrp;
 
+  const targetProductId = currentOption.productId || product.id;
+  const targetWeight = currentOption.weight;
+
+  // Check if this variant is already in cart
+  const inCartItem = cart.find(
+    (item) => item.productId === targetProductId && item.weight === targetWeight
+  );
+  const inCartQty = inCartItem ? inCartItem.quantity : 0;
+  const isAlreadyInCart = inCartQty > 0;
+
+  // Sync quantity state when variant in-cart status changes
+  useEffect(() => {
+    if (inCartQty > 0) {
+      setQuantity(inCartQty);
+    } else {
+      setQuantity(1);
+    }
+  }, [selectedWeightIdx, inCartQty]);
+
   const handleAdd = () => {
     const customizedProduct = {
       ...product,
-      id: currentOption.productId || product.id,
-      weight: currentOption.weight,
+      id: targetProductId,
+      weight: targetWeight,
       price: dynamicPrice,
       mrp: dynamicMrp,
     };
+
+    if (isAlreadyInCart) {
+      if (quantity === inCartQty) {
+        setSelectedProductForModal(null);
+        router.push('/cart');
+        return;
+      }
+      updateQuantity(targetProductId, targetWeight, quantity);
+      setSelectedProductForModal(null);
+      router.push('/cart');
+      return;
+    }
+
     addToCart(customizedProduct, quantity);
     setSelectedProductForModal(null);
     setQuantity(1);
@@ -73,10 +105,17 @@ export default function ProductDetailModal() {
               alt={product.name}
               className="w-full h-full object-cover rounded-xl shadow-sm border border-[#4F534C]/15"
             />
-            <span className="absolute top-4 left-4 bg-[#656B4F] text-white text-xs font-black px-3 py-1 rounded-full shadow flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              {currentOption.badge} Pack • {currentOption.weight}
-            </span>
+            {product.stock !== undefined && product.stock <= 0 ? (
+              <span className="absolute top-4 left-4 bg-red-600 text-white text-xs font-black px-3 py-1 rounded-full shadow flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                Out of Stock
+              </span>
+            ) : (
+              <span className="absolute top-4 left-4 bg-[#656B4F] text-white text-xs font-black px-3 py-1 rounded-full shadow flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                In Stock • {currentOption.badge} Pack
+              </span>
+            )}
           </div>
 
           {/* Product Content Side */}
@@ -118,34 +157,77 @@ export default function ProductDetailModal() {
             {/* Price & Add Action */}
             <div className="pt-4 border-t border-[#4F534C]/15 space-y-4">
               
-              {/* Weight Selector */}
-              <div>
-                <span className="text-xs font-black uppercase tracking-wider text-[#3E4536] mb-2 block">
-                  Select Pack Size ({weightOptions.length} available)
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {weightOptions.map((opt, idx) => (
-                    <button
-                      key={opt.weight}
-                      type="button"
-                      onClick={() => setSelectedWeightIdx(idx)}
-                      className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${
-                        selectedWeightIdx === idx
-                          ? 'bg-[#50563D] text-white border-[#50563D] shadow-sm'
-                          : 'bg-[#E8EEE0] text-[#61665D] border-[#4F534C]/20 hover:border-[#656B4F] hover:text-[#1E201D]'
-                      }`}
-                    >
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-black uppercase ${
-                        selectedWeightIdx === idx
-                          ? 'bg-white/20 text-white'
-                          : opt.packType === 'retail' ? 'bg-amber-100 text-amber-900' : 'bg-[#D6DFC9] text-[#2D3823]'
-                      }`}>
-                        {opt.badge}
-                      </span>
-                      <span>{opt.weight}</span>
-                      <span className="font-extrabold">• ₹{opt.price}</span>
-                    </button>
-                  ))}
+              {/* Weight / Pack Size Selector Segmented Toggle */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-xs font-black uppercase tracking-wider text-[#3E4536] flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#656B4F]" />
+                    <span>Select Pack Size ({weightOptions.length} available):</span>
+                  </span>
+                  <span className="font-black text-[#50563D] text-[11px] bg-[#E8EEE0] px-2 py-0.5 rounded-full border border-[#4F534C]/20">
+                    Active: {selectedOption?.badge} ({selectedOption?.weight})
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-1.5 bg-[#E8EEE0] rounded-2xl border border-[#4F534C]/20 shadow-inner">
+                  {weightOptions.map((opt, idx) => {
+                    const isSelected = selectedWeightIdx === idx;
+                    return (
+                      <button
+                        key={opt.weight}
+                        type="button"
+                        onClick={() => setSelectedWeightIdx(idx)}
+                        className={`p-2.5 rounded-xl text-left transition-all flex items-center justify-between gap-2.5 cursor-pointer border relative ${
+                          isSelected
+                            ? 'bg-[#50563D] text-white border-[#50563D] shadow-sm scale-[1.01]'
+                            : 'bg-white hover:bg-[#F9FCF6] text-[#1E201D] border-stone-200 hover:border-[#656B4F]/40 shadow-2xs'
+                        }`}
+                        aria-pressed={isSelected}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          {/* Radio Switch Indicator */}
+                          <div
+                            className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                              isSelected
+                                ? 'border-white bg-[#86EFAC]'
+                                : 'border-stone-300 bg-stone-50'
+                            }`}
+                          >
+                            {isSelected && <div className="w-1 h-1 rounded-full bg-[#1E201D]" />}
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1">
+                              <span
+                                className={`text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded tracking-wider ${
+                                  isSelected
+                                    ? 'bg-white/20 text-[#EAF0E5]'
+                                    : opt.packType === 'retail'
+                                    ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                                    : 'bg-[#D6DFC9] text-[#2D3823] border border-[#656B4F]/20'
+                                }`}
+                              >
+                                {opt.badge}
+                              </span>
+                              <span className="font-extrabold text-xs truncate">
+                                {opt.weight}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <span
+                            className={`text-xs sm:text-sm font-black ${
+                              isSelected ? 'text-[#86EFAC]' : 'text-[#50563D]'
+                            }`}
+                          >
+                            ₹{opt.price}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -173,13 +255,42 @@ export default function ProductDetailModal() {
                 </div>
               </div>
 
-              <button
-                onClick={handleAdd}
-                className="w-full min-h-11 py-3 px-4 rounded-lg bg-[#656B4F] text-white font-bold text-sm hover:bg-[#50563D] transition-all shadow-sm flex items-center justify-center gap-2 group whitespace-nowrap"
-              >
-                <ShoppingBag className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span>Add {quantity} to Cart • ₹{dynamicPrice * quantity}</span>
-              </button>
+              {product.stock !== undefined && product.stock <= 0 ? (
+                <button
+                  type="button"
+                  disabled
+                  className="w-full min-h-11 py-3 px-4 rounded-xl bg-stone-300 text-stone-600 font-extrabold text-sm flex items-center justify-center gap-2 cursor-not-allowed border border-stone-300"
+                >
+                  <X className="w-4 h-4" />
+                  <span>Out of Stock</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    handleAdd();
+                  }}
+                  className="w-full min-h-11 py-3 px-4 rounded-xl bg-[#656B4F] text-white font-bold text-sm hover:bg-[#50563D] transition-all shadow-sm flex items-center justify-center gap-2 group whitespace-nowrap cursor-pointer"
+                >
+                  {isAlreadyInCart ? (
+                    quantity === inCartQty ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-300 shrink-0" />
+                        <span>In Cart ({inCartQty}) • View Cart →</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingBag className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                        <span>Update Cart to {quantity} • ₹{dynamicPrice * quantity}</span>
+                      </>
+                    )
+                  ) : (
+                    <>
+                      <ShoppingBag className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                      <span>Add {quantity} to Cart • ₹{dynamicPrice * quantity}</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>

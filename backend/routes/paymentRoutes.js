@@ -4,6 +4,7 @@ const Razorpay = require('razorpay');
 const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const Cart = require('../models/Cart');
 const PaymentEvent = require('../models/PaymentEvent');
 const { queueOrderNotifications } = require('../services/notificationService');
 
@@ -67,52 +68,59 @@ async function markPaymentCaptured({ razorpayOrderId, razorpayPaymentId, razorpa
     throw error;
   }
 
-  if (order.paymentStatus === 'Paid') {
-    if (order.razorpayPaymentId === razorpayPaymentId) return order;
-    const error = new Error('This order has already been paid');
+  if (order.paymentStatus === 'Failed') {
+    const error = new Error('Payment was already marked as failed');
     error.statusCode = 409;
     throw error;
   }
 
+  if (order.paymentStatus === 'Paid') {
+    if (order.razorpayPaymentId && order.razorpayPaymentId !== razorpayPaymentId) {
+      const error = new Error('Payment was already processed with a different payment ID');
+      error.statusCode = 409;
+      throw error;
+    }
+    if (order.user) {
+      await Cart.deleteOne({ userId: order.user }).catch(() => {});
+    }
+    return order;
+  }
+
   await fetchVerifiedPayment(razorpayOrderId, razorpayPaymentId, Math.round(order.totalAmount * 100));
-  const session = await mongoose.startSession();
-  let updatedOrder;
-  try {
-    await session.withTransaction(async () => {
-      if (eventId) {
-        await PaymentEvent.create([{ eventId, eventType, razorpayPaymentId }], { session });
-      }
+  
+  if (eventId) {
+    await PaymentEvent.create([{ eventId, eventType, razorpayPaymentId }]).catch(() => {});
+  }
 
-      updatedOrder = await Order.findOneAndUpdate(
-        { _id: order._id, paymentStatus: 'Pending', stockCommitted: false },
-        { razorpayPaymentId, razorpaySignature, paymentStatus: 'Paid', status: 'Confirmed', paymentVerifiedAt: new Date(), stockCommitted: true },
-        { new: true, session, runValidators: true }
-      );
-      if (!updatedOrder) return;
+  const updatedOrder = await Order.findOneAndUpdate(
+    { _id: order._id, paymentStatus: { $ne: 'Paid' } },
+    {
+      razorpayPaymentId,
+      razorpaySignature,
+      paymentStatus: 'Paid',
+      status: 'Confirmed',
+      paymentVerifiedAt: new Date(),
+      stockCommitted: true,
+      isLocked: false,
+      failureReason: null,
+    },
+    { new: true, runValidators: true }
+  );
 
-      for (const item of updatedOrder.items) {
-        const result = await Product.updateOne(
-          { _id: item.productId, stock: { $gte: item.quantity } },
-          { $inc: { stock: -item.quantity } },
-          { session }
-        );
-        if (result.modifiedCount !== 1) {
-          const error = new Error(`Insufficient stock for ${item.name}`);
-          error.statusCode = 409;
-          throw error;
-        }
-      }
-    });
-  } catch (error) {
-    if (error.code === 11000 && eventId) return Order.findOne({ razorpayOrderId });
-    throw error;
-  } finally {
-    await session.endSession();
+  if (order.user) {
+    await Cart.deleteOne({ userId: order.user }).catch(() => {});
   }
 
   if (!updatedOrder) {
     const current = await Order.findById(order._id);
-    if (current?.paymentStatus === 'Paid' && current.razorpayPaymentId === razorpayPaymentId) return current;
+    if (current?.paymentStatus === 'Paid') {
+      if (current.razorpayPaymentId && current.razorpayPaymentId !== razorpayPaymentId) {
+        const error = new Error('Payment was already processed');
+        error.statusCode = 409;
+        throw error;
+      }
+      return current;
+    }
     const error = new Error('Payment was already processed');
     error.statusCode = 409;
     throw error;
@@ -165,6 +173,59 @@ router.post('/webhook', async (req, res, next) => {
     }
 
     return res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Endpoint for resilient session recovery (e.g. after UPI app switching, refresh or reconnects)
+router.get('/status/:razorpayOrderId', async (req, res, next) => {
+  try {
+    const { razorpayOrderId } = req.params;
+    if (!razorpayOrderId) return res.status(400).json({ success: false, error: 'Razorpay order ID is required' });
+
+    let order = await Order.findOne({ razorpayOrderId }).lean();
+    if (!order) return res.status(404).json({ success: false, error: 'Order not found' });
+
+    // Self-healing check: If order is still 'Pending', check if Razorpay already received captured payment
+    if (order.paymentStatus === 'Pending') {
+      try {
+        const razorpay = getRazorpay();
+        const payments = await razorpay.orders.fetchPayments(razorpayOrderId);
+        const capturedPayment = payments?.items?.find((p) => p.status === 'captured');
+        if (capturedPayment) {
+          const updated = await markPaymentCaptured({
+            razorpayOrderId,
+            razorpayPaymentId: capturedPayment.id,
+            eventId: `auto-recover:${capturedPayment.id}`,
+            eventType: 'status.poll.captured',
+          });
+          if (updated) {
+            order = updated.toObject ? updated.toObject() : updated;
+            void queueOrderNotifications(updated, 'payment.success');
+          }
+        }
+      } catch (err) {
+        // Non-blocking: fallback to standard order status
+      }
+    }
+
+    // If order was marked as paid, ensure user cart in database is wiped
+    if (order.paymentStatus === 'Paid' && order.user) {
+      await Cart.deleteOne({ userId: order.user }).catch(() => {});
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        id: order._id,
+        orderNumber: order.orderNumber,
+        paymentStatus: order.paymentStatus,
+        status: order.status,
+        totalAmount: order.totalAmount,
+        customerName: order.customerName,
+      },
+    });
   } catch (error) {
     next(error);
   }

@@ -134,9 +134,9 @@ export default function Navbar({
   const announcements = [
     { text: 'Free delivery on orders above ₹2999', Icon: Truck },
     { text: '100% Plant-Based Essentials', Icon: Leaf },
-    { text: 'No Hormones & Antibiotic-Free', Icon: Ban },
+    { text: 'No Added Preservatives & 100% Natural', Icon: Ban },
     { text: 'Sustainably Sourced & Pure Veg', Icon: Sprout },
-    { text: 'Need help? Call +91 98765 43210', Icon: PhoneCall },
+    { text: 'Need help? Call +91 80563 89214', Icon: PhoneCall },
   ];
 
   return (
@@ -177,10 +177,10 @@ export default function Navbar({
                 </div>
                 <div className="hidden min-[380px]:block">
                   <span className="text-xs sm:text-sm font-extrabold tracking-tight text-[#50563D] block leading-tight">
-                    SAKTHI FROZEN FOODS
+                    MOCK MEAT
                   </span>
                   <span className="text-[8px] sm:text-[9px] font-bold tracking-wider text-[#6B7566] uppercase block">
-                    PLANT BASED ESSENTIALS
+                    SAKTHI FROZEN FOODS
                   </span>
                 </div>
               </Link>
@@ -318,14 +318,17 @@ export default function Navbar({
                 </Link>
               )}
 
-              {/* Cart Button */}
+              {/* Clean Cart Button */}
               <button
                 onClick={() => router.push('/cart')}
-                className="relative px-2.5 sm:px-3.5 py-2 rounded-full bg-[#656B4F] text-white hover:bg-[#50563D] transition-all flex items-center gap-1.5 sm:gap-2"
+                className="relative p-2.5 rounded-full bg-[#656B4F] text-white hover:bg-[#50563D] transition-all flex items-center justify-center hover:scale-105 active:scale-95 shadow-xs cursor-pointer group"
+                title={`Shopping Cart (${totalItems} items)`}
+                aria-label={`Shopping Cart with ${totalItems} items`}
               >
-                <ShoppingBag className="w-4 h-4" />
-                <span className="font-bold text-xs hidden sm:inline">Cart</span>
-                <span className="bg-orange-500 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center">
+                <ShoppingBag className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <span className={`absolute -top-1 -right-1 text-white text-[10px] font-black min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center shadow-xs ring-2 ring-white transition-all ${
+                  totalItems > 0 ? 'bg-[#E06A26] scale-100' : 'bg-[#50563D] text-white/90 scale-95'
+                }`}>
                   {totalItems}
                 </span>
               </button>
@@ -355,42 +358,39 @@ export default function Navbar({
                   isChipsDragging ? 'cursor-grabbing' : 'cursor-grab'
                 }`}
               >
-                {(categories.length > 0
-                  ? categories
-                  : [
-                      { id: '1', name: 'Mutton Alternatives' },
-                      { id: '2', name: 'Poultry Alternatives' },
-                      { id: '3', name: 'Seafood Alternatives' },
-                      { id: '4', name: 'Snacks & Starters' },
-                      { id: '5', name: 'Retail Pack' },
-                    ]
-                ).map((cat) => {
-                  const getCategoryIconComponent = (name: string) => {
-                    const n = (name || '').toLowerCase();
-                    if (n.includes('mutton') || n.includes('meat')) return <Beef className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
-                    if (n.includes('chicken') || n.includes('poultry')) return <Drumstick className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
-                    if (n.includes('fish') || n.includes('sea')) return <Fish className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
-                    if (n.includes('starter') || n.includes('snack')) return <Cookie className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
-                    if (n.includes('retail') || n.includes('pack')) return <Package className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
-                    if (n.includes('combo')) return <Layers className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
-                    return <UtensilsCrossed className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
-                  };
-                  return (
-                    <Link
-                      key={cat.id || cat.name}
-                      href={`/shop?category=${encodeURIComponent(cat.name)}`}
-                      onClick={(e) => {
-                        if (chipsMoved) {
-                          e.preventDefault();
-                        }
-                      }}
-                      className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FAFAF5] hover:bg-[#EAF0E5] border border-stone-200/80 text-[11px] font-bold text-[#4F534C] hover:text-[#50563D] transition-colors shadow-2xs min-w-max whitespace-nowrap"
-                    >
-                      {getCategoryIconComponent(cat.name)}
-                      <span>{cat.name.replace(' Alternatives', '').replace(' Retail Pack', ' Packs')}</span>
-                    </Link>
-                  );
-                })}
+                {categories.length > 0 ? (
+                  categories.map((cat) => {
+                    const getCategoryIconComponent = (name: string) => {
+                      const n = (name || '').toLowerCase();
+                      if (n.includes('mutton') || n.includes('meat')) return <Beef className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
+                      if (n.includes('chicken') || n.includes('poultry')) return <Drumstick className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
+                      if (n.includes('fish') || n.includes('sea')) return <Fish className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
+                      if (n.includes('starter') || n.includes('snack')) return <Cookie className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
+                      if (n.includes('retail') || n.includes('pack')) return <Package className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
+                      if (n.includes('combo')) return <Layers className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
+                      return <UtensilsCrossed className="w-3.5 h-3.5 text-[#50563D] shrink-0" />;
+                    };
+                    return (
+                      <Link
+                        key={cat.id || cat.name}
+                        href={`/shop?category=${encodeURIComponent(cat.name)}`}
+                        onClick={(e) => {
+                          if (chipsMoved) {
+                            e.preventDefault();
+                          }
+                        }}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FAFAF5] hover:bg-[#EAF0E5] border border-stone-200/80 text-[11px] font-bold text-[#4F534C] hover:text-[#50563D] transition-colors shadow-2xs min-w-max whitespace-nowrap"
+                      >
+                        {getCategoryIconComponent(cat.name)}
+                        <span>{cat.name.replace(' Alternatives', '').replace(' Retail Pack', ' Packs')}</span>
+                      </Link>
+                    );
+                  })
+                ) : (
+                  [1, 2, 3, 4, 5].map((n) => (
+                    <div key={n} className="h-7 w-28 bg-stone-200/70 animate-pulse rounded-full shrink-0" />
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -420,7 +420,7 @@ export default function Navbar({
               <span className="text-stone-300 select-none text-[9px]">•</span>
 
               <a
-                href="tel:+919876543210"
+                href="tel:+918056389214"
                 className="inline-flex items-center gap-1.5 text-[#656B4F] font-bold hover:underline shrink-0"
                 title="Contact Us"
               >
@@ -430,8 +430,8 @@ export default function Navbar({
             </div>
 
             <div className="hidden sm:flex items-center gap-4 font-semibold shrink-0">
-              <a href="tel:+919876543210" className="inline-flex items-center gap-1.5 text-[#656B4F] font-bold hover:underline whitespace-nowrap">
-                <PhoneCall className="w-3.5 h-3.5 text-[#656B4F] shrink-0" /> +91 98765 43210
+              <a href="tel:+918056389214" className="inline-flex items-center gap-1.5 text-[#656B4F] font-bold hover:underline whitespace-nowrap">
+                <PhoneCall className="w-3.5 h-3.5 text-[#656B4F] shrink-0" /> +91 80563 89214
               </a>
             </div>
           </div>
@@ -445,7 +445,7 @@ export default function Navbar({
               <div className="flex items-center justify-between border-b border-[#e4e9df] px-5 py-4">
                 <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3">
                   <span className="relative h-10 w-10"><Image src={logo} alt="" fill className="object-contain" /></span>
-                  <span><strong className="block text-sm text-[#50563D]">SAKTHI FROZEN FOODS</strong><small className="text-[9px] font-semibold tracking-wider text-[#748071]">PLANT BASED ESSENTIALS</small></span>
+                  <span><strong className="block text-sm text-[#50563D]">MOCK MEAT</strong><small className="text-[9px] font-semibold tracking-wider text-[#748071]">SAKTHI FROZEN FOODS</small></span>
                 </Link>
                 <button onClick={() => setIsMobileMenuOpen(false)} aria-label="Close menu" className="rounded-full p-2 text-gray-600 hover:bg-gray-100"><X className="h-5 w-5" /></button>
               </div>

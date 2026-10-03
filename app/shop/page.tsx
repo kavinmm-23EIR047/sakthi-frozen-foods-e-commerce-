@@ -38,10 +38,10 @@ import {
   Layers,
   Sprout,
   UtensilsCrossed,
-  Check
+  Check,
+  ArrowRight
 } from 'lucide-react';
 import OptimizedImage from '@/components/OptimizedImage';
-import FoodLoadingScreen from '@/components/FoodLoadingScreen';
 import { getBackendPackOptions, PackOption, formatCleanWeight } from '@/lib/productPacks';
 
 // Clean Vector SVG Icon helper for Categories
@@ -83,11 +83,10 @@ function ProductCard({
   viewMode?: 'grid' | 'list';
 }) {
   const router = useRouter();
-  const { addToCart } = useCart();
+  const { cart, addToCart, updateQuantity } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { showToast } = useToast();
 
-  const [quantity, setQuantity] = useState(1);
   const [selectedWeightIdx, setSelectedWeightIdx] = useState(0);
 
   // Compute available pack options dynamically from backend product variants & companions
@@ -110,19 +109,30 @@ function ProductCard({
   const discountPercent = currentMrp > currentPrice ? Math.round(((currentMrp - currentPrice) / currentMrp) * 100) : 0;
   const isWishlisted = isInWishlist(product.id);
 
+  const activeProductId = activeOption.productId || product.id;
+  const activeWeight = activeOption.weight;
+
+  // Real-time cart state lookup for this exact variant
+  const cartItem = cart.find(
+    (item) => item.productId === activeProductId && (item.weight === activeWeight || !item.weight)
+  );
+  const inCartQuantity = cartItem ? cartItem.quantity : 0;
+
   const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
+
     addToCart(
       {
         ...product,
-        id: activeOption.productId || product.id,
-        weight: activeOption.weight,
+        id: activeProductId,
+        weight: activeWeight,
         price: currentPrice,
         mrp: currentMrp,
       },
-      quantity
+      1,
+      false
     );
-    showToast(`Added ${quantity}x ${product.name} (${activeOption.label}) to cart`, 'success');
   };
 
   const handleCardClick = () => {
@@ -159,6 +169,7 @@ function ProductCard({
           <button
             type="button"
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               toggleWishlist(product);
             }}
@@ -180,13 +191,13 @@ function ProductCard({
               <span className="text-[11px] font-bold text-[#50563D] bg-[#EAF0E5] px-2 py-0.5 rounded">
                 {product.category || 'Plant Meat'}
               </span>
-              {product.stock && product.stock <= 10 ? (
-                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded ml-auto">
-                  Only {product.stock} left
+              {product.stock !== undefined && product.stock <= 0 ? (
+                <span className="text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full ml-auto">
+                  Out of Stock
                 </span>
               ) : (
-                <span className="text-[10px] font-bold text-[#50563D] bg-[#EAF0E5] px-1.5 py-0.5 rounded flex items-center gap-1 ml-auto">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#656B4F]" /> In Stock
+                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1 ml-auto">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> In Stock
                 </span>
               )}
             </div>
@@ -214,60 +225,107 @@ function ProductCard({
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 flex-wrap" onClick={(e) => e.stopPropagation()}>
-              {packOptions.map((opt, idx) => (
-                <button
-                  key={opt.weight}
-                  type="button"
-                  onClick={() => setSelectedWeightIdx(idx)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 border ${
-                    selectedWeightIdx === idx
-                      ? 'bg-[#50563D] text-white border-[#50563D] shadow-2xs'
-                      : 'bg-[#F4F7F0] text-[#61665D] border-stone-200/80 hover:bg-[#EAF0E5]'
-                  }`}
-                >
-                  <span className={`text-[9px] px-1 py-0.2 rounded font-extrabold uppercase ${
-                    selectedWeightIdx === idx ? 'bg-white/20 text-white' : opt.packType === 'retail' ? 'bg-amber-100 text-amber-900' : 'bg-[#D6DFC9] text-[#2D3823]'
-                  }`}>
-                    {opt.badge}
-                  </span>
-                  <span>{opt.weight}</span>
-                </button>
-              ))}
-            </div>
+            {packOptions.length > 1 ? (
+              <div className="w-full" onClick={(e) => e.stopPropagation()}>
+                <div className="p-1 bg-[#E8EEE0] rounded-xl border border-[#4F534C]/20 shadow-inner flex items-center gap-1">
+                  {packOptions.map((opt, idx) => {
+                    const isSelected = selectedWeightIdx === idx;
+                    return (
+                      <button
+                        key={opt.weight}
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedWeightIdx(idx);
+                        }}
+                        className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${
+                          isSelected
+                            ? 'bg-[#50563D] text-white shadow-xs border border-[#50563D]'
+                            : 'text-[#4F534C] hover:bg-white/70 hover:text-[#1E201D] border border-transparent'
+                        }`}
+                        aria-pressed={isSelected}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${
+                            isSelected ? 'bg-[#86EFAC]' : 'bg-[#656B4F]/40'
+                          }`}
+                        />
+                        <span className="uppercase text-[9px] tracking-wider font-extrabold opacity-90">
+                          {opt.badge}
+                        </span>
+                        <span className="font-extrabold text-[11px]">{opt.weight}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : packOptions.length === 1 ? (
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 text-xs font-bold text-[#50563D]">
+                <span className="text-[9px] font-black uppercase bg-white/80 px-1.5 py-0.5 rounded text-[#50563D]">
+                  {packOptions[0].badge}
+                </span>
+                <span className="font-extrabold text-[11px]">{packOptions[0].weight}</span>
+              </div>
+            ) : null}
 
             <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center border border-stone-300 rounded-xl bg-[#FAFAF5] p-0.5">
+              {product.stock !== undefined && product.stock <= 0 ? (
                 <button
                   type="button"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="p-1.5 rounded-lg hover:bg-stone-200 text-[#1E201D]"
+                  disabled
+                  className="px-4 py-2 rounded-xl bg-stone-200 text-stone-500 text-xs font-bold cursor-not-allowed opacity-75 flex items-center gap-1.5"
                 >
-                  <Minus className="w-3.5 h-3.5" />
+                  <span>Out of Stock</span>
                 </button>
-                <span className="px-2.5 text-xs font-black text-[#1E201D]">{quantity}</span>
+              ) : inCartQuantity > 0 ? (
+                <div className="flex items-center justify-between bg-[#50563D] text-white rounded-xl p-0.5 shadow-sm border border-[#50563D] min-w-[125px] animate-in fade-in zoom-in-95 duration-200">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      updateQuantity(activeProductId, activeWeight, inCartQuantity - 1);
+                    }}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/20 active:scale-90 transition-all cursor-pointer text-white"
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus className="w-3.5 h-3.5 stroke-[3]" />
+                  </button>
+                  <span className="text-xs font-black px-2.5 select-none tracking-tight">
+                    {inCartQuantity} in cart
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      updateQuantity(activeProductId, activeWeight, inCartQuantity + 1);
+                    }}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/20 active:scale-90 transition-all cursor-pointer text-white"
+                    aria-label="Increase quantity"
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                  </button>
+                </div>
+              ) : (
                 <button
                   type="button"
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="p-1.5 rounded-lg hover:bg-stone-200 text-[#1E201D]"
+                  onClick={handleAddToCart}
+                  className="px-4 py-2 rounded-xl bg-[#656B4F] hover:bg-[#50563D] text-white text-xs font-black shadow-xs active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <ShoppingBag className="w-3.5 h-3.5" />
+                  <span>Add to Cart</span>
                 </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                className="px-4 py-2 rounded-xl bg-[#656B4F] hover:bg-[#50563D] text-white text-xs font-bold shadow-xs active:scale-95 transition-all flex items-center gap-1.5"
-              >
-                <ShoppingBag className="w-3.5 h-3.5" /> Add
-              </button>
+              )}
             </div>
           </div>
         </div>
       </div>
     );
   }
+
+  const isOutOfStock = product.stock !== undefined && product.stock <= 0;
 
   return (
     <div
@@ -282,7 +340,11 @@ function ProductCard({
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
 
-        {product.isPopular ? (
+        {isOutOfStock ? (
+          <span className="absolute top-2.5 left-2.5 bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs uppercase tracking-wider">
+            Out of Stock
+          </span>
+        ) : product.isPopular ? (
           <span className="absolute top-2.5 left-2.5 bg-[#E06A26] text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-xs uppercase tracking-wider">
             Best Seller
           </span>
@@ -299,10 +361,11 @@ function ProductCard({
         <button
           type="button"
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation();
             toggleWishlist(product);
           }}
-          className={`absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center transition-transform active:scale-90 shadow-xs ${
+          className={`absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center transition-transform active:scale-90 shadow-xs cursor-pointer ${
             isWishlisted ? 'bg-rose-50 text-rose-500' : 'bg-white/90 text-stone-600 hover:text-rose-500 hover:bg-white'
           }`}
           aria-label="Wishlist"
@@ -317,9 +380,15 @@ function ProductCard({
             <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-[#50563D] bg-[#EAF0E5] px-1.5 py-0.5 rounded border border-[#656B4F]/20">
               <span className="w-1.5 h-1.5 rounded-full bg-[#656B4F]" /> Veg
             </span>
-            <span className="text-[10px] font-bold text-[#50563D] bg-[#EAF0E5] px-1.5 py-0.5 rounded truncate max-w-[130px]">
-              {product.category || 'Plant Meat'}
-            </span>
+            {isOutOfStock ? (
+              <span className="text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">
+                Out of Stock
+              </span>
+            ) : (
+              <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> In Stock
+              </span>
+            )}
           </div>
 
           <h3 className="font-extrabold text-xs sm:text-sm text-[#1E201D] group-hover:text-[#50563D] truncate leading-tight">
@@ -345,54 +414,100 @@ function ProductCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none scrollbar-hide no-scrollbar py-0.5" onClick={(e) => e.stopPropagation()}>
-          {packOptions.map((opt, idx) => (
-            <button
-              key={opt.weight}
-              type="button"
-              onClick={() => setSelectedWeightIdx(idx)}
-              className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all shrink-0 flex items-center gap-1 border ${
-                selectedWeightIdx === idx
-                  ? 'bg-[#50563D] text-white border-[#50563D] shadow-2xs'
-                  : 'bg-[#F4F7F0] text-[#61665D] hover:bg-[#EAF0E5] border border-stone-200/60'
-              }`}
-            >
-              <span className={`text-[8px] px-1 py-0.2 rounded font-black uppercase ${
-                selectedWeightIdx === idx ? 'bg-white/20 text-white' : opt.packType === 'retail' ? 'bg-amber-100 text-amber-900' : 'bg-[#D6DFC9] text-[#2D3823]'
-              }`}>
-                {opt.badge}
-              </span>
-              <span>{opt.weight}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className="pt-2 border-t border-stone-100 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center border border-stone-300 rounded-xl bg-[#FAFAF5] p-0.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              className="p-1 rounded-lg hover:bg-stone-200 text-[#1E201D]"
-            >
-              <Minus className="w-3 h-3" />
-            </button>
-            <span className="px-2 text-xs font-black text-[#1E201D]">{quantity}</span>
-            <button
-              type="button"
-              onClick={() => setQuantity(quantity + 1)}
-              className="p-1 rounded-lg hover:bg-stone-200 text-[#1E201D]"
-            >
-              <Plus className="w-3 h-3" />
-            </button>
+        {packOptions.length > 1 ? (
+          <div className="w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="p-0.5 bg-[#E8EEE0] rounded-xl border border-[#4F534C]/20 shadow-inner flex items-center gap-1">
+              {packOptions.map((opt, idx) => {
+                const isSelected = selectedWeightIdx === idx;
+                return (
+                  <button
+                    key={opt.weight}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedWeightIdx(idx);
+                    }}
+                    className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer relative ${
+                      isSelected
+                        ? 'bg-[#50563D] text-white shadow-xs border border-[#50563D]'
+                        : 'text-[#4F534C] hover:bg-white/70 hover:text-[#1E201D] border border-transparent'
+                    }`}
+                    aria-pressed={isSelected}
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${
+                        isSelected ? 'bg-[#86EFAC]' : 'bg-[#656B4F]/40'
+                      }`}
+                    />
+                    <span className="uppercase text-[8px] tracking-wider font-extrabold opacity-90">
+                      {opt.badge}
+                    </span>
+                    <span className="font-extrabold">{opt.weight}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
+        ) : packOptions.length === 1 ? (
+          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#E8EEE0] border border-[#4F534C]/20 text-[11px] font-bold text-[#50563D]">
+            <span className="text-[8px] font-black uppercase bg-white/80 px-1 py-0.2 rounded text-[#50563D]">
+              {packOptions[0].badge}
+            </span>
+            <span className="font-extrabold">{packOptions[0].weight}</span>
+          </div>
+        ) : null}
 
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            className="flex-1 py-2 px-2.5 rounded-xl bg-[#656B4F] hover:bg-[#50563D] text-white text-xs font-bold shadow-xs active:scale-95 transition-all flex items-center justify-center gap-1 whitespace-nowrap"
-          >
-            <ShoppingBag className="w-3.5 h-3.5" /> Add
-          </button>
+        <div className="pt-2 border-t border-stone-100 flex items-center" onClick={(e) => e.stopPropagation()}>
+          {isOutOfStock ? (
+            <button
+              type="button"
+              disabled
+              className="w-full py-2.5 px-2 rounded-xl bg-stone-200 text-stone-500 text-xs font-bold cursor-not-allowed opacity-75 flex items-center justify-center gap-1.5"
+            >
+              <span>Out of Stock</span>
+            </button>
+          ) : inCartQuantity > 0 ? (
+            <div className="w-full flex items-center justify-between bg-[#50563D] text-white rounded-xl p-0.5 shadow-sm border border-[#50563D] animate-in fade-in zoom-in-95 duration-200">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  updateQuantity(activeProductId, activeWeight, inCartQuantity - 1);
+                }}
+                className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg hover:bg-white/20 active:scale-90 transition-all cursor-pointer text-white shrink-0"
+                aria-label="Decrease quantity"
+              >
+                <Minus className="w-3.5 h-3.5 stroke-[3]" />
+              </button>
+              <span className="text-xs font-black px-1 select-none tracking-tight flex items-center justify-center gap-1 min-w-0">
+                <span>{inCartQuantity}</span>
+                <span className="text-[10px] font-bold text-white/80 hidden min-[360px]:inline">in cart</span>
+              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  updateQuantity(activeProductId, activeWeight, inCartQuantity + 1);
+                }}
+                className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg hover:bg-white/20 active:scale-90 transition-all cursor-pointer text-white shrink-0"
+                aria-label="Increase quantity"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[3]" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              className="w-full py-2.5 px-2.5 sm:px-3 rounded-xl bg-[#656B4F] hover:bg-[#50563D] text-white text-xs font-black shadow-xs active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer group"
+            >
+              <ShoppingBag className="w-3.5 h-3.5 group-hover:scale-110 transition-transform shrink-0" />
+              <span className="truncate">Add to Cart</span>
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -400,9 +515,11 @@ function ProductCard({
 }
 
 function ShopContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialSearch = searchParams.get('search') || '';
   const initialCategory = searchParams.get('category') || 'All';
+  const { totalItems, totalPrice, setIsCartOpen } = useCart();
 
   const [products, setProducts] = useState<ProductType[]>([]);
   const [categories, setCategories] = useState<CategoryType[]>([]);
@@ -415,9 +532,9 @@ function ShopContent() {
   const [selectedProductTypes, setSelectedProductTypes] = useState<string[]>([]);
   const [selectedPackSizes, setSelectedPackSizes] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 2000]);
-  const [inStockOnly, setInStockOnly] = useState(true);
+  const [inStockOnly, setInStockOnly] = useState(false);
   const [sortBy, setSortBy] = useState<'popular' | 'price-low' | 'price-high' | 'newest' | 'discount'>('popular');
-  const [quickFilter, setQuickFilter] = useState<'all' | 'bestsellers' | 'new' | 'chef' | 'protein' | 'lowfat'>('all');
+  const [quickFilter, setQuickFilter] = useState<'all' | 'bestsellers' | 'readytofry' | 'rawmeat' | 'under300'>('all');
 
   // UI View Layout
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -477,15 +594,21 @@ function ShopContent() {
   useEffect(() => {
     setSearchTerm(initialSearch);
     setDebouncedSearch(initialSearch);
-    setSelectedCategory(initialCategory);
+    setSelectedCategory(initialCategory || 'All');
+    setPage(1);
   }, [initialSearch, initialCategory]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm);
-    }, 200);
+    }, 150);
     return () => clearTimeout(timer);
   }, [searchTerm]);
+
+  // Reset pagination on any filter modification
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, selectedCategory, selectedProductTypes, selectedPackSizes, priceRange, inStockOnly, quickFilter, sortBy]);
 
   // Category Carousel Slider Drag & Scroll Ref
   const categorySliderRef = useRef<HTMLDivElement>(null);
@@ -562,103 +685,158 @@ function ShopContent() {
     }
   };
 
-  // Dynamic Product Types with counts
+  // Helper string normalization
+  const norm = (s: string) => (s || '').trim().toLowerCase();
+
+  // 1. Unified & Deduplicated Categories directly synced with products
+  const unifiedCategories = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; count: number }>();
+
+    // Count all distinct categories from actual products
+    products.forEach((p) => {
+      const rawCat = (p.category || '').trim();
+      if (!rawCat) return;
+      const key = rawCat.toLowerCase();
+      if (map.has(key)) {
+        map.get(key)!.count += 1;
+      } else {
+        map.set(key, { id: key, name: rawCat, count: 1 });
+      }
+    });
+
+    // Also include any backend API categories
+    categories.forEach((c) => {
+      const key = (c.name || '').trim().toLowerCase();
+      if (!key) return;
+      if (map.has(key)) {
+        if (c.id) map.get(key)!.id = c.id;
+      } else {
+        map.set(key, { id: c.id || key, name: c.name.trim(), count: 0 });
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
+  }, [products, categories]);
+
+  // 2. Dynamic Product Types with precise keyword matching
+  const productTypeDefinitions = useMemo(() => [
+    { key: 'Starters', label: 'Starters', match: (name: string, cat: string) => cat.includes('starter') || name.includes('starter') || name.includes('nugget') || name.includes('popcorn') || name.includes('finger') || name.includes('fry') || name.includes('bites') },
+    { key: 'Chicken', label: 'Chicken', match: (name: string, cat: string) => name.includes('chicken') || cat.includes('chicken') },
+    { key: 'Mutton', label: 'Mutton', match: (name: string, cat: string) => name.includes('mutton') || cat.includes('mutton') },
+    { key: 'Fish', label: 'Fish', match: (name: string, cat: string) => name.includes('fish') || cat.includes('fish') },
+    { key: 'Prawn', label: 'Prawn', match: (name: string, cat: string) => name.includes('prawn') || cat.includes('prawn') || name.includes('shrimp') },
+    { key: 'Liver', label: 'Liver', match: (name: string, cat: string) => name.includes('liver') || cat.includes('liver') },
+    { key: 'Chaap', label: 'Soya Chaap', match: (name: string, cat: string) => name.includes('chaap') || cat.includes('chaap') },
+    { key: 'Biryani', label: 'Biryani / Curry', match: (name: string, cat: string) => name.includes('biryani') || name.includes('briyani') || name.includes('curry') || name.includes('gravy') },
+  ], []);
+
   const dynamicProductTypes = useMemo(() => {
-    const typesMap: Record<string, number> = {};
-    const standardKeywords = ['Mutton', 'Chicken', 'Fish', 'Prawn', 'Starters', 'Nuggets', 'Chaap', 'Liver', 'Kolambu', 'Kebab', 'Burger', 'Biryani'];
-
-    products.forEach((p) => {
-      const name = p.name || '';
-      const cat = p.category || '';
-      standardKeywords.forEach((kw) => {
-        if (name.toLowerCase().includes(kw.toLowerCase()) || cat.toLowerCase().includes(kw.toLowerCase())) {
-          typesMap[kw] = (typesMap[kw] || 0) + 1;
-        }
-      });
-    });
-
-    return Object.entries(typesMap)
-      .map(([name, count]) => ({ name, count }))
+    return productTypeDefinitions
+      .map((item) => ({
+        ...item,
+        count: products.filter((p) => item.match((p.name || '').toLowerCase(), (p.category || '').toLowerCase())).length,
+      }))
+      .filter((item) => item.count > 0)
       .sort((a, b) => b.count - a.count);
-  }, [products]);
+  }, [products, productTypeDefinitions]);
 
-  // Dynamic Category Counts
-  const categoryCounts = useMemo(() => {
-    const map: Record<string, number> = {};
-    products.forEach((p) => {
-      const cat = p.category || 'Other';
-      map[cat] = (map[cat] || 0) + 1;
-    });
-    return map;
-  }, [products]);
-
-  // Dynamic Pack Sizes with counts
+  // 3. Dynamic Pack Sizes with counts
   const dynamicPackSizes = useMemo(() => {
     const sizes = [
-      { key: '200g', label: '200g - 250g', match: (w: string) => w.includes('200') || w.includes('250') },
-      { key: '500g', label: '300g - 500g', match: (w: string) => w.includes('300') || w.includes('400') || w.includes('500') },
-      { key: '1kg', label: '1kg Bulk Pack', match: (w: string) => w.toLowerCase().includes('1kg') || w.toLowerCase().includes('1 kg') },
-      { key: '2kg', label: '2kg+ Family Pack', match: (w: string) => w.toLowerCase().includes('2kg') || w.toLowerCase().includes('2 kg') },
+      { key: '250g', label: '200g - 250g', match: (w: string) => /200|250/i.test(w) },
+      { key: '500g', label: '300g - 500g', match: (w: string) => /300|400|500/i.test(w) },
+      { key: '1kg', label: '1kg Bulk Pack', match: (w: string) => /1\s*kg/i.test(w) || w.toLowerCase() === '1kg' },
+      { key: '2kg', label: '2kg+ Family Pack', match: (w: string) => /2\s*kg|3\s*kg|5\s*kg/i.test(w) },
     ];
 
     return sizes.map((s) => ({
       ...s,
       count: products.filter((p) => s.match(p.weight || '1kg')).length,
-    }));
+    })).filter((s) => s.count > 0);
   }, [products]);
 
-  // Filter Logic strictly applied over backend products
+  // In-Stock items count
+  const inStockCount = useMemo(() => {
+    return products.filter((p) => p.stock === undefined || p.stock > 0).length;
+  }, [products]);
+
+  // 4. Filter Logic strictly applied with exact mapping
   const filteredProducts = useMemo(() => {
+    const searchClean = debouncedSearch.trim().toLowerCase();
+    const searchWords = searchClean ? searchClean.split(/\s+/).filter(Boolean) : [];
+    const targetCategory = norm(selectedCategory);
+
     return products.filter((p) => {
-      if (debouncedSearch.trim()) {
-        const q = debouncedSearch.toLowerCase().trim();
-        const words = q.split(/\s+/).filter(Boolean);
+      // 1. Search Query
+      if (searchWords.length > 0) {
         const name = (p.name || '').toLowerCase();
         const cat = (p.category || '').toLowerCase();
         const desc = (p.description || '').toLowerCase();
         const code = (p.code || '').toLowerCase();
 
-        const match = words.some((w) => name.includes(w) || cat.includes(w) || desc.includes(w) || code.includes(w));
+        const match = searchWords.every((w) => name.includes(w) || cat.includes(w) || desc.includes(w) || code.includes(w));
         if (!match) return false;
       }
 
-      if (selectedCategory && selectedCategory !== 'All') {
-        const catMatch =
-          (p.category || '').toLowerCase().includes(selectedCategory.toLowerCase()) ||
-          selectedCategory.toLowerCase().includes((p.category || '').toLowerCase());
-        if (!catMatch) return false;
+      // 2. Exact Category Filter (Case-insensitive trimmed exact match)
+      if (targetCategory && targetCategory !== 'all') {
+        const pCat = norm(p.category);
+        if (pCat !== targetCategory) {
+          return false;
+        }
       }
 
+      // 3. Product Type Filter
       if (selectedProductTypes.length > 0) {
         const pName = (p.name || '').toLowerCase();
         const pCat = (p.category || '').toLowerCase();
-        const matchesAnyType = selectedProductTypes.some(
-          (t) => pName.includes(t.toLowerCase()) || pCat.includes(t.toLowerCase())
-        );
+        const matchesAnyType = selectedProductTypes.some((typeKey) => {
+          const def = productTypeDefinitions.find((d) => d.key === typeKey);
+          if (def) {
+            return def.match(pName, pCat);
+          }
+          const lower = typeKey.toLowerCase();
+          return pName.includes(lower) || pCat.includes(lower);
+        });
         if (!matchesAnyType) return false;
       }
 
+      // 4. Pack Size Filter
       if (selectedPackSizes.length > 0) {
-        const weight = (p.weight || '1kg').toLowerCase();
+        const weight = (p.weight || '').toLowerCase();
         const matchesPack = selectedPackSizes.some((s) => {
-          if (s === '200g') return weight.includes('200') || weight.includes('250');
-          if (s === '500g') return weight.includes('300') || weight.includes('400') || weight.includes('500');
-          if (s === '1kg') return weight.includes('1kg') || weight.includes('1 kg');
-          if (s === '2kg') return weight.includes('2kg') || weight.includes('2 kg');
+          if (s === '250g') return /200|250/i.test(weight);
+          if (s === '500g') return /300|400|500/i.test(weight);
+          if (s === '1kg') return /1\s*kg/i.test(weight) || weight === '1kg';
+          if (s === '2kg') return /2\s*kg|3\s*kg|5\s*kg/i.test(weight);
           return false;
         });
         if (!matchesPack) return false;
       }
 
+      // 5. Price Range Filter
       if (p.price < priceRange[0] || p.price > priceRange[1]) {
         return false;
       }
 
+      // 6. In-Stock Filter
       if (inStockOnly && p.stock !== undefined && p.stock <= 0) {
         return false;
       }
 
+      // 7. Quick Filter Tags
       if (quickFilter === 'bestsellers' && !p.isPopular) return false;
+      if (quickFilter === 'readytofry') {
+        const pCat = norm(p.category);
+        const pName = (p.name || '').toLowerCase();
+        if (!pCat.includes('starter') && !pName.includes('starter') && !pName.includes('nugget') && !pName.includes('fry') && !pName.includes('bites')) return false;
+      }
+      if (quickFilter === 'rawmeat') {
+        const pCat = norm(p.category);
+        const pName = (p.name || '').toLowerCase();
+        if (pCat.includes('starter') || pName.includes('starter') || pName.includes('nugget')) return false;
+      }
+      if (quickFilter === 'under300' && p.price > 300) return false;
 
       return true;
     });
@@ -671,6 +849,7 @@ function ShopContent() {
     priceRange,
     inStockOnly,
     quickFilter,
+    productTypeDefinitions,
   ]);
 
   // Sort Products
@@ -703,8 +882,10 @@ function ShopContent() {
 
   const totalPages = Math.max(1, Math.ceil(sortedProducts.length / pageSize));
 
+  // Clear all filters
   const handleResetFilters = () => {
     setSearchTerm('');
+    setDebouncedSearch('');
     setSelectedCategory('All');
     setSelectedProductTypes([]);
     setSelectedPackSizes([]);
@@ -727,20 +908,29 @@ function ShopContent() {
     );
   };
 
-  if (loading) {
+  // Check if any filter is actively applied
+  const isAnyFilterActive = useMemo(() => {
     return (
-      <FoodLoadingScreen
-        message="Loading Sakthi Frozen Foods Catalog"
-        subMessage="Preparing 100% pure vegetarian & plant-based essentials"
-      />
+      selectedCategory !== 'All' ||
+      selectedProductTypes.length > 0 ||
+      selectedPackSizes.length > 0 ||
+      priceRange[0] > 0 ||
+      priceRange[1] < 2000 ||
+      inStockOnly ||
+      quickFilter !== 'all' ||
+      Boolean(searchTerm)
     );
+  }, [selectedCategory, selectedProductTypes, selectedPackSizes, priceRange, inStockOnly, quickFilter, searchTerm]);
+
+  if (loading) {
+    return <ShopSkeleton />;
   }
 
   return (
     <div className="min-h-screen bg-[#F7F8F4] text-[#1E201D] flex flex-col font-sans">
       <Navbar />
 
-      <main className="site-shell py-5 sm:py-7 lg:py-9 flex-1">
+      <main className="site-shell py-5 sm:py-7 lg:py-9 pb-36 sm:pb-40 md:pb-24 flex-1">
         {/* 1. BREADCRUMBS & HERO BANNER */}
         <div className="mb-6 sm:mb-8">
           <div className="flex items-center gap-1.5 text-xs text-[#818B7D] font-bold mb-3">
@@ -859,10 +1049,9 @@ function ShopContent() {
               </div>
             </button>
 
-            {/* Dynamic Backend Categories with Lucide Vector Icons */}
-            {categories.map((cat) => {
-              const count = categoryCounts[cat.name] || 0;
-              const isSelected = selectedCategory.toLowerCase() === cat.name.toLowerCase();
+            {/* Dynamic Categories with Unified Product Mapping and Counts */}
+            {unifiedCategories.map((cat) => {
+              const isSelected = norm(selectedCategory) === norm(cat.name);
               return (
                 <button
                   key={cat.id || cat.name}
@@ -884,7 +1073,7 @@ function ShopContent() {
                   <div className="text-left pr-2 min-w-max">
                     <span className="font-extrabold text-xs sm:text-sm block whitespace-nowrap">{cat.name}</span>
                     <span className={`text-[10px] block ${isSelected ? 'text-white/80' : 'text-[#818B7D]'}`}>
-                      {count > 0 ? `${count} items` : 'In stock'}
+                      {cat.count > 0 ? `${cat.count} items` : '0 items'}
                     </span>
                   </div>
                 </button>
@@ -906,7 +1095,7 @@ function ShopContent() {
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="text-xs font-bold text-[#656B4F] hover:text-[#50563D] hover:underline"
+                className="text-xs font-bold text-[#656B4F] hover:text-[#50563D] hover:underline cursor-pointer"
               >
                 Clear All
               </button>
@@ -919,40 +1108,39 @@ function ShopContent() {
                 <ChevronUp className="w-3.5 h-3.5 text-stone-400" />
               </h3>
 
-              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                <label className="flex items-center justify-between p-1.5 rounded-lg hover:bg-[#F3FBEE] cursor-pointer text-xs font-semibold text-[#4F534C]">
+              <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+                <label className="flex items-center justify-between p-2 rounded-xl hover:bg-[#F3FBEE] cursor-pointer text-xs font-semibold text-[#4F534C] transition-colors">
                   <div className="flex items-center gap-2.5">
                     <input
                       type="radio"
                       name="categoryRadio"
                       checked={selectedCategory === 'All'}
                       onChange={() => setSelectedCategory('All')}
-                      className="w-4 h-4 accent-[#50563D]"
+                      className="w-4 h-4 accent-[#50563D] cursor-pointer"
                     />
-                    <span>All Products</span>
+                    <span className={selectedCategory === 'All' ? 'font-bold text-[#1E201D]' : ''}>All Products</span>
                   </div>
-                  <span className="text-[11px] text-[#818B7D]">({products.length})</span>
+                  <span className="text-[11px] font-bold text-[#818B7D]">({products.length})</span>
                 </label>
 
-                {categories.map((cat) => {
-                  const count = categoryCounts[cat.name] || 0;
-                  const isChecked = selectedCategory.toLowerCase() === cat.name.toLowerCase();
+                {unifiedCategories.map((cat) => {
+                  const isChecked = norm(selectedCategory) === norm(cat.name);
                   return (
                     <label
                       key={cat.id || cat.name}
-                      className="flex items-center justify-between p-1.5 rounded-lg hover:bg-[#F3FBEE] cursor-pointer text-xs font-semibold text-[#4F534C]"
+                      className="flex items-center justify-between p-2 rounded-xl hover:bg-[#F3FBEE] cursor-pointer text-xs font-semibold text-[#4F534C] transition-colors"
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
                         <input
                           type="radio"
                           name="categoryRadio"
                           checked={isChecked}
                           onChange={() => setSelectedCategory(cat.name)}
-                          className="w-4 h-4 accent-[#50563D]"
+                          className="w-4 h-4 accent-[#50563D] cursor-pointer shrink-0"
                         />
-                        <span className="truncate">{cat.name}</span>
+                        <span className={`truncate ${isChecked ? 'font-bold text-[#1E201D]' : ''}`}>{cat.name}</span>
                       </div>
-                      <span className="text-[11px] text-[#818B7D]">({count})</span>
+                      <span className="text-[11px] font-bold text-[#818B7D] shrink-0">({cat.count})</span>
                     </label>
                   );
                 })}
@@ -967,24 +1155,24 @@ function ShopContent() {
                   <ChevronUp className="w-3.5 h-3.5 text-stone-400" />
                 </h3>
 
-                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                  {dynamicProductTypes.map(({ name, count }) => {
-                    const isChecked = selectedProductTypes.includes(name);
+                <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                  {dynamicProductTypes.map((t) => {
+                    const isChecked = selectedProductTypes.includes(t.key);
                     return (
                       <label
-                        key={name}
-                        className="flex items-center justify-between p-1.5 rounded-lg hover:bg-[#F3FBEE] cursor-pointer text-xs font-semibold text-[#4F534C]"
+                        key={t.key}
+                        className="flex items-center justify-between p-2 rounded-xl hover:bg-[#F3FBEE] cursor-pointer text-xs font-semibold text-[#4F534C] transition-colors"
                       >
                         <div className="flex items-center gap-2.5">
                           <input
                             type="checkbox"
                             checked={isChecked}
-                            onChange={() => toggleProductType(name)}
-                            className="w-4 h-4 rounded-sm accent-[#50563D]"
+                            onChange={() => toggleProductType(t.key)}
+                            className="w-4 h-4 rounded-sm accent-[#50563D] cursor-pointer"
                           />
-                          <span>{name}</span>
+                          <span className={isChecked ? 'font-bold text-[#1E201D]' : ''}>{t.label}</span>
                         </div>
-                        <span className="text-[11px] text-[#818B7D]">({count})</span>
+                        <span className="text-[11px] font-bold text-[#818B7D]">({t.count})</span>
                       </label>
                     );
                   })}
@@ -996,8 +1184,8 @@ function ShopContent() {
             <div className="space-y-2.5 pt-4 border-t border-stone-100">
               <div className="flex items-center justify-between">
                 <h3 className="font-extrabold text-xs text-[#1E201D] uppercase tracking-wider">Price Range</h3>
-                <span className="text-xs font-extrabold text-[#50563D]">
-                  ₹{priceRange[0]} - ₹{priceRange[1]}
+                <span className="text-xs font-black text-[#50563D]">
+                  ₹{priceRange[0]} – ₹{priceRange[1]}
                 </span>
               </div>
 
@@ -1005,10 +1193,10 @@ function ShopContent() {
                 type="range"
                 min={0}
                 max={2000}
-                step={50}
+                step={25}
                 value={priceRange[1]}
                 onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                className="w-full accent-[#50563D]"
+                className="w-full accent-[#50563D] cursor-pointer h-2 bg-stone-200 rounded-lg"
               />
 
               <div className="grid grid-cols-2 gap-2 pt-1">
@@ -1022,43 +1210,45 @@ function ShopContent() {
             </div>
 
             {/* Pack Size Filter */}
-            <div className="space-y-2.5 pt-4 border-t border-stone-100">
-              <h3 className="font-extrabold text-xs text-[#1E201D] uppercase tracking-wider">Pack Size</h3>
-              <div className="space-y-1.5">
-                {dynamicPackSizes.map((s) => (
-                  <label
-                    key={s.key}
-                    className="flex items-center justify-between p-1.5 rounded-lg hover:bg-[#F3FBEE] cursor-pointer text-xs font-semibold text-[#4F534C]"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <input
-                        type="checkbox"
-                        checked={selectedPackSizes.includes(s.key)}
-                        onChange={() => togglePackSize(s.key)}
-                        className="w-4 h-4 rounded-sm accent-[#50563D]"
-                      />
-                      <span>{s.label}</span>
-                    </div>
-                    <span className="text-[11px] text-[#818B7D]">({s.count})</span>
-                  </label>
-                ))}
+            {dynamicPackSizes.length > 0 && (
+              <div className="space-y-2.5 pt-4 border-t border-stone-100">
+                <h3 className="font-extrabold text-xs text-[#1E201D] uppercase tracking-wider">Pack Size</h3>
+                <div className="space-y-1.5">
+                  {dynamicPackSizes.map((s) => (
+                    <label
+                      key={s.key}
+                      className="flex items-center justify-between p-2 rounded-xl hover:bg-[#F3FBEE] cursor-pointer text-xs font-semibold text-[#4F534C] transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={selectedPackSizes.includes(s.key)}
+                          onChange={() => togglePackSize(s.key)}
+                          className="w-4 h-4 rounded-sm accent-[#50563D] cursor-pointer"
+                        />
+                        <span className={selectedPackSizes.includes(s.key) ? 'font-bold text-[#1E201D]' : ''}>{s.label}</span>
+                      </div>
+                      <span className="text-[11px] font-bold text-[#818B7D]">({s.count})</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Availability */}
             <div className="space-y-2.5 pt-4 border-t border-stone-100">
               <h3 className="font-extrabold text-xs text-[#1E201D] uppercase tracking-wider">Availability</h3>
-              <label className="flex items-center justify-between p-1.5 rounded-lg hover:bg-[#F3FBEE] cursor-pointer text-xs font-semibold text-[#4F534C]">
+              <label className="flex items-center justify-between p-2 rounded-xl hover:bg-[#F3FBEE] cursor-pointer text-xs font-semibold text-[#4F534C] transition-colors">
                 <div className="flex items-center gap-2.5">
                   <input
                     type="checkbox"
                     checked={inStockOnly}
                     onChange={(e) => setInStockOnly(e.target.checked)}
-                    className="w-4 h-4 rounded-sm accent-[#50563D]"
+                    className="w-4 h-4 rounded-sm accent-[#50563D] cursor-pointer"
                   />
-                  <span>In Stock Only</span>
+                  <span className={inStockOnly ? 'font-bold text-[#1E201D]' : ''}>In Stock Only</span>
                 </div>
-                <span className="text-[11px] text-[#818B7D]">({products.length})</span>
+                <span className="text-[11px] font-bold text-[#818B7D]">({inStockCount})</span>
               </label>
             </div>
           </aside>
@@ -1085,7 +1275,7 @@ function ShopContent() {
                   <button
                     type="button"
                     onClick={() => setIsFilterDrawerOpen(true)}
-                    className="lg:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#50563D] text-white text-xs font-bold shadow-xs"
+                    className="lg:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#50563D] text-white text-xs font-bold shadow-xs cursor-pointer"
                   >
                     <Filter className="w-3.5 h-3.5" />
                     <span>Filters</span>
@@ -1141,14 +1331,13 @@ function ShopContent() {
                     <ChevronDown className="w-3.5 h-3.5 text-stone-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
 
-                  {/* Clean SVG Filter Chips */}
+                  {/* Clean Filter Chips */}
                   {[
                     { id: 'all', label: 'All Items', icon: null },
                     { id: 'bestsellers', label: 'Bestsellers', icon: Flame, iconColor: 'text-amber-500' },
-                    { id: 'new', label: 'New Arrivals', icon: Sparkles, iconColor: 'text-[#656B4F]' },
-                    { id: 'chef', label: 'Chef\'s Choice', icon: ChefHat, iconColor: 'text-blue-600' },
-                    { id: 'protein', label: 'High Protein', icon: ShieldCheck, iconColor: 'text-[#656B4F]' },
-                    { id: 'lowfat', label: 'Low Fat', icon: Leaf, iconColor: 'text-[#50563D]' },
+                    { id: 'readytofry', label: 'Ready to Fry', icon: Sparkles, iconColor: 'text-[#656B4F]' },
+                    { id: 'rawmeat', label: 'Raw Curry Meat', icon: ChefHat, iconColor: 'text-blue-600' },
+                    { id: 'under300', label: 'Under ₹300', icon: Leaf, iconColor: 'text-[#50563D]' },
                   ].map((chip) => {
                     const IconComponent = chip.icon;
                     const isChipActive = quickFilter === chip.id;
@@ -1157,7 +1346,7 @@ function ShopContent() {
                         key={chip.id}
                         type="button"
                         onClick={() => setQuickFilter(chip.id as any)}
-                        className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap min-w-max transition-all ${
+                        className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap min-w-max transition-all cursor-pointer ${
                           isChipActive
                             ? 'bg-[#50563D] text-white shadow-2xs'
                             : 'bg-[#FAFAF5] hover:bg-[#EAF0E5] text-[#4F534C] border border-stone-200/80'
@@ -1174,6 +1363,127 @@ function ShopContent() {
                   })}
                 </div>
               </div>
+
+              {/* Active Filter Chips & Removal Tags */}
+              {isAnyFilterActive && (
+                <div className="pt-2 border-t border-stone-100 flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] font-bold text-[#818B7D] uppercase tracking-wider mr-1">Active:</span>
+
+                  {/* Category Chip */}
+                  {selectedCategory !== 'All' && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#EAF0E5] text-[#50563D] text-xs font-bold border border-[#656B4F]/20">
+                      <span>Category: {selectedCategory}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCategory('All')}
+                        className="hover:text-red-600 rounded-full p-0.5 cursor-pointer"
+                        aria-label="Remove category filter"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+
+                  {/* Product Type Chips */}
+                  {selectedProductTypes.map((typeKey) => {
+                    const label = productTypeDefinitions.find((d) => d.key === typeKey)?.label || typeKey;
+                    return (
+                      <span
+                        key={typeKey}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#EAF0E5] text-[#50563D] text-xs font-bold border border-[#656B4F]/20"
+                      >
+                        <span>{label}</span>
+                        <button
+                          type="button"
+                          onClick={() => toggleProductType(typeKey)}
+                          className="hover:text-red-600 rounded-full p-0.5 cursor-pointer"
+                          aria-label={`Remove ${label} filter`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+
+                  {/* Pack Size Chips */}
+                  {selectedPackSizes.map((packKey) => {
+                    const sizeLabel = dynamicPackSizes.find((s) => s.key === packKey)?.label || packKey;
+                    return (
+                      <span
+                        key={packKey}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#EAF0E5] text-[#50563D] text-xs font-bold border border-[#656B4F]/20"
+                      >
+                        <span>Size: {sizeLabel}</span>
+                        <button
+                          type="button"
+                          onClick={() => togglePackSize(packKey)}
+                          className="hover:text-red-600 rounded-full p-0.5 cursor-pointer"
+                          aria-label={`Remove ${sizeLabel} filter`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+
+                  {/* Price Chip */}
+                  {priceRange[1] < 2000 && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#EAF0E5] text-[#50563D] text-xs font-bold border border-[#656B4F]/20">
+                      <span>Max Price: ₹{priceRange[1]}</span>
+                      <button
+                        type="button"
+                        onClick={() => setPriceRange([0, 2000])}
+                        className="hover:text-red-600 rounded-full p-0.5 cursor-pointer"
+                        aria-label="Reset price filter"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+
+                  {/* In Stock Only Chip */}
+                  {inStockOnly && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#EAF0E5] text-[#50563D] text-xs font-bold border border-[#656B4F]/20">
+                      <span>In Stock Only</span>
+                      <button
+                        type="button"
+                        onClick={() => setInStockOnly(false)}
+                        className="hover:text-red-600 rounded-full p-0.5 cursor-pointer"
+                        aria-label="Remove in stock filter"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+
+                  {/* Search Term Chip */}
+                  {searchTerm && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#EAF0E5] text-[#50563D] text-xs font-bold border border-[#656B4F]/20">
+                      <span>Search: &ldquo;{searchTerm}&rdquo;</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchTerm('');
+                          setDebouncedSearch('');
+                        }}
+                        className="hover:text-red-600 rounded-full p-0.5 cursor-pointer"
+                        aria-label="Clear search query"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+
+                  {/* Clear All Button */}
+                  <button
+                    type="button"
+                    onClick={handleResetFilters}
+                    className="text-xs font-bold text-red-600 hover:text-red-700 hover:underline ml-1 cursor-pointer"
+                  >
+                    Clear All
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Product Cards Grid / List Display */}
@@ -1203,15 +1513,16 @@ function ShopContent() {
                 </div>
 
                 <div className="flex flex-wrap justify-center gap-2 pt-2">
-                  {categories.slice(0, 4).map((cat) => (
+                  {unifiedCategories.slice(0, 4).map((cat) => (
                     <button
                       key={cat.name}
                       type="button"
                       onClick={() => {
                         setSearchTerm('');
+                        setDebouncedSearch('');
                         setSelectedCategory(cat.name);
                       }}
-                      className="px-3.5 py-1.5 rounded-full bg-[#FAFAF5] hover:bg-[#EAF0E5] border border-stone-200 text-xs font-bold text-[#50563D] transition-colors inline-flex items-center gap-1.5"
+                      className="px-3.5 py-1.5 rounded-full bg-[#FAFAF5] hover:bg-[#EAF0E5] border border-stone-200 text-xs font-bold text-[#50563D] transition-colors inline-flex items-center gap-1.5 cursor-pointer"
                     >
                       {getCategoryIcon(cat.name, 'w-3.5 h-3.5 text-[#50563D]')}
                       <span>{cat.name}</span>
@@ -1223,7 +1534,7 @@ function ShopContent() {
                   <button
                     type="button"
                     onClick={handleResetFilters}
-                    className="px-6 py-2.5 rounded-xl bg-[#656B4F] hover:bg-[#50563D] text-white text-xs font-bold shadow-xs active:scale-95 transition-all"
+                    className="px-6 py-2.5 rounded-xl bg-[#656B4F] hover:bg-[#50563D] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
                   >
                     View All Products
                   </button>
@@ -1250,7 +1561,7 @@ function ShopContent() {
                   type="button"
                   onClick={() => setPage(Math.max(1, page - 1))}
                   disabled={page === 1}
-                  className="p-2 rounded-xl bg-white border border-stone-200 text-[#1E201D] disabled:opacity-40 hover:bg-[#EAF0E5] transition-all"
+                  className="p-2 rounded-xl bg-white border border-stone-200 text-[#1E201D] disabled:opacity-40 hover:bg-[#EAF0E5] transition-all cursor-pointer"
                   aria-label="Previous Page"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -1261,7 +1572,7 @@ function ShopContent() {
                     key={num}
                     type="button"
                     onClick={() => setPage(num)}
-                    className={`w-9 h-9 rounded-xl text-xs font-bold transition-all ${
+                    className={`w-9 h-9 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       page === num
                         ? 'bg-[#50563D] text-white shadow-xs'
                         : 'bg-white text-[#4F534C] border border-stone-200 hover:bg-[#EAF0E5]'
@@ -1275,7 +1586,7 @@ function ShopContent() {
                   type="button"
                   onClick={() => setPage(Math.min(totalPages, page + 1))}
                   disabled={page === totalPages}
-                  className="p-2 rounded-xl bg-white border border-stone-200 text-[#1E201D] disabled:opacity-40 hover:bg-[#EAF0E5] transition-all"
+                  className="p-2 rounded-xl bg-white border border-stone-200 text-[#1E201D] disabled:opacity-40 hover:bg-[#EAF0E5] transition-all cursor-pointer"
                   aria-label="Next Page"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -1288,7 +1599,7 @@ function ShopContent() {
 
       {/* MOBILE / TABLET FILTER SLIDE-OVER DRAWER */}
       {isFilterDrawerOpen && (
-        <div className="fixed inset-0 z-[80] bg-black/40 flex justify-end animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[80] bg-black/50 backdrop-blur-xs flex justify-end animate-in fade-in duration-200">
           <aside
             className="w-[min(90vw,360px)] h-full bg-white p-5 flex flex-col justify-between shadow-2xl animate-in slide-in-from-right duration-200"
             onClick={(e) => e.stopPropagation()}
@@ -1296,67 +1607,120 @@ function ShopContent() {
             <div className="flex items-center justify-between border-b border-stone-200 pb-3">
               <div className="flex items-center gap-2">
                 <SlidersHorizontal className="w-4 h-4 text-[#50563D]" />
-                <h3 className="font-black text-sm text-[#1E201D] uppercase tracking-wider">Refine Products</h3>
+                <h3 className="font-black text-sm text-[#1E201D] uppercase tracking-wider">Filter Products</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsFilterDrawerOpen(false)}
-                className="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100"
+                className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 cursor-pointer"
+                aria-label="Close filters"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto py-4 space-y-5">
+              {/* Category Filter */}
               <div>
-                <h4 className="text-xs font-black text-[#1E201D] uppercase tracking-wider mb-2">Categories</h4>
-                <div className="space-y-1.5">
-                  <label className="flex items-center justify-between p-1.5 rounded-lg text-xs font-semibold text-[#4F534C]">
+                <h4 className="text-xs font-black text-[#1E201D] uppercase tracking-wider mb-2">Category</h4>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  <label className="flex items-center justify-between p-1.5 rounded-lg text-xs font-semibold text-[#4F534C] hover:bg-[#F3FBEE] cursor-pointer">
                     <div className="flex items-center gap-2">
                       <input
                         type="radio"
                         name="drawerCat"
                         checked={selectedCategory === 'All'}
                         onChange={() => setSelectedCategory('All')}
-                        className="accent-[#50563D]"
+                        className="w-4 h-4 accent-[#50563D]"
                       />
-                      <span>All Products</span>
+                      <span className={selectedCategory === 'All' ? 'font-bold text-[#1E201D]' : ''}>All Products</span>
                     </div>
-                    <span className="text-[11px] text-[#818B7D]">({products.length})</span>
+                    <span className="text-[11px] font-bold text-[#818B7D]">({products.length})</span>
                   </label>
-                  {categories.map((cat) => (
-                    <label key={cat.name} className="flex items-center justify-between p-1.5 rounded-lg text-xs font-semibold text-[#4F534C]">
-                      <div className="flex items-center gap-2">
+                  {unifiedCategories.map((cat) => (
+                    <label key={cat.name} className="flex items-center justify-between p-1.5 rounded-lg text-xs font-semibold text-[#4F534C] hover:bg-[#F3FBEE] cursor-pointer">
+                      <div className="flex items-center gap-2 min-w-0 pr-2">
                         <input
                           type="radio"
                           name="drawerCat"
-                          checked={selectedCategory === cat.name}
+                          checked={norm(selectedCategory) === norm(cat.name)}
                           onChange={() => setSelectedCategory(cat.name)}
-                          className="accent-[#50563D]"
+                          className="w-4 h-4 accent-[#50563D] shrink-0"
                         />
-                        <span>{cat.name}</span>
+                        <span className={`truncate ${norm(selectedCategory) === norm(cat.name) ? 'font-bold text-[#1E201D]' : ''}`}>{cat.name}</span>
                       </div>
-                      <span className="text-[11px] text-[#818B7D]">({categoryCounts[cat.name] || 0})</span>
+                      <span className="text-[11px] font-bold text-[#818B7D] shrink-0">({cat.count})</span>
                     </label>
                   ))}
                 </div>
               </div>
 
+              {/* Product Type Filter */}
+              {dynamicProductTypes.length > 0 && (
+                <div className="pt-3 border-t border-stone-100">
+                  <h4 className="text-xs font-black text-[#1E201D] uppercase tracking-wider mb-2">Product Type</h4>
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                    {dynamicProductTypes.map((t) => (
+                      <label key={t.key} className="flex items-center justify-between p-1.5 rounded-lg text-xs font-semibold text-[#4F534C] hover:bg-[#F3FBEE] cursor-pointer">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedProductTypes.includes(t.key)}
+                            onChange={() => toggleProductType(t.key)}
+                            className="w-4 h-4 rounded-sm accent-[#50563D]"
+                          />
+                          <span className={selectedProductTypes.includes(t.key) ? 'font-bold text-[#1E201D]' : ''}>{t.label}</span>
+                        </div>
+                        <span className="text-[11px] font-bold text-[#818B7D]">({t.count})</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Pack Size Filter */}
+              {dynamicPackSizes.length > 0 && (
+                <div className="pt-3 border-t border-stone-100">
+                  <h4 className="text-xs font-black text-[#1E201D] uppercase tracking-wider mb-2">Pack Size</h4>
+                  <div className="space-y-1.5">
+                    {dynamicPackSizes.map((s) => (
+                      <label key={s.key} className="flex items-center justify-between p-1.5 rounded-lg text-xs font-semibold text-[#4F534C] hover:bg-[#F3FBEE] cursor-pointer">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedPackSizes.includes(s.key)}
+                            onChange={() => togglePackSize(s.key)}
+                            className="w-4 h-4 rounded-sm accent-[#50563D]"
+                          />
+                          <span className={selectedPackSizes.includes(s.key) ? 'font-bold text-[#1E201D]' : ''}>{s.label}</span>
+                        </div>
+                        <span className="text-[11px] font-bold text-[#818B7D]">({s.count})</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Price Range */}
               <div className="pt-3 border-t border-stone-100">
-                <h4 className="text-xs font-black text-[#1E201D] uppercase tracking-wider mb-2">Max Price: ₹{priceRange[1]}</h4>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-black text-[#1E201D] uppercase tracking-wider">Max Price</h4>
+                  <span className="text-xs font-black text-[#50563D]">₹{priceRange[1]}</span>
+                </div>
                 <input
                   type="range"
                   min={0}
                   max={2000}
-                  step={50}
+                  step={25}
                   value={priceRange[1]}
                   onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
                   className="w-full accent-[#50563D]"
                 />
               </div>
 
+              {/* In Stock Only */}
               <div className="pt-3 border-t border-stone-100">
-                <label className="flex items-center justify-between text-xs font-bold text-[#1E201D]">
+                <label className="flex items-center justify-between text-xs font-bold text-[#1E201D] cursor-pointer">
                   <span>In-Stock Items Only</span>
                   <input
                     type="checkbox"
@@ -1372,14 +1736,14 @@ function ShopContent() {
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="flex-1 py-2.5 rounded-xl border border-stone-300 text-xs font-bold text-[#4F534C]"
+                className="flex-1 py-2.5 rounded-xl border border-stone-300 text-xs font-bold text-[#4F534C] hover:bg-stone-50 cursor-pointer"
               >
-                Reset
+                Reset All
               </button>
               <button
                 type="button"
                 onClick={() => setIsFilterDrawerOpen(false)}
-                className="flex-1 py-2.5 rounded-xl bg-[#656B4F] hover:bg-[#50563D] text-white text-xs font-bold shadow-xs transition-all"
+                className="flex-1 py-2.5 rounded-xl bg-[#656B4F] hover:bg-[#50563D] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
               >
                 Show {sortedProducts.length} Items
               </button>
@@ -1388,6 +1752,66 @@ function ShopContent() {
         </div>
       )}
 
+      {/* Sticky Floating Bottom Mini-Cart Bar (Multi-product add & instant checkout routing) */}
+      {totalItems > 0 && (
+        <div className="fixed bottom-[68px] sm:bottom-[72px] md:bottom-4 inset-x-0 z-40 px-3 sm:px-4 pointer-events-none">
+          <div className="max-w-lg mx-auto bg-[#1E201D] text-white rounded-2xl p-2.5 sm:p-3.5 shadow-[0_16px_40px_rgba(0,0,0,0.35)] border border-white/15 flex items-center justify-between gap-2.5 sm:gap-3 pointer-events-auto animate-in slide-in-from-bottom-5 duration-300 backdrop-blur-md">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#656B4F] text-white flex items-center justify-center shrink-0 shadow-sm">
+                <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1 sm:gap-1.5">
+                  <span className="text-xs sm:text-sm font-extrabold text-white truncate">
+                    {totalItems} {totalItems === 1 ? 'item' : 'items'}
+                  </span>
+                  <span className="text-white/40">•</span>
+                  <span className="text-xs sm:text-sm font-black text-[#B4CEB1] shrink-0">
+                    ₹{totalPrice}
+                  </span>
+                </div>
+                <p className="text-[9.5px] sm:text-[10px] text-white/70 truncate">
+                  Ready in your Sakthi cart
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => router.push('/cart')}
+                className="py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl bg-[#656B4F] hover:bg-[#50563D] text-white text-xs font-black transition-all shadow-md flex items-center gap-1.5 group cursor-pointer whitespace-nowrap"
+              >
+                <span>View Cart</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform shrink-0" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Footer />
+    </div>
+  );
+}
+
+function ShopSkeleton() {
+  return (
+    <div className="min-h-screen bg-[#F7F8F4] text-[#1E201D] flex flex-col font-sans">
+      <Navbar />
+      <main className="site-shell py-5 sm:py-7 lg:py-9 pb-36 sm:pb-40 md:pb-24 flex-1 animate-pulse space-y-6">
+        <div className="h-28 sm:h-36 rounded-3xl bg-stone-200/70 w-full" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+            <div key={n} className="rounded-2xl bg-white p-3.5 border border-stone-200/60 shadow-xs space-y-3">
+              <div className="aspect-[4/3] bg-stone-200 rounded-xl" />
+              <div className="h-4 bg-stone-200 rounded w-3/4" />
+              <div className="h-3 bg-stone-200 rounded w-1/2" />
+              <div className="h-9 bg-stone-200 rounded-xl" />
+            </div>
+          ))}
+        </div>
+      </main>
       <Footer />
     </div>
   );
@@ -1395,14 +1819,7 @@ function ShopContent() {
 
 export default function ShopPage() {
   return (
-    <Suspense
-      fallback={
-        <FoodLoadingScreen
-          message="Loading Sakthi Frozen Foods Catalog"
-          subMessage="Preparing 100% pure vegetarian & plant-based essentials"
-        />
-      }
-    >
+    <Suspense fallback={<ShopSkeleton />}>
       <ShopContent />
     </Suspense>
   );

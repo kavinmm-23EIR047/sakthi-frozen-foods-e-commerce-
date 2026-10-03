@@ -5,17 +5,18 @@ const jwt = require('jsonwebtoken');
 const { generateInvoicePdf, numberToWords } = require('./pdfService');
 
 // ─── Environment-aware URLs & Company Metadata ───────────────────────────────
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3005';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://buy.tnmockmeat.com';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
+const WEBSITE_URL = 'buy.tnmockmeat.com';
 const COMPANY_NAME = 'Sakthi Frozen Foods';
 const COMPANY_TAGLINE = '100% Plant-Based Meat & Vegan Delicacies';
 const COMPANY_EMAIL = process.env.EMAIL_FROM || 'sakthifrozenfoods@gmail.com';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.EMAIL_FROM || 'sakthifrozenfoods@gmail.com';
-const COMPANY_PHONE = '+91 98765 43210';
-const COMPANY_ADDRESS = 'Sulur, Coimbatore, Tamil Nadu - 641402, India';
+const COMPANY_PHONE = '+91 80563 89214';
+const COMPANY_ADDRESS = 'peons colony, Kalpana Theatre, opposite Edayarpalayam - Koundampalayam Road, Koundampalayam, Coimbatore, Tamil Nadu 641030';
 const FSSAI_LIC_NO = '12421008000456';
-const GOOGLE_MAPS_URL = 'https://www.google.com/maps?ftid=0x3ba8590cc15b53eb:0x46fec529d6a8bb00';
-const WHATSAPP_PHONE = '919876543210';
+const GOOGLE_MAPS_URL = 'https://maps.app.goo.gl/gqVoq24rhxrQEgvs8';
+const WHATSAPP_PHONE = '918056389214';
 
 function getInvoiceToken(order) {
   try {
@@ -190,6 +191,7 @@ async function sendMail({ to, subject, html, text, attachments = [] }) {
 }
 
 // ─── 1. OFFICIAL WEB INVOICE HTML (PRINTABLE & BROWSER VIEW) ──────────────────
+// Styled with Olive Green (#656B4F), White Cards, Box-based layout, and Times New Roman font
 function buildInvoiceHtml(order) {
   const logoSrc = getCompanyLogo();
   const formattedDate = new Date(order.createdAt || Date.now()).toLocaleDateString('en-IN', {
@@ -202,16 +204,16 @@ function buildInvoiceHtml(order) {
   const isPaid = order.paymentStatus === 'Paid';
 
   const itemRows = (order.items || []).map((item, idx) => `
-    <tr style="border-bottom:1px solid #d4dbc9;${idx % 2 === 1 ? 'background-color:#fafcf8;' : ''}">
-      <td style="padding:10px 12px;font-size:12px;font-weight:700;color:#2E4C33;text-align:center;border-right:1px solid #d4dbc9;">${idx + 1}</td>
-      <td style="padding:10px 14px;font-size:13px;font-weight:700;color:#1a1e16;border-right:1px solid #d4dbc9;">
+    <tr style="border-bottom:1px solid #D4DBC9;${idx % 2 === 1 ? 'background-color:#FBFDF9;' : 'background-color:#FFFFFF;'}">
+      <td style="padding:12px 10px;font-size:13px;font-weight:700;color:#50563D;text-align:center;border-right:1px solid #D4DBC9;">${idx + 1}</td>
+      <td style="padding:12px 14px;font-size:14px;font-weight:700;color:#1E201D;border-right:1px solid #D4DBC9;">
         ${item.name}
-        <span style="display:block;font-size:11px;font-weight:500;color:#61665d;">100% Pure Veg Frozen Meat Alternative</span>
+        <span style="display:block;font-size:12px;font-weight:400;color:#656B4F;font-style:italic;margin-top:2px;">100% Pure Veg Meat Alternative</span>
       </td>
-      <td style="padding:10px 12px;font-size:12px;font-weight:700;color:#2E4C33;text-align:center;border-right:1px solid #d4dbc9;">${item.weight || '1 KG'}</td>
-      <td style="padding:10px 12px;font-size:13px;font-weight:800;color:#1a1e16;text-align:center;border-right:1px solid #d4dbc9;">${item.quantity}</td>
-      <td style="padding:10px 14px;font-size:13px;font-weight:600;color:#1a1e16;text-align:right;border-right:1px solid #d4dbc9;">₹${Number(item.price).toFixed(2)}</td>
-      <td style="padding:10px 14px;font-size:13px;font-weight:800;color:#2E4C33;text-align:right;">₹${(item.price * item.quantity).toFixed(2)}</td>
+      <td style="padding:12px 10px;font-size:13px;font-weight:700;color:#50563D;text-align:center;border-right:1px solid #D4DBC9;">${item.weight || '1 KG'}</td>
+      <td style="padding:12px 10px;font-size:14px;font-weight:700;color:#1E201D;text-align:center;border-right:1px solid #D4DBC9;">${item.quantity}</td>
+      <td style="padding:12px 14px;font-size:13px;color:#1E201D;text-align:right;border-right:1px solid #D4DBC9;">₹${Number(item.price).toFixed(2)}</td>
+      <td style="padding:12px 14px;font-size:14px;font-weight:700;color:#50563D;text-align:right;">₹${(item.price * item.quantity).toFixed(2)}</td>
     </tr>
   `).join('');
 
@@ -224,22 +226,23 @@ function buildInvoiceHtml(order) {
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background-color: #f3f5ed;
-    color: #1a1e16;
-    padding: 24px 12px;
+    font-family: 'Times New Roman', Times, Baskerville, Georgia, serif;
+    background-color: #F4F6F0;
+    color: #1E201D;
+    padding: 28px 12px;
+    line-height: 1.5;
   }
   .invoice-card {
-    max-width: 840px;
+    max-width: 860px;
     margin: 0 auto;
-    background: #ffffff;
-    border-radius: 16px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-    border: 1px solid #d4dbc9;
+    background: #FFFFFF;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(101, 107, 79, 0.08);
+    border: 1px solid #D4DBC9;
     overflow: hidden;
   }
   @media print {
-    body { background: #ffffff !important; padding: 0 !important; }
+    body { background: #FFFFFF !important; padding: 0 !important; }
     .invoice-card { box-shadow: none !important; border: none !important; max-width: 100% !important; border-radius: 0 !important; }
     .no-print { display: none !important; }
   }
@@ -249,56 +252,56 @@ function buildInvoiceHtml(order) {
 
 <div class="invoice-card">
   <!-- Top Action Toolbar (Hidden in Print) -->
-  <div class="no-print" style="background:#1E2E1F;padding:12px 24px;display:flex;justify-content:space-between;align-items:center;color:#fff;">
-    <div style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;">
-      <span style="color:#86EFAC;">●</span> Official Order Invoice • #${order.orderNumber}
+  <div class="no-print" style="background:#50563D;padding:14px 28px;display:flex;justify-content:space-between;align-items:center;color:#FFFFFF;">
+    <div style="font-size:14px;font-weight:700;letter-spacing:0.5px;display:flex;align-items:center;gap:8px;">
+      <span style="color:#C6D8A8;">●</span> Commercial Tax Invoice • #${order.orderNumber}
     </div>
     <div style="display:flex;gap:10px;">
-      <button onclick="window.print()" style="background:#2E4C33;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+      <button onclick="window.print()" style="background:#656B4F;color:#FFFFFF;border:1px solid #848C6B;padding:8px 20px;border-radius:6px;font-size:13px;font-weight:700;font-family:'Times New Roman',serif;cursor:pointer;">
         🖨️ Print / Save as PDF
       </button>
     </div>
   </div>
 
-  <div style="padding:32px 36px;">
-    <!-- 1. Header Section -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="border-bottom:2px solid #2E4C33;padding-bottom:20px;margin-bottom:24px;">
+  <div style="padding:36px 40px;background:#FFFFFF;">
+    <!-- 1. Header Box Section -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-bottom:2px solid #656B4F;padding-bottom:24px;margin-bottom:28px;">
       <tr>
         <td valign="top" style="width:58%;">
           <table cellpadding="0" cellspacing="0">
             <tr>
-              <td valign="top" style="padding-right:16px;">
-                <img src="${logoSrc}" alt="${COMPANY_NAME}" style="height:64px;width:auto;max-width:160px;object-fit:contain;" />
+              <td valign="top" style="padding-right:18px;">
+                <img src="${logoSrc}" alt="${COMPANY_NAME}" style="height:68px;width:auto;max-width:160px;object-fit:contain;" />
               </td>
               <td valign="top">
-                <h1 style="margin:0;font-size:20px;font-weight:900;color:#1E2E1F;letter-spacing:-0.3px;line-height:1.1;">${COMPANY_NAME}</h1>
-                <p style="margin:3px 0 0;font-size:11px;font-weight:800;color:#2E4C33;text-transform:uppercase;">${COMPANY_TAGLINE}</p>
-                <p style="margin:4px 0 0;font-size:11px;color:#555E51;line-height:1.4;">${COMPANY_ADDRESS}</p>
-                <p style="margin:2px 0 0;font-size:11px;color:#555E51;">Phone: <strong>${COMPANY_PHONE}</strong> | Email: <strong>${COMPANY_EMAIL}</strong></p>
-                <p style="margin:2px 0 0;font-size:10px;font-weight:700;color:#2E4C33;">FSSAI Central Lic. No: ${FSSAI_LIC_NO}</p>
+                <h1 style="margin:0;font-size:22px;font-weight:700;color:#50563D;letter-spacing:0.2px;line-height:1.2;">${COMPANY_NAME}</h1>
+                <p style="margin:4px 0 0;font-size:12px;font-weight:700;color:#656B4F;text-transform:uppercase;letter-spacing:0.5px;">${COMPANY_TAGLINE}</p>
+                <p style="margin:5px 0 0;font-size:12px;color:#555E51;line-height:1.4;">${COMPANY_ADDRESS}</p>
+                <p style="margin:3px 0 0;font-size:12px;color:#555E51;">Phone: <strong>${COMPANY_PHONE}</strong> | Email: <strong>${COMPANY_EMAIL}</strong></p>
+                <p style="margin:3px 0 0;font-size:11px;font-weight:700;color:#656B4F;">Website: <strong>${WEBSITE_URL}</strong> | FSSAI Central Lic. No: ${FSSAI_LIC_NO}</p>
               </td>
             </tr>
           </table>
         </td>
 
         <td valign="top" align="right" style="width:42%;">
-          <h2 style="margin:0 0 6px;font-size:24px;font-weight:900;color:#1E2E1F;letter-spacing:1px;">TAX INVOICE</h2>
-          <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1.5px solid #2E4C33;border-radius:8px;overflow:hidden;width:100%;max-width:280px;text-align:center;">
-            <tr style="background-color:#EBF1E8;border-bottom:1px solid #2E4C33;">
-              <th style="padding:6px 8px;font-size:10px;font-weight:800;color:#2E4C33;text-transform:uppercase;border-right:1px solid #2E4C33;">INVOICE #</th>
-              <th style="padding:6px 8px;font-size:10px;font-weight:800;color:#2E4C33;text-transform:uppercase;">DATE</th>
+          <h2 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#50563D;letter-spacing:1px;">TAX INVOICE</h2>
+          <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1.5px solid #656B4F;border-radius:8px;overflow:hidden;width:100%;max-width:280px;text-align:center;">
+            <tr style="background-color:#EAF0E5;border-bottom:1px solid #656B4F;">
+              <th style="padding:7px 8px;font-size:11px;font-weight:700;color:#50563D;text-transform:uppercase;border-right:1px solid #656B4F;">INVOICE #</th>
+              <th style="padding:7px 8px;font-size:11px;font-weight:700;color:#50563D;text-transform:uppercase;">DATE</th>
             </tr>
-            <tr style="background:#ffffff;border-bottom:1px solid #2E4C33;">
-              <td style="padding:6px 8px;font-size:12px;font-weight:800;color:#1a1e16;font-family:monospace;border-right:1px solid #2E4C33;">${order.orderNumber}</td>
-              <td style="padding:6px 8px;font-size:12px;font-weight:700;color:#1a1e16;">${formattedDate}</td>
+            <tr style="background:#FFFFFF;border-bottom:1px solid #656B4F;">
+              <td style="padding:8px 8px;font-size:13px;font-weight:700;color:#1E201D;font-family:monospace;border-right:1px solid #656B4F;">${order.orderNumber}</td>
+              <td style="padding:8px 8px;font-size:13px;font-weight:700;color:#1E201D;">${formattedDate}</td>
             </tr>
-            <tr style="background-color:#EBF1E8;border-bottom:1px solid #2E4C33;">
-              <th style="padding:6px 8px;font-size:10px;font-weight:800;color:#2E4C33;text-transform:uppercase;border-right:1px solid #2E4C33;">PAYMENT METHOD</th>
-              <th style="padding:6px 8px;font-size:10px;font-weight:800;color:#2E4C33;text-transform:uppercase;">STATUS</th>
+            <tr style="background-color:#EAF0E5;border-bottom:1px solid #656B4F;">
+              <th style="padding:7px 8px;font-size:11px;font-weight:700;color:#50563D;text-transform:uppercase;border-right:1px solid #656B4F;">PAYMENT METHOD</th>
+              <th style="padding:7px 8px;font-size:11px;font-weight:700;color:#50563D;text-transform:uppercase;">STATUS</th>
             </tr>
-            <tr style="background:#ffffff;">
-              <td style="padding:6px 8px;font-size:11px;font-weight:700;color:#1a1e16;border-right:1px solid #2E4C33;">${order.paymentMethod || 'Online'}</td>
-              <td style="padding:6px 8px;font-size:11px;font-weight:800;color:${isPaid ? '#15803D' : '#B45309'};">
+            <tr style="background:#FFFFFF;">
+              <td style="padding:8px 8px;font-size:12px;font-weight:700;color:#1E201D;border-right:1px solid #656B4F;">${order.paymentMethod || 'Online'}</td>
+              <td style="padding:8px 8px;font-size:12px;font-weight:700;color:${isPaid ? '#2E6930' : '#B45309'};">
                 ${isPaid ? 'PAID (Verified)' : 'PENDING'}
               </td>
             </tr>
@@ -307,48 +310,48 @@ function buildInvoiceHtml(order) {
       </tr>
     </table>
 
-    <!-- 2. BILL TO & SHIP TO -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+    <!-- 2. Box-Based Billed To & Shipped To Cards -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
       <tr>
-        <td width="48%" valign="top" style="border:1.5px solid #d4dbc9;border-radius:12px;overflow:hidden;background:#ffffff;">
-          <div style="background-color:#EBF1E8;padding:8px 14px;border-bottom:1.5px solid #d4dbc9;">
-            <span style="font-size:11px;font-weight:800;color:#2E4C33;text-transform:uppercase;letter-spacing:1px;">BILLED TO (BUYER DETAILS)</span>
+        <td width="48%" valign="top" style="border:1.5px solid #D4DBC9;border-radius:10px;overflow:hidden;background:#FFFFFF;">
+          <div style="background-color:#EAF0E5;padding:9px 16px;border-bottom:1.5px solid #D4DBC9;">
+            <span style="font-size:12px;font-weight:700;color:#50563D;text-transform:uppercase;letter-spacing:0.8px;">BILLED TO (BUYER DETAILS)</span>
           </div>
-          <div style="padding:14px 16px;font-size:12px;line-height:1.5;color:#2D3823;">
-            <p style="margin:0 0 2px;font-size:14px;font-weight:800;color:#1a1e16;">${order.customerName}</p>
-            <p style="margin:0 0 2px;color:#555E51;">Email: <strong>${order.customerEmail}</strong></p>
-            <p style="margin:0 0 2px;color:#555E51;">Phone: <strong>+91 ${order.customerPhone}</strong></p>
+          <div style="padding:16px 18px;font-size:13px;line-height:1.5;color:#2D3823;">
+            <p style="margin:0 0 3px;font-size:15px;font-weight:700;color:#1E201D;">${order.customerName}</p>
+            <p style="margin:0 0 3px;color:#555E51;">Email: <strong>${order.customerEmail}</strong></p>
+            <p style="margin:0 0 3px;color:#555E51;">Phone: <strong>+91 ${order.customerPhone}</strong></p>
             <p style="margin:4px 0 0;color:#555E51;">Address: ${order.shippingAddress}</p>
           </div>
         </td>
 
         <td width="4%"></td>
 
-        <td width="48%" valign="top" style="border:1.5px solid #d4dbc9;border-radius:12px;overflow:hidden;background:#ffffff;">
-          <div style="background-color:#EBF1E8;padding:8px 14px;border-bottom:1.5px solid #d4dbc9;">
-            <span style="font-size:11px;font-weight:800;color:#2E4C33;text-transform:uppercase;letter-spacing:1px;">SHIPPED TO (DELIVERY ADDRESS)</span>
+        <td width="48%" valign="top" style="border:1.5px solid #D4DBC9;border-radius:10px;overflow:hidden;background:#FFFFFF;">
+          <div style="background-color:#EAF0E5;padding:9px 16px;border-bottom:1.5px solid #D4DBC9;">
+            <span style="font-size:12px;font-weight:700;color:#50563D;text-transform:uppercase;letter-spacing:0.8px;">SHIPPED TO (DELIVERY ADDRESS)</span>
           </div>
-          <div style="padding:14px 16px;font-size:12px;line-height:1.5;color:#2D3823;">
-            <p style="margin:0 0 2px;font-size:14px;font-weight:800;color:#1a1e16;">${order.customerName}</p>
-            <p style="margin:0 0 2px;color:#555E51;">Address: ${order.shippingAddress}</p>
-            ${order.landmark ? `<p style="margin:0 0 2px;color:#555E51;">Landmark: <strong>${order.landmark}</strong></p>` : ''}
-            <p style="margin:0 0 2px;color:#555E51;">${[order.city, order.district, order.state].filter(Boolean).join(', ')}${order.pincode ? ' - ' + order.pincode : ''}</p>
+          <div style="padding:16px 18px;font-size:13px;line-height:1.5;color:#2D3823;">
+            <p style="margin:0 0 3px;font-size:15px;font-weight:700;color:#1E201D;">${order.customerName}</p>
+            <p style="margin:0 0 3px;color:#555E51;">Address: ${order.shippingAddress}</p>
+            ${order.landmark ? `<p style="margin:0 0 3px;color:#555E51;">Landmark: <strong>${order.landmark}</strong></p>` : ''}
+            <p style="margin:0 0 3px;color:#555E51;">${[order.city, order.district, order.state].filter(Boolean).join(', ')}${order.pincode ? ' - ' + order.pincode : ''}</p>
             <p style="margin:4px 0 0;color:#555E51;">Contact Phone: <strong>+91 ${order.customerPhone}</strong></p>
           </div>
         </td>
       </tr>
     </table>
 
-    <!-- 3. Items Table -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="border:1.5px solid #2E4C33;border-radius:12px;overflow:hidden;border-collapse:collapse;margin-bottom:20px;">
+    <!-- 3. Items Box Table -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1.5px solid #656B4F;border-radius:10px;overflow:hidden;border-collapse:collapse;margin-bottom:24px;">
       <thead>
-        <tr style="background-color:#2E4C33;color:#ffffff;text-align:left;">
-          <th style="padding:10px 12px;font-size:11px;font-weight:800;text-transform:uppercase;width:40px;text-align:center;border-right:1px solid #48684D;">#</th>
-          <th style="padding:10px 14px;font-size:11px;font-weight:800;text-transform:uppercase;border-right:1px solid #48684D;">DESCRIPTION</th>
-          <th style="padding:10px 12px;font-size:11px;font-weight:800;text-transform:uppercase;text-align:center;width:90px;border-right:1px solid #48684D;">PACK SIZE</th>
-          <th style="padding:10px 12px;font-size:11px;font-weight:800;text-transform:uppercase;text-align:center;width:60px;border-right:1px solid #48684D;">QTY</th>
-          <th style="padding:10px 14px;font-size:11px;font-weight:800;text-transform:uppercase;text-align:right;width:100px;border-right:1px solid #48684D;">UNIT PRICE</th>
-          <th style="padding:10px 14px;font-size:11px;font-weight:800;text-transform:uppercase;text-align:right;width:110px;">AMOUNT</th>
+        <tr style="background-color:#656B4F;color:#FFFFFF;text-align:left;">
+          <th style="padding:11px 12px;font-size:12px;font-weight:700;text-transform:uppercase;width:40px;text-align:center;border-right:1px solid #7E8566;">#</th>
+          <th style="padding:11px 14px;font-size:12px;font-weight:700;text-transform:uppercase;border-right:1px solid #7E8566;">DESCRIPTION OF GOODS</th>
+          <th style="padding:11px 12px;font-size:12px;font-weight:700;text-transform:uppercase;text-align:center;width:95px;border-right:1px solid #7E8566;">PACK SIZE</th>
+          <th style="padding:11px 12px;font-size:12px;font-weight:700;text-transform:uppercase;text-align:center;width:60px;border-right:1px solid #7E8566;">QTY</th>
+          <th style="padding:11px 14px;font-size:12px;font-weight:700;text-transform:uppercase;text-align:right;width:105px;border-right:1px solid #7E8566;">UNIT PRICE</th>
+          <th style="padding:11px 14px;font-size:12px;font-weight:700;text-transform:uppercase;text-align:right;width:115px;">AMOUNT</th>
         </tr>
       </thead>
       <tbody>
@@ -357,38 +360,38 @@ function buildInvoiceHtml(order) {
     </table>
 
     <!-- 4. Financial Summary & Amount in Words -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
       <tr>
         <td width="55%" valign="top" style="padding-right:24px;">
-          <div style="background-color:#F8FAF5;border:1.5px dashed #2E4C33;border-radius:12px;padding:14px 18px;margin-bottom:14px;">
-            <p style="margin:0 0 4px;font-size:11px;font-weight:800;color:#2E4C33;text-transform:uppercase;">Amount in Words:</p>
-            <p style="margin:0;font-size:13px;font-weight:800;color:#1E2E1F;font-style:italic;">Indian Rupees ${numberToWords(order.totalAmount)} Only</p>
+          <div style="background-color:#F8FAF5;border:1.5px dashed #656B4F;border-radius:10px;padding:16px 20px;margin-bottom:16px;">
+            <p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#50563D;text-transform:uppercase;letter-spacing:0.5px;">Amount in Words:</p>
+            <p style="margin:0;font-size:14px;font-weight:700;color:#1E201D;font-style:italic;">Indian Rupees ${numberToWords(order.totalAmount)} Only</p>
           </div>
 
-          <div style="background-color:#F9FAF6;border:1px solid #d4dbc9;border-radius:12px;padding:12px 16px;font-size:11px;color:#2E4C33;line-height:1.4;">
-            <p style="margin:0 0 4px;font-weight:800;color:#2E4C33;">Cold Storage & Handling Directions:</p>
+          <div style="background-color:#FAFCF8;border:1px solid #D4DBC9;border-radius:10px;padding:14px 18px;font-size:12px;color:#50563D;line-height:1.5;">
+            <p style="margin:0 0 4px;font-weight:700;color:#50563D;">Cold Storage & Handling Instructions:</p>
             <p style="margin:0;color:#555E51;">Store immediately at <strong>-18°C</strong> upon receipt. Keep tightly sealed in frozen food packaging until cooking. Do not refreeze thawed items.</p>
           </div>
         </td>
 
         <td width="45%" valign="top">
-          <table width="100%" cellpadding="0" cellspacing="0" style="border:1.5px solid #d4dbc9;border-radius:12px;overflow:hidden;border-collapse:collapse;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="border:1.5px solid #D4DBC9;border-radius:10px;overflow:hidden;border-collapse:collapse;background:#FFFFFF;">
             <tr>
-              <td style="padding:8px 14px;font-size:13px;color:#555E51;border-bottom:1px solid #e8ece0;">Subtotal</td>
-              <td style="padding:8px 14px;font-size:13px;color:#1a1e16;text-align:right;font-weight:700;border-bottom:1px solid #e8ece0;">₹${Number(subtotal).toFixed(2)}</td>
+              <td style="padding:9px 16px;font-size:13px;color:#555E51;border-bottom:1px solid #E4E9DC;">Subtotal</td>
+              <td style="padding:9px 16px;font-size:13px;color:#1E201D;text-align:right;font-weight:700;border-bottom:1px solid #E4E9DC;">₹${Number(subtotal).toFixed(2)}</td>
             </tr>
             <tr>
-              <td style="padding:8px 14px;font-size:13px;color:#555E51;border-bottom:1px solid #e8ece0;">Cold Chain Delivery</td>
-              <td style="padding:8px 14px;font-size:13px;color:#1a1e16;text-align:right;font-weight:700;border-bottom:1px solid #e8ece0;">${deliveryFee === 0 ? 'FREE' : `₹${Number(deliveryFee).toFixed(2)}`}</td>
+              <td style="padding:9px 16px;font-size:13px;color:#555E51;border-bottom:1px solid #E4E9DC;">Cold Chain Delivery</td>
+              <td style="padding:9px 16px;font-size:13px;color:#1E201D;text-align:right;font-weight:700;border-bottom:1px solid #E4E9DC;">${deliveryFee === 0 ? 'FREE' : `₹${Number(deliveryFee).toFixed(2)}`}</td>
             </tr>
             ${order.convenienceFee ? `
             <tr>
-              <td style="padding:8px 14px;font-size:13px;color:#555E51;border-bottom:1px solid #e8ece0;">Convenience Fee (2.5%)</td>
-              <td style="padding:8px 14px;font-size:13px;color:#1a1e16;text-align:right;font-weight:700;border-bottom:1px solid #e8ece0;">₹${Number(order.convenienceFee).toFixed(2)}</td>
+              <td style="padding:9px 16px;font-size:13px;color:#555E51;border-bottom:1px solid #E4E9DC;">Convenience Fee (2.5%)</td>
+              <td style="padding:9px 16px;font-size:13px;color:#1E201D;text-align:right;font-weight:700;border-bottom:1px solid #E4E9DC;">₹${Number(order.convenienceFee).toFixed(2)}</td>
             </tr>` : ''}
-            <tr style="background-color:#EBF1E8;">
-              <td style="padding:12px 14px;font-size:15px;font-weight:900;color:#1E2E1F;border-top:2px solid #2E4C33;">TOTAL AMOUNT</td>
-              <td style="padding:12px 14px;font-size:18px;font-weight:900;color:#2E4C33;text-align:right;border-top:2px solid #2E4C33;">₹${Number(order.totalAmount).toFixed(2)}</td>
+            <tr style="background-color:#EAF0E5;">
+              <td style="padding:14px 16px;font-size:16px;font-weight:700;color:#50563D;border-top:2px solid #656B4F;">TOTAL AMOUNT</td>
+              <td style="padding:14px 16px;font-size:19px;font-weight:700;color:#50563D;text-align:right;border-top:2px solid #656B4F;">₹${Number(order.totalAmount).toFixed(2)}</td>
             </tr>
           </table>
         </td>
@@ -396,14 +399,14 @@ function buildInvoiceHtml(order) {
     </table>
 
     <!-- 5. Footer -->
-    <div style="border-top:1.5px solid #d4dbc9;padding-top:16px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#666E61;">
+    <div style="border-top:1.5px solid #D4DBC9;padding-top:18px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#656B4F;">
       <div>
-        <p style="margin:0;font-weight:700;color:#2E4C33;font-style:italic;">Thank you for choosing ${COMPANY_NAME}!</p>
-        <p style="margin:2px 0 0;">Customer Helpline: <strong>${COMPANY_PHONE}</strong> | Email: <strong>${COMPANY_EMAIL}</strong></p>
+        <p style="margin:0;font-weight:700;color:#50563D;font-style:italic;">Thank you for choosing ${COMPANY_NAME}!</p>
+        <p style="margin:3px 0 0;color:#555E51;">Customer Helpline: <strong>${COMPANY_PHONE}</strong> | Email: <strong>${COMPANY_EMAIL}</strong></p>
       </div>
       <div style="text-align:right;">
-        <p style="margin:0;font-family:monospace;">Ref: ${order._id || order.id}</p>
-        <p style="margin:2px 0 0;">Computer Generated Tax Invoice</p>
+        <p style="margin:0;font-family:monospace;font-size:11px;">Ref: ${order._id || order.id}</p>
+        <p style="margin:3px 0 0;color:#555E51;">Computer Generated Tax Invoice</p>
       </div>
     </div>
   </div>
@@ -414,7 +417,7 @@ function buildInvoiceHtml(order) {
 }
 
 // ─── 2. USER ORDER CONFIRMATION & INVOICE EMAIL TEMPLATE ────────────────────
-// Lightweight, clean, highly responsive HTML designed specifically for Gmail/Outlook/Apple Mail
+// Styled with Olive Green (#656B4F), White Cards, Box-based layout, and Times New Roman font
 function buildUserOrderEmail(order) {
   const logoSrc = getCompanyLogo();
   const formattedDate = new Date(order.createdAt || Date.now()).toLocaleDateString('en-IN', {
@@ -430,16 +433,16 @@ function buildUserOrderEmail(order) {
   const isPaid = order.paymentStatus === 'Paid';
 
   const itemRows = (order.items || []).map((item, idx) => `
-    <tr style="border-bottom:1px solid #e2e8dc;${idx % 2 === 1 ? 'background-color:#f9fbf7;' : ''}">
-      <td style="padding:10px 8px;font-size:11px;font-weight:700;color:#2E4C33;text-align:center;">${idx + 1}</td>
-      <td style="padding:10px 8px;font-size:12px;font-weight:700;color:#1a1e16;">
+    <tr style="border-bottom:1px solid #D4DBC9;${idx % 2 === 1 ? 'background-color:#FBFDF9;' : 'background-color:#FFFFFF;'}">
+      <td style="padding:10px 8px;font-size:12px;font-weight:700;color:#50563D;text-align:center;border-right:1px solid #D4DBC9;">${idx + 1}</td>
+      <td style="padding:10px 10px;font-size:13px;font-weight:700;color:#1E201D;border-right:1px solid #D4DBC9;">
         ${item.name}
-        <span style="display:block;font-size:10px;font-weight:500;color:#61665d;">100% Pure Veg Delicacy</span>
+        <span style="display:block;font-size:11px;font-weight:400;color:#656B4F;font-style:italic;">100% Pure Veg Delicacy</span>
       </td>
-      <td style="padding:10px 8px;font-size:11px;font-weight:700;color:#2E4C33;text-align:center;">${item.weight || '1 KG'}</td>
-      <td style="padding:10px 8px;font-size:12px;font-weight:800;color:#1a1e16;text-align:center;">${item.quantity}</td>
-      <td style="padding:10px 8px;font-size:12px;font-weight:600;color:#1a1e16;text-align:right;">₹${Number(item.price).toFixed(2)}</td>
-      <td style="padding:10px 8px;font-size:12px;font-weight:800;color:#2E4C33;text-align:right;">₹${(item.price * item.quantity).toFixed(2)}</td>
+      <td style="padding:10px 8px;font-size:12px;font-weight:700;color:#50563D;text-align:center;border-right:1px solid #D4DBC9;">${item.weight || '1 KG'}</td>
+      <td style="padding:10px 8px;font-size:13px;font-weight:700;color:#1E201D;text-align:center;border-right:1px solid #D4DBC9;">${item.quantity}</td>
+      <td style="padding:10px 8px;font-size:12px;color:#1E201D;text-align:right;border-right:1px solid #D4DBC9;">₹${Number(item.price).toFixed(2)}</td>
+      <td style="padding:10px 8px;font-size:13px;font-weight:700;color:#50563D;text-align:right;">₹${(item.price * item.quantity).toFixed(2)}</td>
     </tr>
   `).join('');
 
@@ -450,66 +453,68 @@ function buildUserOrderEmail(order) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Order Confirmed #${order.orderNumber} - ${COMPANY_NAME}</title>
 </head>
-<body style="margin:0;padding:0;background-color:#f3f6ee;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f6ee;">
-<tr><td align="center" style="padding:20px 10px;">
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 3px 18px rgba(0,0,0,0.06);border:1px solid #d4dbc9;">
+<body style="margin:0;padding:0;background-color:#F4F6F0;font-family:'Times New Roman',Times,Baskerville,Georgia,serif;color:#1E201D;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F4F6F0;">
+<tr><td align="center" style="padding:28px 12px;">
+<table role="presentation" width="620" cellpadding="0" cellspacing="0" style="max-width:620px;width:100%;background-color:#FFFFFF;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(101,107,79,0.08);border:1px solid #D4DBC9;">
 
-<!-- 1. Brand Header -->
+<!-- 1. Olive Green Brand Header -->
 <tr>
-<td style="background-color:#1E2E1F;padding:22px 24px;text-align:center;">
-  <img src="${logoSrc}" alt="${COMPANY_NAME}" style="height:56px;width:auto;max-width:160px;object-fit:contain;margin-bottom:6px;display:inline-block;" />
-  <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:900;letter-spacing:0.5px;">${COMPANY_NAME}</h1>
-  <p style="margin:3px 0 0;color:#A9C8AB;font-size:11px;letter-spacing:0.8px;text-transform:uppercase;font-weight:700;">${COMPANY_TAGLINE}</p>
+<td style="background-color:#656B4F;padding:26px 24px;text-align:center;">
+  <img src="${logoSrc}" alt="${COMPANY_NAME}" style="height:60px;width:auto;max-width:160px;object-fit:contain;margin-bottom:8px;display:inline-block;" />
+  <h1 style="margin:0;color:#FFFFFF;font-size:22px;font-weight:700;letter-spacing:0.5px;">${COMPANY_NAME}</h1>
+  <p style="margin:4px 0 0;color:#EAF0E5;font-size:12px;letter-spacing:0.8px;text-transform:uppercase;font-weight:700;">${COMPANY_TAGLINE}</p>
 </td>
 </tr>
 
-<!-- 2. Order Confirmation Banner -->
+<!-- 2. Order Confirmation Content Body -->
 <tr>
-<td style="padding:20px 24px 10px;">
-  <div style="background-color:#EBF1E8;border:1.5px solid #2E4C33;border-radius:10px;padding:14px 18px;margin-bottom:18px;text-align:center;">
-    <h2 style="margin:0;color:#1E2E1F;font-size:17px;font-weight:900;">Order Confirmed & Invoice Generated</h2>
-    <p style="margin:4px 0 0;color:#2D3823;font-size:12px;line-height:1.4;">
-      Hello <strong>${order.customerName}</strong>, thank you for choosing Sakthi Frozen Foods! Your official PDF invoice is attached with this email.
+<td style="padding:26px 28px 16px;background:#FFFFFF;">
+  
+  <!-- Hero Order Status Box -->
+  <div style="background-color:#EAF0E5;border:1.5px solid #656B4F;border-radius:10px;padding:16px 20px;margin-bottom:20px;text-align:center;">
+    <h2 style="margin:0;color:#50563D;font-size:18px;font-weight:700;">Order Confirmed & Invoice Generated</h2>
+    <p style="margin:5px 0 0;color:#2D3823;font-size:13px;line-height:1.5;">
+      Hello <strong>${order.customerName}</strong>, thank you for ordering from Sakthi Frozen Foods! Your order is confirmed and your official Tax Invoice PDF is attached to this email.
     </p>
   </div>
 
   <!-- Invoice Meta Box -->
-  <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #d4dbc9;border-radius:8px;overflow:hidden;border-collapse:collapse;margin-bottom:16px;">
-    <tr style="background-color:#EBF1E8;">
-      <td style="padding:8px 10px;font-size:10px;font-weight:800;color:#2E4C33;text-transform:uppercase;border-right:1px solid #d4dbc9;">INVOICE #</td>
-      <td style="padding:8px 10px;font-size:10px;font-weight:800;color:#2E4C33;text-transform:uppercase;border-right:1px solid #d4dbc9;">DATE</td>
-      <td style="padding:8px 10px;font-size:10px;font-weight:800;color:#2E4C33;text-transform:uppercase;">PAYMENT</td>
+  <table width="100%" cellpadding="0" cellspacing="0" style="border:1.5px solid #D4DBC9;border-radius:8px;overflow:hidden;border-collapse:collapse;margin-bottom:18px;">
+    <tr style="background-color:#EAF0E5;">
+      <td style="padding:9px 12px;font-size:11px;font-weight:700;color:#50563D;text-transform:uppercase;border-right:1px solid #D4DBC9;">INVOICE #</td>
+      <td style="padding:9px 12px;font-size:11px;font-weight:700;color:#50563D;text-transform:uppercase;border-right:1px solid #D4DBC9;">DATE</td>
+      <td style="padding:9px 12px;font-size:11px;font-weight:700;color:#50563D;text-transform:uppercase;">PAYMENT</td>
     </tr>
-    <tr style="background:#ffffff;">
-      <td style="padding:8px 10px;font-size:13px;font-weight:800;color:#2E4C33;font-family:monospace;border-right:1px solid #d4dbc9;">${order.orderNumber}</td>
-      <td style="padding:8px 10px;font-size:11px;font-weight:700;color:#1a1e16;border-right:1px solid #d4dbc9;">${formattedDate}</td>
-      <td style="padding:8px 10px;font-size:11px;font-weight:800;color:${isPaid ? '#15803D' : '#B45309'};">
+    <tr style="background:#FFFFFF;">
+      <td style="padding:9px 12px;font-size:13px;font-weight:700;color:#50563D;font-family:monospace;border-right:1px solid #D4DBC9;">${order.orderNumber}</td>
+      <td style="padding:9px 12px;font-size:12px;font-weight:700;color:#1E201D;border-right:1px solid #D4DBC9;">${formattedDate}</td>
+      <td style="padding:9px 12px;font-size:12px;font-weight:700;color:${isPaid ? '#2E6930' : '#B45309'};">
         ${isPaid ? 'PAID (Verified)' : 'PENDING'} (${order.paymentMethod || 'Online'})
       </td>
     </tr>
   </table>
 
-  <!-- Customer Addresses -->
-  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+  <!-- Customer Addresses Side-by-Side Boxes -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:18px;">
     <tr>
-      <td width="48%" valign="top" style="border:1px solid #d4dbc9;border-radius:8px;overflow:hidden;">
-        <div style="background-color:#EBF1E8;padding:6px 10px;border-bottom:1px solid #d4dbc9;">
-          <span style="font-size:10px;font-weight:800;color:#2E4C33;text-transform:uppercase;">BILLED TO</span>
+      <td width="48%" valign="top" style="border:1.5px solid #D4DBC9;border-radius:8px;overflow:hidden;background:#FFFFFF;">
+        <div style="background-color:#EAF0E5;padding:8px 12px;border-bottom:1.5px solid #D4DBC9;">
+          <span style="font-size:11px;font-weight:700;color:#50563D;text-transform:uppercase;letter-spacing:0.5px;">BILLED TO</span>
         </div>
-        <div style="padding:8px 10px;font-size:11px;line-height:1.4;color:#2D3823;">
-          <p style="margin:0 0 2px;font-weight:800;color:#1a1e16;">${order.customerName}</p>
+        <div style="padding:10px 12px;font-size:12px;line-height:1.4;color:#2D3823;">
+          <p style="margin:0 0 2px;font-weight:700;color:#1E201D;">${order.customerName}</p>
           <p style="margin:0 0 2px;color:#555E51;">Email: ${order.customerEmail}</p>
           <p style="margin:0;color:#555E51;">Phone: +91 ${order.customerPhone}</p>
         </div>
       </td>
       <td width="4%"></td>
-      <td width="48%" valign="top" style="border:1px solid #d4dbc9;border-radius:8px;overflow:hidden;">
-        <div style="background-color:#EBF1E8;padding:6px 10px;border-bottom:1px solid #d4dbc9;">
-          <span style="font-size:10px;font-weight:800;color:#2E4C33;text-transform:uppercase;">SHIPPED TO</span>
+      <td width="48%" valign="top" style="border:1.5px solid #D4DBC9;border-radius:8px;overflow:hidden;background:#FFFFFF;">
+        <div style="background-color:#EAF0E5;padding:8px 12px;border-bottom:1.5px solid #D4DBC9;">
+          <span style="font-size:11px;font-weight:700;color:#50563D;text-transform:uppercase;letter-spacing:0.5px;">SHIPPED TO</span>
         </div>
-        <div style="padding:8px 10px;font-size:11px;line-height:1.4;color:#2D3823;">
-          <p style="margin:0 0 2px;font-weight:800;color:#1a1e16;">${order.customerName}</p>
+        <div style="padding:10px 12px;font-size:12px;line-height:1.4;color:#2D3823;">
+          <p style="margin:0 0 2px;font-weight:700;color:#1E201D;">${order.customerName}</p>
           <p style="margin:0 0 2px;color:#555E51;">${order.shippingAddress}</p>
           <p style="margin:0;color:#555E51;">${[order.city, order.state].filter(Boolean).join(', ')}${order.pincode ? ' - ' + order.pincode : ''}</p>
         </div>
@@ -517,16 +522,16 @@ function buildUserOrderEmail(order) {
     </tr>
   </table>
 
-  <!-- Items Table -->
-  <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #2E4C33;border-radius:8px;overflow:hidden;border-collapse:collapse;margin-bottom:14px;">
+  <!-- Items Table Box -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="border:1.5px solid #656B4F;border-radius:8px;overflow:hidden;border-collapse:collapse;margin-bottom:16px;">
     <thead>
-      <tr style="background-color:#2E4C33;color:#ffffff;text-align:left;">
-        <th style="padding:7px 8px;font-size:9px;font-weight:800;text-transform:uppercase;width:24px;text-align:center;">#</th>
-        <th style="padding:7px 8px;font-size:9px;font-weight:800;text-transform:uppercase;">DESCRIPTION</th>
-        <th style="padding:7px 8px;font-size:9px;font-weight:800;text-transform:uppercase;text-align:center;">PACK</th>
-        <th style="padding:7px 8px;font-size:9px;font-weight:800;text-transform:uppercase;text-align:center;">QTY</th>
-        <th style="padding:7px 8px;font-size:9px;font-weight:800;text-transform:uppercase;text-align:right;">RATE</th>
-        <th style="padding:7px 8px;font-size:9px;font-weight:800;text-transform:uppercase;text-align:right;">AMOUNT</th>
+      <tr style="background-color:#656B4F;color:#FFFFFF;text-align:left;">
+        <th style="padding:9px 8px;font-size:10px;font-weight:700;text-transform:uppercase;width:24px;text-align:center;border-right:1px solid #7E8566;">#</th>
+        <th style="padding:9px 10px;font-size:10px;font-weight:700;text-transform:uppercase;border-right:1px solid #7E8566;">DESCRIPTION</th>
+        <th style="padding:9px 8px;font-size:10px;font-weight:700;text-transform:uppercase;text-align:center;border-right:1px solid #7E8566;">PACK</th>
+        <th style="padding:9px 8px;font-size:10px;font-weight:700;text-transform:uppercase;text-align:center;border-right:1px solid #7E8566;">QTY</th>
+        <th style="padding:9px 8px;font-size:10px;font-weight:700;text-transform:uppercase;text-align:right;border-right:1px solid #7E8566;">RATE</th>
+        <th style="padding:9px 8px;font-size:10px;font-weight:700;text-transform:uppercase;text-align:right;">AMOUNT</th>
       </tr>
     </thead>
     <tbody>
@@ -534,53 +539,53 @@ function buildUserOrderEmail(order) {
     </tbody>
   </table>
 
-  <!-- Calculation Summary -->
-  <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #d4dbc9;border-radius:8px;overflow:hidden;border-collapse:collapse;margin-bottom:16px;">
+  <!-- Calculation Summary Box -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="border:1.5px solid #D4DBC9;border-radius:8px;overflow:hidden;border-collapse:collapse;margin-bottom:18px;background:#FFFFFF;">
     <tr>
-      <td style="padding:6px 12px;font-size:12px;color:#555E51;border-bottom:1px solid #e8ece0;">Subtotal</td>
-      <td style="padding:6px 12px;font-size:12px;color:#1a1e16;text-align:right;font-weight:700;border-bottom:1px solid #e8ece0;">₹${Number(subtotal).toFixed(2)}</td>
+      <td style="padding:8px 14px;font-size:13px;color:#555E51;border-bottom:1px solid #E4E9DC;">Subtotal</td>
+      <td style="padding:8px 14px;font-size:13px;color:#1E201D;text-align:right;font-weight:700;border-bottom:1px solid #E4E9DC;">₹${Number(subtotal).toFixed(2)}</td>
     </tr>
     <tr>
-      <td style="padding:6px 12px;font-size:12px;color:#555E51;border-bottom:1px solid #e8ece0;">Cold Chain Delivery</td>
-      <td style="padding:6px 12px;font-size:12px;color:#1a1e16;text-align:right;font-weight:700;border-bottom:1px solid #e8ece0;">${deliveryFee === 0 ? 'FREE' : `₹${Number(deliveryFee).toFixed(2)}`}</td>
+      <td style="padding:8px 14px;font-size:13px;color:#555E51;border-bottom:1px solid #E4E9DC;">Cold Chain Delivery</td>
+      <td style="padding:8px 14px;font-size:13px;color:#1E201D;text-align:right;font-weight:700;border-bottom:1px solid #E4E9DC;">${deliveryFee === 0 ? 'FREE' : `₹${Number(deliveryFee).toFixed(2)}`}</td>
     </tr>
     ${order.convenienceFee ? `
     <tr>
-      <td style="padding:6px 12px;font-size:12px;color:#555E51;border-bottom:1px solid #e8ece0;">Convenience Fee (2.5%)</td>
-      <td style="padding:6px 12px;font-size:12px;color:#1a1e16;text-align:right;font-weight:700;border-bottom:1px solid #e8ece0;">₹${Number(order.convenienceFee).toFixed(2)}</td>
+      <td style="padding:8px 14px;font-size:13px;color:#555E51;border-bottom:1px solid #E4E9DC;">Convenience Fee (2.5%)</td>
+      <td style="padding:8px 14px;font-size:13px;color:#1E201D;text-align:right;font-weight:700;border-bottom:1px solid #E4E9DC;">₹${Number(order.convenienceFee).toFixed(2)}</td>
     </tr>` : ''}
-    <tr style="background-color:#EBF1E8;">
-      <td style="padding:10px 12px;font-size:14px;font-weight:900;color:#1E2E1F;border-top:1.5px solid #2E4C33;">TOTAL AMOUNT</td>
-      <td style="padding:10px 12px;font-size:16px;font-weight:900;color:#2E4C33;text-align:right;border-top:1.5px solid #2E4C33;">₹${Number(order.totalAmount).toFixed(2)}</td>
+    <tr style="background-color:#EAF0E5;">
+      <td style="padding:12px 14px;font-size:15px;font-weight:700;color:#50563D;border-top:2px solid #656B4F;">TOTAL AMOUNT</td>
+      <td style="padding:12px 14px;font-size:18px;font-weight:700;color:#50563D;text-align:right;border-top:2px solid #656B4F;">₹${Number(order.totalAmount).toFixed(2)}</td>
     </tr>
   </table>
 
   <!-- Action Buttons (Print & WhatsApp) -->
-  <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 10px;">
     <tr>
       <td align="center">
-        <a href="${invoiceUrl}" target="_blank" style="display:inline-block;background-color:#2E4C33;color:#ffffff;padding:10px 20px;border-radius:8px;font-size:12px;font-weight:800;text-decoration:none;margin:0 4px 6px;">
+        <a href="${invoiceUrl}" target="_blank" style="display:inline-block;background-color:#656B4F;color:#FFFFFF;padding:11px 22px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;font-family:'Times New Roman',serif;margin:0 5px 6px;">
           📄 View & Print Invoice
         </a>
-        <a href="${whatsappUrl}" target="_blank" style="display:inline-block;background-color:#25D366;color:#ffffff;padding:10px 20px;border-radius:8px;font-size:12px;font-weight:800;text-decoration:none;margin:0 4px 6px;">
-          💬 WhatsApp Help
+        <a href="${whatsappUrl}" target="_blank" style="display:inline-block;background-color:#25D366;color:#FFFFFF;padding:11px 22px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;font-family:'Times New Roman',serif;margin:0 5px 6px;">
+          💬 WhatsApp Support
         </a>
       </td>
     </tr>
   </table>
 
-  <p style="margin:12px 0 0;font-size:11px;color:#788273;text-align:center;line-height:1.4;">
-    Storage Notice: Store products immediately at -18°C upon delivery. Keep sealed until cooking.
+  <p style="margin:14px 0 0;font-size:12px;color:#656B4F;text-align:center;line-height:1.4;font-style:italic;">
+    Cold Storage Notice: Please store all products immediately at -18°C upon delivery. Keep tightly sealed until cooking.
   </p>
 </td>
 </tr>
 
-<!-- 3. Email Footer -->
+<!-- 3. Olive Green Email Footer -->
 <tr>
-<td style="background-color:#F5F8F2;padding:16px 20px;border-top:1px solid #d4dbc9;text-align:center;">
-  <p style="margin:0 0 2px;font-size:12px;font-weight:800;color:#2E4C33;">${COMPANY_NAME}</p>
-  <p style="margin:0 0 4px;font-size:10px;color:#555E51;">${COMPANY_ADDRESS}</p>
-  <p style="margin:0;font-size:10px;color:#555E51;">Phone: ${COMPANY_PHONE} | Email: ${COMPANY_EMAIL} | FSSAI: ${FSSAI_LIC_NO}</p>
+<td style="background-color:#F5F8F2;padding:18px 24px;border-top:1.5px solid #D4DBC9;text-align:center;">
+  <p style="margin:0 0 3px;font-size:13px;font-weight:700;color:#50563D;">${COMPANY_NAME}</p>
+  <p style="margin:0 0 4px;font-size:11px;color:#555E51;">${COMPANY_ADDRESS}</p>
+  <p style="margin:0;font-size:11px;color:#555E51;">Phone: ${COMPANY_PHONE} | Email: ${COMPANY_EMAIL} | FSSAI Lic. No: ${FSSAI_LIC_NO}</p>
 </td>
 </tr>
 
@@ -603,57 +608,57 @@ function buildAdminOrderEmail(order) {
   const invoiceUrl = `${FRONTEND_URL}/api/orders/${order._id || order.id}/invoice${invoiceToken ? `?token=${invoiceToken}` : ''}`;
 
   const itemRows = (order.items || []).map((item, i) => `
-    <tr style="border-bottom:1px solid #e2e8dc;">
-      <td style="padding:6px 8px;font-size:11px;font-weight:700;color:#1a1e16;">${i + 1}</td>
-      <td style="padding:6px 8px;font-size:12px;font-weight:700;color:#1a1e16;">${item.name}</td>
-      <td style="padding:6px 8px;font-size:11px;color:#555E51;text-align:center;">${item.weight || '1 KG'}</td>
-      <td style="padding:6px 8px;font-size:12px;color:#1a1e16;font-weight:800;text-align:center;">${item.quantity}</td>
-      <td style="padding:6px 8px;font-size:12px;color:#2E4C33;font-weight:800;text-align:right;">₹${(item.price * item.quantity).toFixed(2)}</td>
+    <tr style="border-bottom:1px solid #D4DBC9;${i % 2 === 1 ? 'background-color:#FBFDF9;' : 'background-color:#FFFFFF;'}">
+      <td style="padding:8px 10px;font-size:12px;font-weight:700;color:#50563D;text-align:center;border-right:1px solid #D4DBC9;">${i + 1}</td>
+      <td style="padding:8px 10px;font-size:13px;font-weight:700;color:#1E201D;border-right:1px solid #D4DBC9;">${item.name}</td>
+      <td style="padding:8px 10px;font-size:12px;color:#50563D;text-align:center;border-right:1px solid #D4DBC9;">${item.weight || '1 KG'}</td>
+      <td style="padding:8px 10px;font-size:13px;color:#1E201D;font-weight:700;text-align:center;border-right:1px solid #D4DBC9;">${item.quantity}</td>
+      <td style="padding:8px 10px;font-size:13px;color:#50563D;font-weight:700;text-align:right;">₹${(item.price * item.quantity).toFixed(2)}</td>
     </tr>
   `).join('');
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><title>Admin Order Notification</title></head>
-<body style="margin:0;padding:0;background-color:#f3f6ee;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f6ee;">
-<tr><td align="center" style="padding:20px 10px;">
-<table role="presentation" width="580" cellpadding="0" cellspacing="0" style="max-width:580px;width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #d4dbc9;">
+<body style="margin:0;padding:0;background-color:#F4F6F0;font-family:'Times New Roman',Times,Baskerville,Georgia,serif;color:#1E201D;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F4F6F0;">
+<tr><td align="center" style="padding:28px 12px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#FFFFFF;border-radius:12px;overflow:hidden;border:1px solid #D4DBC9;box-shadow:0 4px 20px rgba(101,107,79,0.08);">
 
 <tr>
-<td style="background:#1E2E1F;padding:16px 20px;color:#fff;">
-  <h2 style="margin:0;font-size:16px;font-weight:900;color:#ffffff;">🔔 New Order Received #${order.orderNumber}</h2>
-  <p style="margin:2px 0 0;font-size:11px;color:#A9C8AB;">Total Value: ₹${Number(order.totalAmount).toFixed(2)} • ${order.paymentStatus || 'Pending'} (${order.paymentMethod || 'Online'})</p>
+<td style="background:#50563D;padding:20px 24px;color:#FFFFFF;">
+  <h2 style="margin:0;font-size:18px;font-weight:700;color:#FFFFFF;">🔔 New Order Received #${order.orderNumber}</h2>
+  <p style="margin:4px 0 0;font-size:13px;color:#EAF0E5;">Total Value: ₹${Number(order.totalAmount).toFixed(2)} • ${order.paymentStatus || 'Pending'} (${order.paymentMethod || 'Online'})</p>
 </td>
 </tr>
 
 <tr>
-<td style="padding:16px 20px;">
-  <p style="margin:0 0 12px;font-size:11px;color:#666E61;">Placed on: ${formattedDate}</p>
+<td style="padding:22px 24px;background:#FFFFFF;">
+  <p style="margin:0 0 14px;font-size:12px;color:#656B4F;">Order Placed on: ${formattedDate}</p>
 
-  <div style="background:#F5F8F2;border:1px solid #d4dbc9;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#2D3823;">
-    <p style="margin:0 0 2px;font-size:12px;font-weight:800;color:#1a1e16;">Customer: ${order.customerName}</p>
-    <p style="margin:0 0 2px;color:#555E51;">Email: ${order.customerEmail} | Phone: +91 ${order.customerPhone}</p>
-    <p style="margin:0;color:#555E51;">Address: ${order.shippingAddress}${order.city ? ', ' + order.city : ''}${order.pincode ? ' - ' + order.pincode : ''}</p>
+  <div style="background:#F5F8F2;border:1.5px solid #D4DBC9;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#2D3823;">
+    <p style="margin:0 0 3px;font-size:14px;font-weight:700;color:#1E201D;">Customer: ${order.customerName}</p>
+    <p style="margin:0 0 3px;color:#555E51;">Email: <strong>${order.customerEmail}</strong> | Phone: <strong>+91 ${order.customerPhone}</strong></p>
+    <p style="margin:0;color:#555E51;">Delivery Address: ${order.shippingAddress}${order.city ? ', ' + order.city : ''}${order.pincode ? ' - ' + order.pincode : ''}</p>
   </div>
 
-  <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #d4dbc9;border-radius:8px;overflow:hidden;border-collapse:collapse;margin-bottom:12px;">
-    <tr style="background:#2E4C33;color:#fff;">
-      <th style="padding:6px;font-size:10px;text-align:center;">#</th>
-      <th style="padding:6px;font-size:10px;text-align:left;">Item</th>
-      <th style="padding:6px;font-size:10px;text-align:center;">Pack</th>
-      <th style="padding:6px;font-size:10px;text-align:center;">Qty</th>
-      <th style="padding:6px;font-size:10px;text-align:right;">Total</th>
+  <table width="100%" cellpadding="0" cellspacing="0" style="border:1.5px solid #656B4F;border-radius:8px;overflow:hidden;border-collapse:collapse;margin-bottom:18px;">
+    <tr style="background:#656B4F;color:#FFFFFF;">
+      <th style="padding:8px;font-size:11px;text-align:center;border-right:1px solid #7E8566;">#</th>
+      <th style="padding:8px 10px;font-size:11px;text-align:left;border-right:1px solid #7E8566;">Item</th>
+      <th style="padding:8px;font-size:11px;text-align:center;border-right:1px solid #7E8566;">Pack</th>
+      <th style="padding:8px;font-size:11px;text-align:center;border-right:1px solid #7E8566;">Qty</th>
+      <th style="padding:8px 10px;font-size:11px;text-align:right;">Total</th>
     </tr>
     ${itemRows}
   </table>
 
-  <div style="text-align:center;margin:12px 0 6px;">
-    <a href="${FRONTEND_URL}/admin" style="display:inline-block;background:#2E4C33;color:#fff;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;margin:0 3px;">
+  <div style="text-align:center;margin:16px 0 6px;">
+    <a href="${FRONTEND_URL}/admin" style="display:inline-block;background:#656B4F;color:#FFFFFF;padding:10px 20px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;font-family:'Times New Roman',serif;margin:0 4px;">
       Open Admin Dashboard
     </a>
-    <a href="${invoiceUrl}" target="_blank" style="display:inline-block;background:#1E2E1F;color:#fff;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;margin:0 3px;">
-      View Invoice Slip
+    <a href="${invoiceUrl}" target="_blank" style="display:inline-block;background:#50563D;color:#FFFFFF;padding:10px 20px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;font-family:'Times New Roman',serif;margin:0 4px;">
+      View Invoice PDF
     </a>
   </div>
 </td>
@@ -672,32 +677,39 @@ function buildOtpEmail(userName, otp) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><title>Password Reset OTP</title></head>
-<body style="margin:0;padding:0;background-color:#f3f6ee;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f6ee;">
-<tr><td align="center" style="padding:20px 10px;">
-<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #d4dbc9;">
+<body style="margin:0;padding:0;background-color:#F4F6F0;font-family:'Times New Roman',Times,Baskerville,Georgia,serif;color:#1E201D;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F4F6F0;">
+<tr><td align="center" style="padding:28px 12px;">
+<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background-color:#FFFFFF;border-radius:12px;overflow:hidden;border:1px solid #D4DBC9;box-shadow:0 4px 20px rgba(101,107,79,0.08);">
 
 <tr>
-<td style="background-color:#1E2E1F;padding:18px 24px;text-align:center;">
-  <h1 style="margin:0;color:#ffffff;font-size:18px;font-weight:900;">${COMPANY_NAME}</h1>
-  <p style="margin:2px 0 0;color:#A9C8AB;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;">Password Security Verification</p>
+<td style="background-color:#656B4F;padding:22px 24px;text-align:center;">
+  <img src="${logoSrc}" alt="${COMPANY_NAME}" style="height:52px;width:auto;max-width:140px;object-fit:contain;margin-bottom:6px;display:inline-block;" />
+  <h1 style="margin:0;color:#FFFFFF;font-size:20px;font-weight:700;">${COMPANY_NAME}</h1>
+  <p style="margin:3px 0 0;color:#EAF0E5;font-size:11px;letter-spacing:0.8px;text-transform:uppercase;">Password Security Verification</p>
 </td>
 </tr>
 
 <tr>
-<td style="padding:24px 24px 20px;text-align:center;">
-  <h2 style="margin:0 0 6px;font-size:16px;font-weight:800;color:#1a1e16;">Password Reset Code</h2>
-  <p style="margin:0 0 16px;font-size:12px;color:#555E51;line-height:1.5;">
-    Hello <strong>${userName || 'Customer'}</strong>, use the single-use OTP code below to reset your account password:
+<td style="padding:28px 26px 22px;text-align:center;background:#FFFFFF;">
+  <h2 style="margin:0 0 8px;font-size:18px;font-weight:700;color:#50563D;">Password Reset Verification Code</h2>
+  <p style="margin:0 0 18px;font-size:13px;color:#555E51;line-height:1.5;">
+    Hello <strong>${userName || 'Customer'}</strong>, use the single-use OTP code below to securely reset your account password:
   </p>
 
-  <div style="margin:16px auto;display:inline-block;background:#EBF1E8;border:2px solid #2E4C33;border-radius:10px;padding:12px 28px;">
-    <span style="font-size:28px;font-weight:900;color:#2E4C33;letter-spacing:8px;font-family:monospace;">${otp}</span>
+  <div style="margin:18px auto;display:inline-block;background:#EAF0E5;border:2px solid #656B4F;border-radius:10px;padding:14px 32px;">
+    <span style="font-size:30px;font-weight:700;color:#50563D;letter-spacing:8px;font-family:monospace;">${otp}</span>
   </div>
 
-  <p style="margin:14px 0 0;font-size:10px;color:#788273;">
-    This code expires in 10 minutes. If you did not request this, you can safely ignore this email.
+  <p style="margin:16px 0 0;font-size:11px;color:#656B4F;font-style:italic;">
+    This security code expires in 10 minutes. If you did not request this, you can safely ignore this email.
   </p>
+</td>
+</tr>
+
+<tr>
+<td style="background-color:#F5F8F2;padding:14px 20px;border-top:1.5px solid #D4DBC9;text-align:center;">
+  <p style="margin:0;font-size:11px;color:#555E51;">${COMPANY_NAME} • Customer Helpline: ${COMPANY_PHONE}</p>
 </td>
 </tr>
 
@@ -711,47 +723,55 @@ function buildOtpEmail(userName, otp) {
 // ─── 5. ORDER STATUS UPDATE EMAIL ───────────────────────────────────────────
 function buildOrderStatusUpdateEmail(order, newStatus) {
   const statusMessages = {
-    Confirmed: 'Your order has been confirmed successfully.',
-    'Awaiting Payment': 'Your order is awaiting online payment.',
-    'Payment Failed': 'Your order payment could not be completed or window expired.',
+    Confirmed: 'Your order has been confirmed successfully and is being prepared.',
+    'Awaiting Payment': 'Your order is currently awaiting online payment.',
+    'Payment Failed': 'Your order payment could not be completed or the payment window expired.',
     Cancelled: 'Your order has been cancelled.',
   };
   const ordersUrl = `${FRONTEND_URL}/orders`;
   const invoiceToken = getInvoiceToken(order);
   const invoiceUrl = `${FRONTEND_URL}/api/orders/${order._id || order.id}/invoice${invoiceToken ? `?token=${invoiceToken}` : ''}`;
+  const logoSrc = getCompanyLogo();
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><title>Order Status Update</title></head>
-<body style="margin:0;padding:0;background-color:#f3f6ee;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f6ee;">
-<tr><td align="center" style="padding:20px 10px;">
-<table role="presentation" width="540" cellpadding="0" cellspacing="0" style="max-width:540px;width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #d4dbc9;">
+<body style="margin:0;padding:0;background-color:#F4F6F0;font-family:'Times New Roman',Times,Baskerville,Georgia,serif;color:#1E201D;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F4F6F0;">
+<tr><td align="center" style="padding:28px 12px;">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background-color:#FFFFFF;border-radius:12px;overflow:hidden;border:1px solid #D4DBC9;box-shadow:0 4px 20px rgba(101,107,79,0.08);">
 
 <tr>
-<td style="background-color:#1E2E1F;padding:18px 24px;text-align:center;">
-  <h1 style="margin:0;color:#ffffff;font-size:18px;font-weight:900;">${COMPANY_NAME}</h1>
-  <p style="margin:2px 0 0;color:#A9C8AB;font-size:10px;letter-spacing:0.8px;text-transform:uppercase;">Order Status Notification</p>
+<td style="background-color:#656B4F;padding:22px 24px;text-align:center;">
+  <img src="${logoSrc}" alt="${COMPANY_NAME}" style="height:52px;width:auto;max-width:140px;object-fit:contain;margin-bottom:6px;display:inline-block;" />
+  <h1 style="margin:0;color:#FFFFFF;font-size:20px;font-weight:700;">${COMPANY_NAME}</h1>
+  <p style="margin:3px 0 0;color:#EAF0E5;font-size:11px;letter-spacing:0.8px;text-transform:uppercase;">Order Status Notification</p>
 </td>
 </tr>
 
 <tr>
-<td style="padding:20px 24px;">
-  <div style="background:#EBF1E8;border:1.5px solid #2E4C33;border-radius:10px;padding:14px 18px;margin-bottom:16px;text-align:center;">
-    <h2 style="margin:0;font-size:16px;font-weight:900;color:#2E4C33;">Order #${order.orderNumber} Status: ${newStatus}</h2>
-    <p style="margin:4px 0 0;font-size:12px;font-weight:600;color:#2D3823;">
-      ${statusMessages[newStatus] || `Status updated to ${newStatus}.`}
+<td style="padding:24px 26px;background:#FFFFFF;">
+  <div style="background:#EAF0E5;border:1.5px solid #656B4F;border-radius:10px;padding:16px 20px;margin-bottom:18px;text-align:center;">
+    <h2 style="margin:0;font-size:17px;font-weight:700;color:#50563D;">Order #${order.orderNumber} Status: ${newStatus}</h2>
+    <p style="margin:5px 0 0;font-size:13px;font-weight:400;color:#2D3823;line-height:1.4;">
+      ${statusMessages[newStatus] || `Your order status has been updated to ${newStatus}.`}
     </p>
   </div>
 
-  <div style="text-align:center;margin:16px 0 8px;">
-    <a href="${ordersUrl}" style="display:inline-block;background:#2E4C33;color:#fff;padding:10px 20px;border-radius:8px;font-size:12px;font-weight:800;text-decoration:none;margin:0 4px;">
+  <div style="text-align:center;margin:20px 0 10px;">
+    <a href="${ordersUrl}" style="display:inline-block;background:#656B4F;color:#FFFFFF;padding:11px 22px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;font-family:'Times New Roman',serif;margin:0 5px;">
       View My Orders
     </a>
-    <a href="${invoiceUrl}" target="_blank" style="display:inline-block;background:#1E2E1F;color:#fff;padding:10px 20px;border-radius:8px;font-size:12px;font-weight:800;text-decoration:none;margin:0 4px;">
+    <a href="${invoiceUrl}" target="_blank" style="display:inline-block;background:#50563D;color:#FFFFFF;padding:11px 22px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;font-family:'Times New Roman',serif;margin:0 5px;">
       View Invoice PDF
     </a>
   </div>
+</td>
+</tr>
+
+<tr>
+<td style="background-color:#F5F8F2;padding:14px 20px;border-top:1.5px solid #D4DBC9;text-align:center;">
+  <p style="margin:0;font-size:11px;color:#555E51;">${COMPANY_NAME} • Customer Support: ${COMPANY_PHONE} | ${COMPANY_EMAIL}</p>
 </td>
 </tr>
 

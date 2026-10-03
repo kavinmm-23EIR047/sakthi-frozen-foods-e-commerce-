@@ -2,18 +2,18 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Trash2, Plus, Minus, ArrowRight, ShoppingCart, ArrowLeft, UserCheck, LogIn, PackageCheck } from 'lucide-react';
+import { Trash2, Plus, Minus, ArrowRight, ShoppingCart, ArrowLeft, UserCheck, LogIn, PackageCheck, Loader2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import OptimizedImage from '@/components/OptimizedImage';
-import FoodLoadingScreen from '@/components/FoodLoadingScreen';
 
 export default function CartPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { cart, removeFromCart, updateQuantity, totalPrice, totalItems, isCartLoading } = useCart();
+  const [isNavigating, setIsNavigating] = React.useState(false);
 
   const subtotal = totalPrice;
   const deliveryFee = subtotal >= 2999 || subtotal === 0 ? 0 : 40;
@@ -22,10 +22,21 @@ export default function CartPage() {
 
   if (isCartLoading) {
     return (
-      <FoodLoadingScreen
-        message="Loading your cart..."
-        subMessage="Reviewing your plant-based selections"
-      />
+      <div className="min-h-screen bg-[#F3FBEE] text-[#1E201D] flex flex-col font-sans">
+        <Navbar />
+        <main className="mx-auto w-full max-w-[1320px] px-3 py-5 sm:px-5 sm:py-8 md:py-10 flex-1">
+          <div className="h-6 w-36 bg-[#4F534C]/10 rounded-lg animate-pulse mb-6" />
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#4F534C]/15 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2 space-y-4">
+              <div className="h-8 w-48 bg-[#4F534C]/10 rounded-xl animate-pulse" />
+              <div className="h-28 bg-[#F8FAF4] rounded-2xl animate-pulse" />
+              <div className="h-28 bg-[#F8FAF4] rounded-2xl animate-pulse" />
+            </div>
+            <div className="bg-[#EAF0E5] rounded-2xl p-6 h-64 animate-pulse" />
+          </div>
+        </main>
+        <Footer />
+      </div>
     );
   }
 
@@ -188,9 +199,10 @@ export default function CartPage() {
             )}
 
             <button
-              disabled={cart.length === 0}
+              disabled={cart.length === 0 || isNavigating}
               onClick={() => {
-                if (cart.length === 0) return;
+                if (cart.length === 0 || isNavigating) return;
+                setIsNavigating(true);
                 if (!user) {
                   router.push('/login?redirect=/checkout');
                 } else {
@@ -198,13 +210,22 @@ export default function CartPage() {
                 }
               }}
               className={`w-full py-4 px-6 rounded-2xl font-black text-base transition-all shadow-lg flex items-center justify-center gap-2 group whitespace-nowrap ${
-                cart.length > 0 
-                  ? 'bg-[#656B4F] text-white hover:bg-[#50563D] hover:shadow-xl' 
+                cart.length > 0 && !isNavigating
+                  ? 'bg-[#656B4F] text-white hover:bg-[#50563D] hover:shadow-xl cursor-pointer' 
                   : 'bg-[#D3D8CF] text-[#8F968B] cursor-not-allowed'
               }`}
             >
-              <span>{user ? 'Proceed to Checkout' : 'Sign In & Checkout'}</span>
-              {cart.length > 0 && <ArrowRight className="w-5 h-5 shrink-0 group-hover:translate-x-1 transition-transform" />}
+              {isNavigating ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin text-white" />
+                  <span>Redirecting to Checkout...</span>
+                </>
+              ) : (
+                <>
+                  <span>{user ? 'Proceed to Checkout' : 'Sign In & Checkout'}</span>
+                  {cart.length > 0 && <ArrowRight className="w-5 h-5 shrink-0 group-hover:translate-x-1 transition-transform" />}
+                </>
+              )}
             </button>
           </div>
         </div>

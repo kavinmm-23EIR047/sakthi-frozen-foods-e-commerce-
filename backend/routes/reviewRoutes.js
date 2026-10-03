@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Review = require('../models/Review');
 const { protect, admin } = require('../middleware/authMiddleware');
+const cacheService = require('../services/cacheService');
 
 const INITIAL_REVIEWS = [
   {
@@ -42,13 +43,17 @@ const INITIAL_REVIEWS = [
   },
 ];
 
-// GET all reviews
+// GET all reviews (Cached with Upstash Redis + L1 Micro-cache)
 router.get('/', async (req, res) => {
   try {
-    let reviews = await Review.find().sort({ createdAt: -1 });
-    if (reviews.length === 0) {
-      reviews = await Review.insertMany(INITIAL_REVIEWS);
-    }
+    const { data: reviews } = await cacheService.getOrSet('sakthi:reviews:all', async () => {
+      let list = await Review.find().sort({ createdAt: -1 });
+      if (list.length === 0) {
+        list = await Review.insertMany(INITIAL_REVIEWS);
+      }
+      return list;
+    }, 600); // 10-minute cache TTL
+
     res.json({ success: true, count: reviews.length, data: reviews });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -67,6 +72,10 @@ router.post('/', async (req, res) => {
       dateText: req.body.dateText || 'Just now',
       isGoogleReview: true,
     });
+
+    // Invalidate review cache
+    await cacheService.delPattern('sakthi:reviews:*');
+
     res.status(201).json({ success: true, data: newReview });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -77,6 +86,10 @@ router.post('/', async (req, res) => {
 router.delete('/:id', protect, admin, async (req, res) => {
   try {
     await Review.findByIdAndDelete(req.params.id);
+
+    // Invalidate review cache
+    await cacheService.delPattern('sakthi:reviews:*');
+
     res.json({ success: true, message: 'Review deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

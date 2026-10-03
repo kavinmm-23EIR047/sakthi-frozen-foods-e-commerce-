@@ -227,15 +227,15 @@ const requestPasswordReset = async (req, res, next) => {
       // Still return success to avoid leaking info about which emails exist
     }
 
-    // Also keep the old notification dispatch as a backup
-    void dispatchNotification({
+    // Also keep notification dispatch for tracking
+    await dispatchNotification({
       notificationKey: `otp-reset:${user._id}:${otpHash}`,
       eventType: 'password.otp.requested',
       channel: 'customer-email',
       recipient: user.email,
       subject: `${otp} is your Sakthi Frozen Foods password reset OTP`,
       message: `Your OTP for password reset is: ${otp}. Valid for 10 minutes. Do not share this with anyone.`,
-    });
+    }).catch(() => {});
 
     return res.json(genericResponse);
   } catch (error) {

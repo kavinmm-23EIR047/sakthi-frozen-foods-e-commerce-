@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
-import { CheckCircle2, ShoppingBag, CreditCard, Truck, ArrowLeft, ShieldCheck, Lock, UserCheck, LogIn, ArrowRight, Search, ChevronDown, Package, Sparkles } from 'lucide-react';
+import { CheckCircle2, ShoppingBag, CreditCard, Truck, ArrowLeft, ShieldCheck, Lock, UserCheck, LogIn, ArrowRight, Search, ChevronDown, Package, Sparkles, Loader2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { fetchApi } from '@/lib/apiConfig';
@@ -44,6 +44,7 @@ export default function CheckoutPage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
+  const [isRecoveringPayment, setIsRecoveringPayment] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState('');
   const [orderConfirmed, setOrderConfirmed] = useState<any>(null);
 
@@ -59,11 +60,100 @@ export default function CheckoutPage() {
     }
   }, [user, flatHouse, streetArea]);
 
+  // Resilient Persistent Session Recovery for page refreshes, UPI app-switching & network reconnects
   useEffect(() => {
-    if (!isCartLoading && cart.length === 0 && !orderConfirmed) {
+    let intervalId: any = null;
+    let pollCount = 0;
+    const MAX_POLLS = 10; // 15 seconds max polling
+
+    const getPendingInfo = () => {
+      try {
+        const local = localStorage.getItem('sakthi_pending_payment');
+        if (local) {
+          const parsed = JSON.parse(local);
+          if (parsed && parsed.rzpOrderId && Date.now() - (parsed.timestamp || 0) < 15 * 60 * 1000) {
+            return parsed;
+          }
+        }
+        const activeRzpId = sessionStorage.getItem('active_checkout_rzp_order_id');
+        const activeOrderId = sessionStorage.getItem('active_checkout_order_id');
+        if (activeRzpId) {
+          return { rzpOrderId: activeRzpId, orderId: activeOrderId, timestamp: Date.now() };
+        }
+      } catch (e) {
+        console.error('Pending payment parse error:', e);
+      }
+      return null;
+    };
+
+    const pending = getPendingInfo();
+    if (!pending) return;
+
+    setIsRecoveringPayment(true);
+
+    const pollStatus = async () => {
+      pollCount += 1;
+      try {
+        const statusRes = await fetchApi<any>(`/payment/status/${pending.rzpOrderId}`);
+        if (statusRes.success) {
+          if (statusRes.data?.paymentStatus === 'Paid') {
+            clearInterval(intervalId);
+            try {
+              localStorage.removeItem('sakthi_pending_payment');
+              sessionStorage.removeItem('active_checkout_rzp_order_id');
+              sessionStorage.removeItem('active_checkout_order_id');
+            } catch (e) {}
+            clearCart();
+            setIsRecoveringPayment(false);
+            router.replace(`/orders/${statusRes.data.id || pending.orderId}?success=true`);
+            return;
+          } else if (statusRes.data?.paymentStatus === 'Failed') {
+            clearInterval(intervalId);
+            try {
+              localStorage.removeItem('sakthi_pending_payment');
+              sessionStorage.removeItem('active_checkout_rzp_order_id');
+              sessionStorage.removeItem('active_checkout_order_id');
+            } catch (e) {}
+            setIsRecoveringPayment(false);
+            setPaymentMessage('Your previous payment attempt was not completed or failed. Your cart is preserved; you may retry.');
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Session recovery check error:', err);
+      }
+
+      if (pollCount >= MAX_POLLS) {
+        clearInterval(intervalId);
+        setIsRecoveringPayment(false);
+        try {
+          localStorage.removeItem('sakthi_pending_payment');
+          sessionStorage.removeItem('active_checkout_rzp_order_id');
+          sessionStorage.removeItem('active_checkout_order_id');
+        } catch (e) {}
+        setPaymentMessage('Payment confirmation is still processing with your bank. If money was debited, check your Orders tab in a few moments.');
+      }
+    };
+
+    // Immediate first check
+    pollStatus();
+    intervalId = setInterval(pollStatus, 1500);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [router, clearCart]);
+
+  useEffect(() => {
+    let pendingExists = false;
+    try {
+      pendingExists = !!localStorage.getItem('sakthi_pending_payment') || !!sessionStorage.getItem('active_checkout_rzp_order_id');
+    } catch (e) {}
+
+    if (!isCartLoading && !isRecoveringPayment && cart.length === 0 && !pendingExists && !orderConfirmed) {
       router.push('/cart');
     }
-  }, [cart, isCartLoading, orderConfirmed, router]);
+  }, [cart, isCartLoading, isRecoveringPayment, orderConfirmed, router]);
 
   const selectedDestination = DELIVERY_ZONES.find((zone) => zone.id === destinationZoneId) || null;
   const city = selectedDestination
@@ -176,7 +266,23 @@ export default function CheckoutPage() {
         return;
       }
 
-      // 2. Initialize Razorpay popup
+      // 2. Save active checkout session to localStorage and sessionStorage for instant recovery on refresh
+      if (typeof window !== 'undefined') {
+        try {
+          const pendingInfo = {
+            rzpOrderId: orderData.razorpayOrderId,
+            orderId: orderData.data.id,
+            orderNumber: orderData.data.orderNumber,
+            totalAmount: grandTotal,
+            timestamp: Date.now(),
+          };
+          localStorage.setItem('sakthi_pending_payment', JSON.stringify(pendingInfo));
+          sessionStorage.setItem('active_checkout_rzp_order_id', orderData.razorpayOrderId);
+          sessionStorage.setItem('active_checkout_order_id', orderData.data.id);
+        } catch (e) {}
+      }
+
+      // 3. Initialize Razorpay popup
       const options = {
         key: orderData.razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_Tb3aRjusts7JYy',
         amount: orderData.razorpayAmount,
@@ -185,11 +291,11 @@ export default function CheckoutPage() {
         description: 'Secure Online Payment',
         order_id: orderData.razorpayOrderId,
         handler: async function (response: any) {
-          // 3. Verify Payment
+          // 4. Verify Payment with backend
           setIsVerifyingPayment(true);
           setPaymentMessage('');
           try {
-            const verifyData = await fetchApi('/payment/verify', {
+            const verifyData = await fetchApi<any>('/payment/verify', {
               method: 'POST',
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,
@@ -200,8 +306,17 @@ export default function CheckoutPage() {
             });
 
             if (verifyData.success) {
-              setOrderConfirmed(verifyData.data);
+              if (typeof window !== 'undefined') {
+                try {
+                  localStorage.removeItem('sakthi_pending_payment');
+                  sessionStorage.removeItem('active_checkout_rzp_order_id');
+                  sessionStorage.removeItem('active_checkout_order_id');
+                } catch (e) {}
+              }
               clearCart();
+              const confirmedId = verifyData.data?.id || verifyData.data?._id || orderData.data?.id;
+              router.replace(`/orders/${confirmedId}?success=true`);
+              return;
             } else {
               setPaymentMessage('Payment could not be verified yet. Your cart is saved; please check your Orders before trying again.');
             }
@@ -211,6 +326,17 @@ export default function CheckoutPage() {
           } finally {
             setIsVerifyingPayment(false);
           }
+        },
+        modal: {
+          ondismiss: function () {
+            if (typeof window !== 'undefined') {
+              try {
+                localStorage.removeItem('sakthi_pending_payment');
+                sessionStorage.removeItem('active_checkout_rzp_order_id');
+                sessionStorage.removeItem('active_checkout_order_id');
+              } catch (e) {}
+            }
+          },
         },
         prefill: {
           name: customerName || user.name,
@@ -224,6 +350,13 @@ export default function CheckoutPage() {
 
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', function () {
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('sakthi_pending_payment');
+            sessionStorage.removeItem('active_checkout_rzp_order_id');
+            sessionStorage.removeItem('active_checkout_order_id');
+          } catch (e) {}
+        }
         setPaymentMessage('Payment was not confirmed. Your cart is still saved; you can try again.');
       });
       rzp.open();
@@ -235,8 +368,20 @@ export default function CheckoutPage() {
     }
   };
 
-  if (isCartLoading || isSubmitting || isVerifyingPayment) {
-    return <DeliveryLoadingScreen message={isVerifyingPayment ? 'Confirming your payment securely' : isSubmitting ? 'Preparing secure checkout' : 'Loading your checkout'} />;
+  if (isCartLoading || isSubmitting || isVerifyingPayment || isRecoveringPayment) {
+    return (
+      <DeliveryLoadingScreen
+        message={
+          isRecoveringPayment
+            ? 'Checking payment status with bank... Please do not refresh'
+            : isVerifyingPayment
+            ? 'Confirming your payment securely'
+            : isSubmitting
+            ? 'Preparing secure checkout'
+            : 'Loading your checkout'
+        }
+      />
+    );
   }
 
   // Auth Loading Skeleton
@@ -760,9 +905,16 @@ export default function CheckoutPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting || !deliveryCalc.isServiceable}
-                  className="w-full py-4 px-6 mt-4 bg-[#656B4F] text-white font-black rounded-xl hover:bg-[#50563D] transition-all shadow-md text-base disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap"
+                  className="w-full py-4 px-6 mt-4 bg-[#656B4F] text-white font-black rounded-xl hover:bg-[#50563D] transition-all shadow-md text-base disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
                 >
-                  <span>{isSubmitting ? 'Initializing Payment...' : `Proceed & Pay ₹${grandTotal}`}</span>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin text-white" />
+                      <span>Initializing Payment...</span>
+                    </>
+                  ) : (
+                    <span>Proceed &amp; Pay ₹{grandTotal}</span>
+                  )}
                 </button>
               </form>
 

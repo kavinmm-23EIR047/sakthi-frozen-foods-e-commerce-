@@ -7,13 +7,14 @@ import Footer from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
 import { fetchApi } from '@/lib/apiConfig';
 import { OrderType } from '@/lib/types';
-import { UserRound, Mail, Phone, MapPin, Package, ArrowRight, LogIn, LogOut, Clock3 } from 'lucide-react';
-import FoodLoadingScreen from '@/components/FoodLoadingScreen';
+import { UserRound, Mail, Phone, MapPin, Package, ArrowRight, LogIn, LogOut, Clock3, Loader2 } from 'lucide-react';
+import NotificationManager from '@/components/NotificationManager';
 
 export default function AccountPage() {
   const { user, loading: authLoading, logout } = useAuth();
   const [orders, setOrders] = useState<OrderType[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -30,10 +31,17 @@ export default function AccountPage() {
 
   if (authLoading) {
     return (
-      <FoodLoadingScreen
-        message="Loading Account..."
-        subMessage="Fetching your profile and account information"
-      />
+      <div className="flex min-h-screen flex-col bg-[#F5F8F1] text-[#1E201D]">
+        <Navbar />
+        <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 pb-24 sm:py-10">
+          <div className="h-8 w-44 bg-[#4F534C]/10 rounded-lg animate-pulse mb-6" />
+          <div className="rounded-3xl border border-[#e1e9dd] bg-white p-8 animate-pulse space-y-4">
+            <div className="h-16 bg-[#edf4e9] rounded-2xl" />
+            <div className="h-32 bg-[#F8FAF4] rounded-2xl" />
+          </div>
+        </main>
+        <Footer />
+      </div>
     );
   }
 
@@ -59,10 +67,35 @@ export default function AccountPage() {
                 <div className="flex min-w-0 items-start gap-3 bg-white p-4 sm:p-5"><Phone className="mt-0.5 h-4 w-4 shrink-0 text-[#656B4F]" /><div><p className="text-[10px] font-bold uppercase tracking-wider text-[#7a8275]">Phone</p><p className="mt-1 text-sm font-semibold">{user.phone || 'Not added'}</p></div></div>
                 <div className="flex min-w-0 items-start gap-3 bg-white p-4 sm:p-5 sm:col-span-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#656B4F]" /><div><p className="text-[10px] font-bold uppercase tracking-wider text-[#7a8275]">Address</p><p className="mt-1 text-sm font-semibold">{user.address || 'No saved address'}</p></div></div>
               </div>
-              <div className="grid grid-cols-2 gap-2.5 sm:gap-3 border-t border-[#edf1ea] p-4 sm:px-5">
-                <button onClick={logout} className="inline-flex min-h-11 items-center justify-center gap-1.5 sm:gap-2 rounded-xl border border-[#ead8d4] px-2 sm:px-4 text-xs sm:text-sm font-bold text-[#9a3e32] hover:bg-[#fff7f5] text-center"><LogOut className="h-4 w-4 shrink-0" /><span className="truncate">Log out</span></button>
-                <Link href="/shop" className="inline-flex min-h-11 items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-[#656B4F] px-2 sm:px-4 text-xs sm:text-sm font-bold text-white hover:bg-[#50563D] text-center"><span className="truncate">Shop</span><ArrowRight className="h-4 w-4 shrink-0" /></Link>
+
+              <div className="p-4 sm:p-5 flex items-center justify-between gap-3 border-t border-[#edf1ea]">
+                <button 
+                  disabled={isLoggingOut}
+                  onClick={async () => {
+                    setIsLoggingOut(true);
+                    await logout();
+                  }} 
+                  className="inline-flex min-h-11 items-center justify-center gap-1.5 sm:gap-2 rounded-xl border border-[#ead8d4] px-4 text-xs sm:text-sm font-bold text-[#9a3e32] hover:bg-[#fff7f5] text-center cursor-pointer disabled:opacity-60"
+                >
+                  {isLoggingOut ? (
+                    <>
+                      <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                      <span className="truncate">Logging out...</span>
+                    </>
+                  ) : (
+                    <>
+                      <LogOut className="h-4 w-4 shrink-0" />
+                      <span className="truncate">Log out</span>
+                    </>
+                  )}
+                </button>
+                <Link href="/shop" className="inline-flex min-h-11 items-center justify-center gap-1.5 sm:gap-2 rounded-xl bg-[#656B4F] px-4 text-xs sm:text-sm font-bold text-white hover:bg-[#50563D] text-center"><span className="truncate">Shop</span><ArrowRight className="h-4 w-4 shrink-0" /></Link>
               </div>
+            </section>
+
+            {/* Browser Web Push Notification Management */}
+            <section className="mt-8">
+              <NotificationManager />
             </section>
 
             <section className="mt-8">

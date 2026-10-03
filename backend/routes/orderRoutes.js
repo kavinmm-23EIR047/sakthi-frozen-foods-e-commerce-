@@ -5,6 +5,7 @@ const Razorpay = require('razorpay');
 const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const Cart = require('../models/Cart');
 const { protect, optionalProtect, admin } = require('../middleware/authMiddleware');
 const rateLimit = require('express-rate-limit');
 const { queueOrderNotifications } = require('../services/notificationService');
@@ -20,6 +21,46 @@ function getRazorpay() {
     throw new Error('Razorpay credentials are not configured');
   }
   return new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET });
+}
+
+async function checkAndAutoHealRazorpayPayment(order) {
+  if (!order || order.paymentStatus === 'Paid' || !order.razorpayOrderId) {
+    return order;
+  }
+
+  try {
+    const razorpay = getRazorpay();
+    const payments = await razorpay.orders.fetchPayments(order.razorpayOrderId);
+    const capturedPayment = payments?.items?.find((p) => p.status === 'captured');
+
+    if (capturedPayment) {
+      const updated = await Order.findOneAndUpdate(
+        { _id: order._id, paymentStatus: { $ne: 'Paid' } },
+        {
+          paymentStatus: 'Paid',
+          status: 'Confirmed',
+          razorpayPaymentId: capturedPayment.id,
+          paymentVerifiedAt: new Date(),
+          stockCommitted: true,
+          isLocked: false,
+          failureReason: null,
+        },
+        { new: true, runValidators: true }
+      );
+
+      if (updated) {
+        if (updated.user) {
+          await Cart.deleteOne({ userId: updated.user }).catch(() => {});
+        }
+        void queueOrderNotifications(updated, 'payment.success');
+        return updated;
+      }
+    }
+  } catch (err) {
+    console.error(`Razorpay status auto-heal check error for order ${order._id}:`, err.message);
+  }
+
+  return order;
 }
 
 function publicOrder(order) {
@@ -83,24 +124,46 @@ function publicOrder(order) {
 async function autoExpirePendingOrders() {
   try {
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-    await Order.updateMany(
-      {
-        paymentMethod: 'Razorpay (Online)',
-        paymentStatus: 'Pending',
-        $or: [
-          { createdAt: { $lte: thirtyMinutesAgo } },
-          { paymentExpiresAt: { $lte: new Date() } },
-        ],
-      },
-      {
-        $set: {
-          paymentStatus: 'Failed',
-          status: 'Payment Failed',
-          isLocked: true,
-          failureReason: 'Payment window expired (30 minutes elapsed without completion)',
-        },
+    const expiredCandidates = await Order.find({
+      paymentMethod: 'Razorpay (Online)',
+      paymentStatus: 'Pending',
+      $or: [
+        { createdAt: { $lte: thirtyMinutesAgo } },
+        { paymentExpiresAt: { $lte: new Date() } },
+      ],
+    });
+
+    for (const order of expiredCandidates) {
+      // Before marking failed, cross check if user actually paid on Razorpay
+      if (order.razorpayOrderId) {
+        try {
+          const razorpay = getRazorpay();
+          const payments = await razorpay.orders.fetchPayments(order.razorpayOrderId);
+          const capturedPayment = payments?.items?.find((p) => p.status === 'captured');
+          if (capturedPayment) {
+            order.paymentStatus = 'Paid';
+            order.status = 'Confirmed';
+            order.razorpayPaymentId = capturedPayment.id;
+            order.paymentVerifiedAt = new Date();
+            order.stockCommitted = true;
+            order.isLocked = false;
+            order.failureReason = null;
+            await order.save();
+            if (order.user) await Cart.deleteOne({ userId: order.user }).catch(() => {});
+            void queueOrderNotifications(order, 'payment.success');
+            continue;
+          }
+        } catch (e) {
+          // If check fails, continue with expiration
+        }
       }
-    );
+
+      order.paymentStatus = 'Failed';
+      order.status = 'Payment Failed';
+      order.isLocked = true;
+      order.failureReason = 'Payment window expired (30 minutes elapsed without completion)';
+      await order.save();
+    }
   } catch (err) {
     console.error('Error auto-expiring pending orders:', err);
   }
@@ -122,29 +185,32 @@ const allowedStatusTransitions = {
 };
 
 async function commitCashOnDeliveryStock(order) {
-  const session = await mongoose.startSession();
+  const decremented = [];
   try {
-    await session.withTransaction(async () => {
-      const committed = await Order.findOneAndUpdate(
-        { _id: order._id, paymentStatus: 'Pending', stockCommitted: false },
-        { paymentStatus: 'Paid', stockCommitted: true },
-        { new: true, session, runValidators: true }
+    for (const item of order.items) {
+      const product = await Product.findOneAndUpdate(
+        { _id: item.productId, stock: { $gte: item.quantity } },
+        { $inc: { stock: -item.quantity } },
+        { new: true }
       );
-      if (!committed) throw Object.assign(new Error('Order was already processed'), { statusCode: 409 });
-
-      for (const item of order.items) {
-        const result = await Product.updateOne(
-          { _id: item.productId, stock: { $gte: item.quantity } },
-          { $inc: { stock: -item.quantity } },
-          { session }
-        );
-        if (result.modifiedCount !== 1) throw Object.assign(new Error(`Insufficient stock for ${item.name}`), { statusCode: 409 });
+      if (!product) {
+        throw Object.assign(new Error(`Not enough stock for ${item.name || 'product'}`), { statusCode: 409 });
       }
-    });
-  } finally {
-    await session.endSession();
+      decremented.push(item);
+    }
+  } catch (err) {
+    for (const item of decremented) {
+      await Product.updateOne({ _id: item.productId }, { $inc: { stock: item.quantity } }).catch(() => {});
+    }
+    throw err;
   }
-  return Order.findById(order._id);
+
+  const updated = await Order.findOneAndUpdate(
+    { _id: order._id },
+    { paymentStatus: 'Paid', status: 'Confirmed', stockCommitted: true },
+    { new: true, runValidators: true }
+  );
+  return updated || order;
 }
 
 router.get('/', protect, admin, async (req, res, next) => {
@@ -165,18 +231,27 @@ router.get('/', protect, admin, async (req, res, next) => {
 router.get('/mine', protect, async (req, res, next) => {
   try {
     await autoExpirePendingOrders();
+    const userEmail = (req.user.email || '').toLowerCase();
     const queryConditions = [
       { user: req.user._id },
-      { customerEmail: req.user.email.toLowerCase() },
     ];
-    if (req.user.phone) {
-      queryConditions.push({ customerPhone: req.user.phone });
-      queryConditions.push({ customerPhone: `+91${req.user.phone}` });
+    if (userEmail) {
+      queryConditions.push({ customerEmail: userEmail });
     }
-    const orders = await Order.find({ $or: queryConditions })
+    let orders = await Order.find({ $or: queryConditions })
       .sort({ createdAt: -1 })
-      .select('-razorpaySignature')
-      .lean();
+      .select('-razorpaySignature');
+
+    // Auto-heal pending online orders that have a Razorpay order ID
+    orders = await Promise.all(
+      orders.map(async (ord) => {
+        if (ord.paymentMethod === 'Razorpay (Online)' && ord.paymentStatus === 'Pending' && ord.razorpayOrderId) {
+          return await checkAndAutoHealRazorpayPayment(ord);
+        }
+        return ord;
+      })
+    );
+
     res.json({ success: true, count: orders.length, data: orders.map(publicOrder) });
   } catch (error) {
     next(error);
@@ -186,9 +261,15 @@ router.get('/mine', protect, async (req, res, next) => {
 router.get('/:id', protect, async (req, res, next) => {
   try {
     await autoExpirePendingOrders();
-    const order = await Order.findById(req.params.id).select('-razorpaySignature').lean();
+    let order = await Order.findById(req.params.id).select('-razorpaySignature');
     if (!order) return res.status(404).json({ success: false, error: 'Order not found' });
     if (req.user.role !== 'Admin' && order.customerEmail !== req.user.email) return res.status(403).json({ success: false, error: 'Not authorized to view this order' });
+
+    // Auto-heal pending online order if Razorpay was already captured
+    if (order.paymentMethod === 'Razorpay (Online)' && order.paymentStatus === 'Pending' && order.razorpayOrderId) {
+      order = await checkAndAutoHealRazorpayPayment(order);
+    }
+
     res.json({ success: true, data: publicOrder(order) });
   } catch (error) {
     next(error);
@@ -278,9 +359,9 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
       return { productId: targetId, name: product.name, weight: requested.weight, price, quantity: requested.quantity };
     }));
 
-    for (const [productId, quantity] of quantitiesByProduct) {
+    for (const [productId] of quantitiesByProduct) {
       const product = productMap.get(productId) || (await Product.findById(productId).select('name stock').lean());
-      if (quantity > (product?.stock ?? 0)) return res.status(409).json({ success: false, error: `Insufficient stock for ${product?.name || 'product'}` });
+      if ((product?.stock ?? 0) <= 0) return res.status(409).json({ success: false, error: `${product?.name || 'Product'} is currently out of stock` });
     }
 
     const calc = getDeliveryCalculation({
@@ -332,6 +413,11 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
       created = await commitCashOnDeliveryStock(created);
     }
 
+    // Clear user's active cart in MongoDB upon placing order
+    if (req.user?._id) {
+      await Cart.deleteOne({ userId: req.user._id }).catch(() => {});
+    }
+
     void queueOrderNotifications(created, 'order.created');
     res.status(201).json({
       success: true,
@@ -356,7 +442,9 @@ router.post('/:id/cancel', protect, async (req, res, next) => {
         throw Object.assign(new Error('This order can no longer be cancelled directly'), { statusCode: 409 });
       }
       if (order.stockCommitted) {
-        for (const item of order.items) await Product.updateOne({ _id: item.productId }, { $inc: { stock: item.quantity } }, { session });
+        for (const item of order.items) {
+          await Product.updateOne({ _id: item.productId }, { $inc: { stock: item.quantity } }, { session });
+        }
       }
       cancelled = await Order.findOneAndUpdate(
         { _id: order._id },
@@ -375,14 +463,33 @@ router.post('/:id/cancel', protect, async (req, res, next) => {
 
 router.post('/:id/retry-payment', protect, async (req, res, next) => {
   try {
-    const order = await Order.findById(req.params.id);
+    let order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ success: false, error: 'Order not found' });
     if (req.user.role !== 'Admin' && order.customerEmail !== req.user.email) {
       return res.status(403).json({ success: false, error: 'Not authorized to retry payment for this order' });
     }
 
-    if (order.paymentStatus === 'Paid') {
-      return res.status(400).json({ success: false, error: 'This order has already been paid and confirmed.' });
+    if (order.paymentStatus === 'Paid' || order.status === 'Confirmed') {
+      return res.json({
+        success: true,
+        alreadyPaid: true,
+        data: publicOrder(order),
+        message: 'This order is already paid and confirmed.',
+      });
+    }
+
+    // Auto-check Razorpay API first: did user already pay?
+    if (order.razorpayOrderId) {
+      const healed = await checkAndAutoHealRazorpayPayment(order);
+      if (healed.paymentStatus === 'Paid' || healed.status === 'Confirmed') {
+        return res.json({
+          success: true,
+          alreadyPaid: true,
+          data: publicOrder(healed),
+          message: 'Payment was already verified and captured from Razorpay!',
+        });
+      }
+      order = healed;
     }
 
     // Check if 30 minutes have elapsed
@@ -422,6 +529,7 @@ router.post('/:id/retry-payment', protect, async (req, res, next) => {
 
     res.json({
       success: true,
+      alreadyPaid: false,
       data: publicOrder(order),
       razorpayOrderId,
       razorpayAmount,

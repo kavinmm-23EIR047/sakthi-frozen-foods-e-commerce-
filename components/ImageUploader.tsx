@@ -1,24 +1,28 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { UploadCloud, Link as LinkIcon, Image as ImageIcon, Sparkles, CheckCircle2, RefreshCw, X, FileImage, ShieldCheck, Flame } from 'lucide-react';
 import { compressImageToWebP, formatBytes, CompressionResult, optimizeImageUrl, handleImageError } from '@/lib/imageCompressor';
 import OptimizedImage from '@/components/OptimizedImage';
 
 interface ImageUploaderProps {
-  value: string;
+  value?: string;
   onChange: (imageUrl: string, compressedFile: File | null) => void;
   label?: string;
   required?: boolean;
 }
 
-export default function ImageUploader({ value, onChange, label = 'Product Image', required = false }: ImageUploaderProps) {
+export default function ImageUploader({ value = '', onChange, label = 'Product Image', required = false }: ImageUploaderProps) {
   const [mode, setMode] = useState<'upload' | 'url'>('upload');
   const [isDragging, setIsDragging] = useState(false);
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionStats, setCompressionStats] = useState<CompressionResult | null>(null);
   const [urlInput, setUrlInput] = useState(value && !value.startsWith('data:') ? value : '');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setUrlInput(value && !value.startsWith('data:') ? value : '');
+  }, [value]);
 
   const processFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -240,7 +244,7 @@ export default function ImageUploader({ value, onChange, label = 'Product Image'
           <div className="flex gap-2">
             <input
               type="text"
-              value={urlInput}
+              value={urlInput || ''}
               onChange={(e) => setUrlInput(e.target.value)}
               onBlur={handleUrlSubmit}
               placeholder="https://res.cloudinary.com/..."

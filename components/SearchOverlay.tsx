@@ -510,6 +510,15 @@ export default function SearchOverlay() {
                             </p>
                             <div className="flex items-center gap-1.5 mt-0.5">
                               <span className="font-black text-xs text-[#1E201D]">₹{product.price}</span>
+                              {product.stock !== undefined && product.stock <= 0 ? (
+                                <span className="text-[9px] font-extrabold text-red-600 bg-red-50 border border-red-200 px-1 py-0.5 rounded">
+                                  Out of Stock
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1 py-0.5 rounded flex items-center gap-1">
+                                  <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" /> Live
+                                </span>
+                              )}
                               {discount > 0 && (
                                 <span className="text-[9px] font-bold text-[#50563D] bg-[#EAF0E5] px-1 py-0.2 rounded">
                                   {discount}% OFF
@@ -531,70 +540,87 @@ export default function SearchOverlay() {
                 </span>
 
                 <div className="space-y-1.5">
-                  {categoriesWithCounts.slice(0, 5).map((cat: any, i) => (
-                    <button
-                      key={cat.id || i}
-                      type="button"
-                      onClick={() => handleCategorySelect(cat.name)}
-                      className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-[#F3FBEE] transition-all group text-left"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="w-7 h-7 rounded-lg bg-[#EAF0E5] text-[#50563D] flex items-center justify-center shrink-0 shadow-2xs">
-                          {getCategoryIcon(cat.name, 'w-3.5 h-3.5')}
-                        </span>
-                        <div className="min-w-0">
-                          <span className="font-bold text-xs text-[#1E201D] group-hover:text-[#50563D] block truncate">
-                            {cat.name}
-                          </span>
-                          <span className="text-[10px] text-[#61665D] block">
-                            {cat.productCount}
-                          </span>
+                  {loading && categoriesWithCounts.length === 0 ? (
+                    <div className="space-y-2 py-1">
+                      {[1, 2, 3, 4].map((n) => (
+                        <div key={n} className="flex items-center gap-2 p-2 rounded-xl bg-stone-50 animate-pulse">
+                          <div className="w-7 h-7 rounded-lg bg-stone-200 shrink-0" />
+                          <div className="h-3.5 bg-stone-200 rounded w-24" />
                         </div>
-                      </div>
-                      <ChevronRight className="w-3.5 h-3.5 text-stone-300 group-hover:text-[#50563D] group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
-                    </button>
-                  ))}
+                      ))}
+                    </div>
+                  ) : (
+                    categoriesWithCounts.slice(0, 5).map((cat: any, i) => (
+                      <button
+                        key={cat.id || i}
+                        type="button"
+                        onClick={() => handleCategorySelect(cat.name)}
+                        className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-[#F3FBEE] transition-all group text-left"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="w-7 h-7 rounded-lg bg-[#EAF0E5] text-[#50563D] flex items-center justify-center shrink-0 shadow-2xs">
+                            {getCategoryIcon(cat.name, 'w-3.5 h-3.5')}
+                          </span>
+                          <div className="min-w-0">
+                            <span className="font-bold text-xs text-[#1E201D] group-hover:text-[#50563D] block truncate">
+                              {cat.name}
+                            </span>
+                            <span className="text-[10px] text-[#61665D] block">
+                              {cat.productCount}
+                            </span>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-3.5 h-3.5 text-stone-300 group-hover:text-[#50563D] group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
+                      </button>
+                    ))
+                  )}
                 </div>
               </div>
 
               {/* COLUMN 4: Featured Promo Banner */}
-              <div className="lg:col-span-2 hidden lg:flex flex-col justify-between rounded-2xl bg-gradient-to-br from-[#EAF0E5] via-[#DEE8D8] to-[#CDDBC6] p-4 border border-[#656B4F]/20 relative overflow-hidden group shadow-2xs">
-                <div className="relative z-10 space-y-1.5">
-                  <span className="inline-block bg-[#50563D] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider shadow-2xs">
-                    POPULAR
-                  </span>
-                  <h3 className="font-black text-sm text-[#1E201D] leading-tight font-poppins">
-                    {featuredPromoProduct?.name || 'Veg Mutton'}
-                  </h3>
-                  <p className="text-[10px] text-[#4F534C] leading-snug">
-                    Juicy texture. 100% Plant Based.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (featuredPromoProduct) {
+              {featuredPromoProduct ? (
+                <div className="lg:col-span-2 hidden lg:flex flex-col justify-between rounded-2xl bg-gradient-to-br from-[#EAF0E5] via-[#DEE8D8] to-[#CDDBC6] p-4 border border-[#656B4F]/20 relative overflow-hidden group shadow-2xs">
+                  <div className="relative z-10 space-y-1.5">
+                    <span className="inline-block bg-[#50563D] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider shadow-2xs">
+                      POPULAR
+                    </span>
+                    <h3 className="font-black text-sm text-[#1E201D] leading-tight font-poppins">
+                      {featuredPromoProduct.name}
+                    </h3>
+                    <p className="text-[10px] text-[#4F534C] leading-snug">
+                      Juicy texture. 100% Plant Based.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
                         handleProductSelect(featuredPromoProduct.id, featuredPromoProduct.name);
-                      } else {
-                        router.push('/shop');
-                        setIsOpen(false);
-                      }
-                    }}
-                    className="mt-2 inline-flex items-center gap-1 bg-[#50563D] hover:bg-[#3E442F] text-white text-[10px] font-extrabold px-3 py-1.5 rounded-xl shadow-xs transition-all active:scale-95"
-                  >
-                    <span>Shop Now</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
-                </div>
+                      }}
+                      className="mt-2 inline-flex items-center gap-1 bg-[#50563D] hover:bg-[#3E442F] text-white text-[10px] font-extrabold px-3 py-1.5 rounded-xl shadow-xs transition-all active:scale-95"
+                    >
+                      <span>Shop Now</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
 
-                <div className="relative w-full aspect-square mt-2 rounded-xl overflow-hidden shadow-sm border border-white/50 bg-white/40">
-                  <OptimizedImage
-                    src={featuredPromoProduct?.image || '/assets/mock-mutton.jpg'}
-                    alt="Featured Dish"
-                    width={240}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
+                  <div className="relative w-full aspect-square mt-2 rounded-xl overflow-hidden shadow-sm border border-white/50 bg-white/40">
+                    <OptimizedImage
+                      src={featuredPromoProduct.image}
+                      alt={featuredPromoProduct.name}
+                      width={240}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
                 </div>
-              </div>
+              ) : loading ? (
+                <div className="lg:col-span-2 hidden lg:flex flex-col justify-between rounded-2xl bg-stone-100 p-4 border border-stone-200 animate-pulse">
+                  <div className="space-y-2">
+                    <div className="h-4 bg-stone-200 rounded w-16" />
+                    <div className="h-5 bg-stone-200 rounded w-28" />
+                    <div className="h-3 bg-stone-200 rounded w-full" />
+                  </div>
+                  <div className="aspect-square bg-stone-200 rounded-xl mt-3" />
+                </div>
+              ) : null}
 
             </div>
           )}

@@ -53,10 +53,10 @@ export default function Footer() {
               </div>
               <div>
                 <span className="text-sm sm:text-lg font-extrabold tracking-tight text-white block leading-tight font-display">
-                  MOCK MEAT & FROZEN FOODS
+                  MOCK MEAT
                 </span>
                 <span className="text-[8px] sm:text-[10px] font-bold tracking-wider text-white uppercase block mt-0.5">
-                  SAKTHI FROZEN FOODS TRADERS
+                  SAKTHI FROZEN FOODS
                 </span>
               </div>
             </Link>
@@ -67,7 +67,7 @@ export default function Footer() {
 
             <div className="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/10 px-2.5 py-1.5 text-[10px] sm:text-xs text-white font-bold">
               <ShieldCheck className="w-4 h-4 text-[#A9F2B7]" />
-              <span>FSSAI & ISO 22000 Certified</span>
+              <span>FSSAI Certified</span>
             </div>
           </div>
 
@@ -87,7 +87,11 @@ export default function Footer() {
                   </li>
                 ))
               ) : (
-                <li className="text-white/70 italic text-xs">Browse our product catalog for all categories.</li>
+                <div className="space-y-2 py-1">
+                  {[1, 2, 3, 4].map((n) => (
+                    <div key={n} className="h-3 bg-white/20 rounded-md w-3/4 animate-pulse" />
+                  ))}
+                </div>
               )}
             </ul>
           </div>
@@ -150,28 +154,31 @@ export default function Footer() {
                     <MapPin className="w-3.5 h-3.5 text-[#A9F2B7]" />
                   </div>
                   <a
-                    href="https://maps.google.com/?q=Sakthi+Frozen+Food+Traders+Tank+Road+Puens+colony+Koundampalayam+Coimbatore+Tamil+Nadu+641030"
+                    href="https://maps.app.goo.gl/gqVoq24rhxrQEgvs8"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:underline hover:text-white transition-colors"
+                    className="hover:underline hover:text-white transition-colors leading-relaxed"
                   >
-                    Tank Road, Puens colony, Koundampalayam, Coimbatore, Tamil Nadu 641030
+                    peons colony, Kalpana Theatre, opposite Edayarpalayam - Koundampalayam Road, Koundampalayam, Coimbatore, Tamil Nadu 641030
                   </a>
                 </li>
-                <li>
-                  <a href="tel:+919876543210" className="inline-flex items-center gap-2.5 transition-colors hover:text-white group">
+                <li className="flex flex-col gap-1.5">
+                  <a href="tel:+918056389214" className="inline-flex items-center gap-2.5 transition-colors hover:text-white group">
                     <div className="p-1.5 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors shrink-0">
                       <Phone className="w-3.5 h-3.5 text-[#A9F2B7]" />
                     </div>
-                    <span>+91 98765 43210 / 0422-2456789</span>
+                    <span>+91 80563 89214 (Mobile)</span>
+                  </a>
+                  <a href="tel:+919042539214" className="inline-flex items-center gap-2.5 transition-colors hover:text-white group pl-8">
+                    <span className="text-white/80 hover:text-white text-[11px] sm:text-xs font-semibold">+91 90425 39214 (Office)</span>
                   </a>
                 </li>
                 <li>
-                  <a href="mailto:orders@sakthifrozenfoods.com" className="inline-flex items-center gap-2.5 transition-colors hover:text-white group">
+                  <a href="mailto:sakthifrozenfoods@gmail.com" className="inline-flex items-center gap-2.5 transition-colors hover:text-white group">
                     <div className="p-1.5 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors shrink-0">
                       <Mail className="w-3.5 h-3.5 text-[#A9F2B7]" />
                     </div>
-                    <span>orders@sakthifrozenfoods.com</span>
+                    <span>sakthifrozenfoods@gmail.com</span>
                   </a>
                 </li>
               </ul>
@@ -194,7 +201,7 @@ export default function Footer() {
 
             <div>
               <a
-                href="https://wa.me/919876543210"
+                href="https://wa.me/918056389214"
                 target="_blank"
                 rel="noreferrer"
                 aria-label="Chat with Sakthi Frozen Foods on WhatsApp"
@@ -272,7 +279,7 @@ export default function Footer() {
                   </ul>
 
                   <h4 className="font-bold text-[#1E201D] text-xs uppercase tracking-wider pt-2 border-t border-[#4F534C]/15">2. Refund Request Procedure</h4>
-                  <p>To initiate a refund or replacement, please contact our support team via WhatsApp at <strong>+91 98765 43210</strong> or email <strong>orders@sakthifrozenfoods.com</strong> within 24 hours of delivery along with photos of the delivered package.</p>
+                  <p>To initiate a refund or replacement, please contact our support team via WhatsApp at <strong>+91 80563 89214</strong> or email <strong>sakthifrozenfoods@gmail.com</strong> within 24 hours of delivery along with photos of the delivered package.</p>
 
                   <h4 className="font-bold text-[#1E201D] text-xs uppercase tracking-wider pt-2 border-t border-[#4F534C]/15">3. Processing Time</h4>
                   <p>Approved refunds are processed back to your original payment method within 3 to 5 business days.</p>
@@ -290,7 +297,7 @@ export default function Footer() {
                   <p>Confirmed orders are packed under strict temperature control (-18°C) and scheduled for direct customer delivery.</p>
 
                   <h4 className="font-bold text-[#1E201D] text-xs uppercase tracking-wider pt-2 border-t border-[#4F534C]/15">3. Pricing & FSSAI Compliance</h4>
-                  <p>All prices listed on the website are inclusive of applicable taxes. Sakthi Frozen Foods complies strictly with FSSAI hygiene standards and ISO 22000 quality guidelines.</p>
+                  <p>All prices listed on the website are inclusive of applicable taxes. Sakthi Frozen Foods complies strictly with FSSAI hygiene and food safety standards.</p>
                 </>
               )}
 

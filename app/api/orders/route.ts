@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 function backendUrl() {
-  return process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL;
+  return process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 }
 
 function authHeaders(request: Request) {

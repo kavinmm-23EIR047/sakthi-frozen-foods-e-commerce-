@@ -2,7 +2,7 @@
 const SHOP_COORDINATES = {
   lat: 11.0431204487083,
   lng: 76.81346682338442,
-  address: 'Tank Road, Puens colony, Koundampalayam, Coimbatore, Tamil Nadu 641030',
+  address: 'peons colony, Kalpana Theatre, opposite Edayarpalayam - Koundampalayam Road, Koundampalayam, Coimbatore, Tamil Nadu 641030',
 };
 
 // Complete Delivery Rates by Area, District & City
@@ -15,7 +15,7 @@ const DELIVERY_ZONES = [
     mode: 'BIKE',
     price: 40, // Base Min ₹40, Max ₹250 (calculated via GPS distance)
     aliases: [
-      'coimbatore', 'kovai', 'koundampalayam', 'puens colony', 'tank road', 'kavundampalayam',
+      'coimbatore', 'kovai', 'koundampalayam', 'peons colony', 'puens colony', 'kalpana theatre', 'edayarpalayam', 'tank road', 'kavundampalayam',
       'peelamedu', 'rs puram', 'gandhipuram', 'saravanampatti', 'singanallur', 'saibaba colony',
       'thudiyalur', 'kuniyamuthur', 'ondipudur', 'kalapatti', 'vilankurichi',
       'ganapathy', 'race course', 'vadavalli', 'hopes',
@@ -118,18 +118,6 @@ function matchZoneFromText(text, state) {
 function getDeliveryCalculation({ subtotal, coordinates, cityOrDistrictText, state }) {
   const isFree = subtotal >= 2999 && subtotal > 0;
 
-  const matched = cityOrDistrictText ? matchZoneFromText(cityOrDistrictText, state) : null;
-  if (matched && matched.id !== 'coimbatore') {
-    return {
-      fee: isFree ? 0 : matched.price,
-      isFree,
-      isServiceable: true,
-      mode: matched.mode,
-      zoneId: matched.id,
-      zoneName: matched.name,
-    };
-  }
-
   if ((!state || state === 'Tamil Nadu') && coordinates && typeof coordinates.lat === 'number' && typeof coordinates.lng === 'number') {
     const dist = calculateDistanceKm(
       SHOP_COORDINATES.lat,
@@ -152,13 +140,25 @@ function getDeliveryCalculation({ subtotal, coordinates, cityOrDistrictText, sta
     }
   }
 
+  const matched = cityOrDistrictText ? matchZoneFromText(cityOrDistrictText, state) : null;
+  if (matched) {
+    return {
+      fee: isFree ? 0 : matched.price,
+      isFree,
+      isServiceable: true,
+      mode: matched.mode,
+      zoneId: matched.id,
+      zoneName: matched.name,
+    };
+  }
+
   return {
-    fee: 0,
-    isFree: false,
-    isServiceable: false,
+    fee: isFree ? 0 : 60,
+    isFree,
+    isServiceable: true,
     mode: 'BIKE',
-    zoneId: 'unavailable',
-    zoneName: 'Delivery rate unavailable',
+    zoneId: 'standard',
+    zoneName: 'Standard Delivery',
   };
 }
 

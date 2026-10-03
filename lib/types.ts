@@ -58,6 +58,7 @@ export interface OrderType {
   createdAt: string;
   isLocked?: boolean;
   failureReason?: string;
+  deliveryMode?: 'BIKE' | 'BUS' | 'TRAVELS' | string;
   followUpStatus?: string;
   followUpNotes?: string;
 }

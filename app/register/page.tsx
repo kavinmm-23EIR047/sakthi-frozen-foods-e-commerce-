@@ -3,10 +3,9 @@
 import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import FoodLoadingScreen from '@/components/FoodLoadingScreen';
 import { fetchApi } from '@/lib/apiConfig';
 import Link from 'next/link';
-import { ArrowRight, Lock, Mail, User as UserIcon, Phone, MapPin, AlertCircle, Eye, EyeOff, ShoppingBag } from 'lucide-react';
+import { ArrowRight, Lock, Mail, User as UserIcon, Phone, MapPin, AlertCircle, Eye, EyeOff, ShoppingBag, Loader2 } from 'lucide-react';
 
 function RegisterForm() {
   const [formData, setFormData] = useState({
@@ -52,15 +51,16 @@ function RegisterForm() {
         }),
       });
 
-      if (res.success) {
+      if (res.success && res.data) {
         login(res.data);
-        router.push(targetRedirect);
+        // Fast instant client-side replace without jerk/bounce
+        router.replace(targetRedirect);
       } else {
         setError(res.message || 'Failed to create account');
+        setLoading(false);
       }
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
-    } finally {
       setLoading(false);
     }
   };
@@ -70,7 +70,7 @@ function RegisterForm() {
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-[#4F534C]/10 overflow-hidden">
         <div className="p-8 sm:p-10">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-black text-[#1E201D] tracking-tight">Create Account</h1>
+            <h1 className="text-3xl font-black text-[#1E201D] tracking-tight font-poppins">Create Account</h1>
             <p className="text-sm text-[#61665D] mt-2">Join Sakthi Frozen Foods</p>
           </div>
 
@@ -103,7 +103,8 @@ function RegisterForm() {
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] shadow-sm"
+                  disabled={loading}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] shadow-sm disabled:opacity-60"
                   placeholder="John Doe"
                 />
               </div>
@@ -123,7 +124,8 @@ function RegisterForm() {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] shadow-sm"
+                  disabled={loading}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] shadow-sm disabled:opacity-60"
                   placeholder="you@example.com"
                 />
               </div>
@@ -134,7 +136,7 @@ function RegisterForm() {
                 <label className="block text-xs font-bold text-[#656B4F] uppercase tracking-wide">
                   Mobile Number <span className="text-red-500">*</span>
                 </label>
-                <span className="text-[10px] text-[#61665D] font-semibold">Required for Login & Delivery</span>
+                <span className="text-[10px] text-[#61665D] font-semibold">Required for Login &amp; Delivery</span>
               </div>
               <div className="relative flex items-center">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none gap-1.5">
@@ -151,7 +153,8 @@ function RegisterForm() {
                     setFormData({ ...formData, phone: onlyNums });
                   }}
                   required
-                  className="w-full pl-20 pr-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-bold text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] shadow-sm tracking-wider"
+                  disabled={loading}
+                  className="w-full pl-20 pr-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-bold text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] shadow-sm tracking-wider disabled:opacity-60"
                   placeholder="98765 43210"
                 />
               </div>
@@ -170,7 +173,8 @@ function RegisterForm() {
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] shadow-sm"
+                  disabled={loading}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] shadow-sm disabled:opacity-60"
                   placeholder="123 Main St, City, Zip"
                 />
               </div>
@@ -190,10 +194,17 @@ function RegisterForm() {
                   value={formData.password}
                   onChange={handleChange}
                   required
-                  className="w-full pl-10 pr-12 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] shadow-sm"
+                  disabled={loading}
+                  className="w-full pl-10 pr-12 py-2.5 rounded-xl bg-[#FAFAF5] border border-[#4F534C]/20 text-sm font-medium text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F] shadow-sm disabled:opacity-60"
                   placeholder="••••••••"
                 />
-                <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-[#61665D] hover:text-[#656B4F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#656B4F]" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword}>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-[#61665D] hover:text-[#656B4F] focus:outline-none cursor-pointer"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
+                >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
@@ -202,10 +213,13 @@ function RegisterForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-[#656B4F] text-[#FAFAF5] font-bold rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-[#50563D] transition-all shadow-md active:scale-[0.98] mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full py-3.5 bg-[#656B4F] text-[#FAFAF5] font-black rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-[#50563D] transition-all shadow-md active:scale-[0.98] mt-4 disabled:opacity-75 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? (
-                <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>Creating Account...</span>
+                </>
               ) : (
                 <>
                   <span>Create Account</span>
@@ -234,10 +248,15 @@ export default function RegisterPage() {
   return (
     <Suspense
       fallback={
-        <FoodLoadingScreen
-          message="Loading Create Account..."
-          subMessage="Preparing 100% pure vegetarian & plant-based essentials"
-        />
+        <div className="min-h-screen bg-[#E8EEE0] flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-xl border border-stone-200/60 animate-pulse space-y-4">
+            <div className="h-8 bg-stone-200 rounded w-1/2 mx-auto" />
+            <div className="h-4 bg-stone-200 rounded w-1/3 mx-auto" />
+            <div className="h-10 bg-stone-200 rounded-xl" />
+            <div className="h-10 bg-stone-200 rounded-xl" />
+            <div className="h-10 bg-stone-200 rounded-xl" />
+          </div>
+        </div>
       }
     >
       <RegisterForm />

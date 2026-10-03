@@ -156,6 +156,7 @@ export default function NotificationsPage() {
               <option value="customer-email">Customer email</option>
               <option value="admin-email">Admin email</option>
               <option value="telegram">Telegram</option>
+              <option value="web-push">Web Push</option>
             </select>
             <button
               onClick={() => { loadNotifications(); loadTelegramStatus(); }}
@@ -167,7 +168,7 @@ export default function NotificationsPage() {
         </header>
 
         {/* Integration Status Cards */}
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
           
           {/* Email Integration Card */}
           <div className="rounded-2xl border border-[#4F534C]/15 bg-white p-5 shadow-sm">
@@ -178,7 +179,7 @@ export default function NotificationsPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-[#1E201D]">Email Notifications</h3>
-                  <p className="text-xs text-[#61665D]">Brevo SMTP / Resend</p>
+                  <p className="text-xs text-[#61665D]">Brevo SMTP / Invoice PDF</p>
                 </div>
               </div>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EAF0E5] px-3 py-1 text-xs font-bold text-[#50563D] border border-[#656B4F]/20">
@@ -187,12 +188,40 @@ export default function NotificationsPage() {
             </div>
             <div className="mt-4 space-y-2 text-xs text-[#61665D]">
               <div className="flex justify-between">
-                <span>Admin Alerts Recipient:</span>
+                <span>Admin Alerts:</span>
                 <span className="font-semibold text-[#1E201D]">sakthifrozenfoods@gmail.com</span>
               </div>
               <div className="flex justify-between">
-                <span>Customer Order Confirmations:</span>
-                <span className="font-semibold text-[#656B4F]">Enabled (HTML Invoice Template)</span>
+                <span>Customer Invoices:</span>
+                <span className="font-semibold text-[#656B4F]">Attached PDF / Olive Theme</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Web Push Card */}
+          <div className="rounded-2xl border border-[#4F534C]/15 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between pb-3 border-b border-[#4F534C]/10">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EAF0E5] text-[#656B4F]">
+                  <Bell className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[#1E201D]">Web Push API</h3>
+                  <p className="text-xs text-[#61665D]">Standard W3C / VAPID</p>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EAF0E5] px-3 py-1 text-xs font-bold text-[#50563D] border border-[#656B4F]/20">
+                <CheckCircle2 className="h-3.5 w-3.5 text-[#656B4F]" /> Active
+              </span>
+            </div>
+            <div className="mt-4 space-y-2 text-xs text-[#61665D]">
+              <div className="flex justify-between">
+                <span>Backend Provider:</span>
+                <span className="font-semibold text-[#1E201D]">web-push (VAPID)</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Service Worker:</span>
+                <span className="font-semibold text-[#656B4F]">/public/sw.js</span>
               </div>
             </div>
           </div>

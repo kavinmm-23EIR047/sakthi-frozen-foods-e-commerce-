@@ -466,10 +466,10 @@ export default function AdminPortalPage() {
   const openEditCategoryModal = (cat: CategoryType) => {
     setEditingCategory(cat);
     setCategoryFormData({
-      name: cat.name,
-      description: cat.description,
-      image: cat.image,
-      icon: cat.icon,
+      name: cat.name || '',
+      description: cat.description || '',
+      image: cat.image || '',
+      icon: cat.icon || 'List',
     });
     setImageType('url');
     setImageFile(null);
@@ -1149,17 +1149,26 @@ export default function AdminPortalPage() {
                             )}
                           </td>
                           <td className="py-3 px-4">
-                            <span
-                              className={`font-bold px-2 py-0.5 rounded text-[11px] ${
-                                p.stock > 20
-                                  ? 'bg-[#EAF0E5] text-[#50563D] border border-[#656B4F]/20'
-                                  : p.stock > 0
-                                  ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-red-100 text-red-800'
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const nextStock = p.stock > 0 ? 0 : 50;
+                                await fetchApi(`/products/${p.id}`, {
+                                  method: 'PUT',
+                                  body: JSON.stringify({ stock: nextStock }),
+                                });
+                                fetchData(true);
+                              }}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-xs cursor-pointer ${
+                                p.stock > 0
+                                  ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200'
+                                  : 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-300'
                               }`}
+                              title="Click to toggle Stock ON / OFF"
                             >
-                              {p.stock} units
-                            </span>
+                              <span className={`w-2 h-2 rounded-full ${p.stock > 0 ? 'bg-white animate-pulse' : 'bg-red-500'}`} />
+                              <span>{p.stock > 0 ? 'In Stock (Live)' : 'No Stock (Off)'}</span>
+                            </button>
                           </td>
                           <td className="py-3 px-4">
                             <button
@@ -1249,7 +1258,23 @@ export default function AdminPortalPage() {
                       <span className="rounded bg-[#EAF0E5] px-2 py-1 font-bold text-[#656B4F]">{p.weight}</span>
                       <span className="text-[#61665D] line-through">MRP ₹{p.mrp ?? p.price}</span>
                       <span className="font-black text-[#656B4F]">₹{p.price}</span>
-                      <span className="rounded bg-amber-100 px-2 py-1 font-bold text-amber-800">{p.stock} in stock</span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const nextStock = p.stock > 0 ? 0 : 50;
+                          await fetchApi(`/products/${p.id}`, {
+                            method: 'PUT',
+                            body: JSON.stringify({ stock: nextStock }),
+                          });
+                          fetchData(true);
+                        }}
+                        className={`rounded-lg px-2.5 py-1 font-black text-[11px] flex items-center gap-1 cursor-pointer ${
+                          p.stock > 0 ? 'bg-emerald-600 text-white' : 'bg-red-100 text-red-800 border border-red-300'
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${p.stock > 0 ? 'bg-white animate-pulse' : 'bg-red-500'}`} />
+                        <span>{p.stock > 0 ? 'In Stock (Live)' : 'No Stock'}</span>
+                      </button>
                       <div className="ml-auto flex items-center gap-1">
                         <button onClick={() => openEditModal(p)} className="rounded-lg p-2 text-blue-700 hover:bg-blue-50" aria-label={`Edit ${p.name}`}><Edit className="h-4 w-4" /></button>
                         <button onClick={() => handleDeleteProduct(p.id, p.name)} className="rounded-lg p-2 text-red-600 hover:bg-red-50" aria-label={`Delete ${p.name}`}><Trash2 className="h-4 w-4" /></button>
@@ -2714,20 +2739,25 @@ export default function AdminPortalPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-[#1E201D] mb-1">Stock Units</label>
-                  <input
-                    type="number"
-                    required
-                    value={formData.stock}
-                    onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
-                    className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#656B4F] outline-none"
-                  />
+                  <label className="block font-bold text-[#1E201D] mb-1">Live Stock Status</label>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, stock: formData.stock > 0 ? 0 : 50 })}
+                    className={`w-full py-2 px-3 rounded-lg font-black text-xs flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                      formData.stock > 0
+                        ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                        : 'bg-red-50 text-red-700 border-red-300 hover:bg-red-100'
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${formData.stock > 0 ? 'bg-white animate-pulse' : 'bg-red-500'}`} />
+                    <span>{formData.stock > 0 ? 'IN STOCK (LIVE)' : 'OUT OF STOCK (OFF)'}</span>
+                  </button>
                 </div>
               </div>
 
               <ImageUploader
                 label="Product Image"
-                value={formData.image}
+                value={formData.image || ''}
                 required
                 onChange={(imageUrl, compressedFile) => {
                   setFormData(prev => ({ ...prev, image: imageUrl }));
@@ -2740,7 +2770,7 @@ export default function AdminPortalPage() {
                 <label className="block font-bold text-[#1E201D] mb-1">Description</label>
                 <textarea
                   rows={2}
-                  value={formData.description}
+                  value={formData.description || ''}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#656B4F] outline-none"
                 />
@@ -2869,7 +2899,7 @@ export default function AdminPortalPage() {
                 <input
                   type="text"
                   required
-                  value={categoryFormData.name}
+                  value={categoryFormData.name || ''}
                   onChange={(e) => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#656B4F] outline-none"
                 />
@@ -2877,7 +2907,7 @@ export default function AdminPortalPage() {
 
               <ImageUploader
                 label="Category Image"
-                value={categoryFormData.image}
+                value={categoryFormData.image || ''}
                 required
                 onChange={(imageUrl, compressedFile) => {
                   setCategoryFormData(prev => ({ ...prev, image: imageUrl }));
@@ -2890,7 +2920,7 @@ export default function AdminPortalPage() {
                 <label className="block font-bold text-[#1E201D] mb-1">Description</label>
                 <textarea
                   rows={2}
-                  value={categoryFormData.description}
+                  value={categoryFormData.description || ''}
                   onChange={(e) => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 focus:ring-2 focus:ring-[#656B4F] outline-none"
                 />
@@ -3358,7 +3388,7 @@ export default function AdminPortalPage() {
                   <span>Cold Storage Guidelines:</span>
                 </p>
                 <p>Store immediately at -18°C upon delivery. Keep sealed until cooking. Do not refreeze once thawed.</p>
-                <p className="text-gray-500 pt-1">For support or queries, contact us on WhatsApp or call +91 98765 43210.</p>
+                <p className="text-gray-500 pt-1">For support or queries, contact us on WhatsApp or call +91 80563 89214 / +91 90425 39214.</p>
               </div>
             </div>
 

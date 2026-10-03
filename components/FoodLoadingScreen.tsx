@@ -104,7 +104,7 @@ export default function FoodLoadingScreen({
         <div className="pt-3 flex flex-wrap items-center justify-center gap-2 text-[10px] font-bold text-[#656B4F]">
           <span className="bg-white/80 px-2 py-0.5 rounded-md border border-stone-200/60">100% Pure Veg</span>
           <span>•</span>
-          <span className="bg-white/80 px-2 py-0.5 rounded-md border border-stone-200/60">No Hormones</span>
+          <span className="bg-white/80 px-2 py-0.5 rounded-md border border-stone-200/60">No Preservatives</span>
           <span>•</span>
           <span className="bg-white/80 px-2 py-0.5 rounded-md border border-stone-200/60">Cold Chain -18°C</span>
         </div>

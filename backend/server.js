@@ -1,15 +1,14 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
-const dotenv = require('dotenv');
 const rateLimit = require('express-rate-limit');
 const crypto = require('crypto');
 const connectDB = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const { retryDueNotifications } = require('./services/notificationService');
-
-// Load environment variables
-dotenv.config();
+const cacheService = require('./services/cacheService');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -62,7 +61,13 @@ app.use('/api/payment', rateLimit({ windowMs: 60 * 1000, max: 30, standardHeader
 
 app.get('/api/health', (req, res) => {
   const connected = mongoose.connection.readyState === 1;
-  res.status(connected ? 200 : 503).json({ success: connected, status: connected ? 'ready' : 'starting', database: connected ? 'connected' : 'connecting' });
+  const cacheStatus = cacheService.getStatus();
+  res.status(connected ? 200 : 503).json({
+    success: connected,
+    status: connected ? 'ready' : 'starting',
+    database: connected ? 'connected' : 'connecting',
+    cache: cacheStatus,
+  });
 });
 
 app.use('/api', (req, res, next) => {

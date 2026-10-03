@@ -46,7 +46,7 @@ async function sendEmail({ recipient, subject, message, html, pdfBase64, pdfFile
     await sendMail({
       to: recipient,
       subject,
-      html: html || `<p style="font-family:sans-serif;font-size:14px;color:#1a1e16;">${(message || '').replace(/\n/g, '<br/>')}</p>`,
+      html: html || `<p style="font-family:'Times New Roman',Times,serif;font-size:14px;color:#1E201D;">${(message || '').replace(/\n/g, '<br/>')}</p>`,
       text: message,
       attachments,
     });
@@ -159,12 +159,22 @@ async function retryDueNotifications(batchSize = 20) {
     const now = new Date();
     const staleSendingBefore = new Date(now.getTime() - SENDING_LEASE_MS);
     const due = await Notification.findOne({
-      $or: [
-        { status: { $in: ['Pending', 'Failed'] } },
-        { status: 'Sending', sendingAt: { $lt: staleSendingBefore } },
-      ],
       attempts: { $lt: MAX_ATTEMPTS },
-      $or: [{ nextAttemptAt: { $exists: false } }, { nextAttemptAt: null }, { nextAttemptAt: { $lte: now } }],
+      $and: [
+        {
+          $or: [
+            { status: { $in: ['Pending', 'Failed'] } },
+            { status: 'Sending', sendingAt: { $lt: staleSendingBefore } },
+          ],
+        },
+        {
+          $or: [
+            { nextAttemptAt: { $exists: false } },
+            { nextAttemptAt: null },
+            { nextAttemptAt: { $lte: now } },
+          ],
+        },
+      ],
     }).sort({ createdAt: 1 }).select('_id').lean();
     if (!due) break;
     if (await deliverNotification(due._id)) processed += 1;
@@ -262,6 +272,27 @@ async function queueOrderNotifications(order, eventType) {
         })
       );
     }
+  }
+
+  // ── 3. Web Push Notifications (Customer & Admin Browser System Push) ──
+  try {
+    const {
+      notifyOrderConfirmed,
+      notifyOrderCancelled,
+      notifyAdminNewOrder,
+    } = require('./pushNotificationService');
+
+    if (shouldSendCustomerInvoice && order.user) {
+      jobs.push(notifyOrderConfirmed(order.user, order).catch((err) => console.error('Push customer notification error:', err.message)));
+    } else if (eventType === 'order.cancelled' && order.user) {
+      jobs.push(notifyOrderCancelled(order.user, order).catch((err) => console.error('Push customer cancellation notification error:', err.message)));
+    }
+
+    if (shouldSendAdminAlert) {
+      jobs.push(notifyAdminNewOrder(order).catch((err) => console.error('Push admin notification error:', err.message)));
+    }
+  } catch (err) {
+    console.error('Web Push notification dispatch error:', err.message);
   }
 
   return Promise.allSettled(jobs);

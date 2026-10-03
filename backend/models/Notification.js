@@ -4,7 +4,7 @@ const notificationSchema = new mongoose.Schema({
   notificationKey: { type: String, required: true, unique: true },
   idempotencyKey: { type: String, required: true, unique: true },
   eventType: { type: String, required: true },
-  channel: { type: String, enum: ['customer-email', 'admin-email', 'telegram'], required: true },
+  channel: { type: String, enum: ['customer-email', 'admin-email', 'telegram', 'web-push'], required: true },
   recipient: { type: String, required: true },
   subject: { type: String, required: true },
   message: { type: String, required: true },

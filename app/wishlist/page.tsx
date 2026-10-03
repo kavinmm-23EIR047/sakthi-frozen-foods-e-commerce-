@@ -19,7 +19,6 @@ import {
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import OptimizedImage from '@/components/OptimizedImage';
-import FoodLoadingScreen from '@/components/FoodLoadingScreen';
 import { useWishlist } from '@/context/WishlistContext';
 import { useCart } from '@/context/CartContext';
 import { ProductType } from '@/lib/types';

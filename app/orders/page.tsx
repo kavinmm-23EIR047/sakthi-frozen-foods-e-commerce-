@@ -5,10 +5,12 @@ import Script from 'next/script';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
 import { fetchApi, fetchCachedApi, getCachedData } from '@/lib/apiConfig';
 import { OrderType } from '@/lib/types';
-import { Package, Clock, CheckCircle2, XCircle, CreditCard, Lock, FileText, Copy, MessageCircle } from 'lucide-react';
+import { Package, Clock, CheckCircle2, XCircle, CreditCard, Lock, FileText, Copy, MessageCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import NotificationManager from '@/components/NotificationManager';
 
 declare global {
   interface Window {
@@ -16,10 +18,11 @@ declare global {
   }
 }
 
-const WHATSAPP_PHONE = '919876543210';
+const WHATSAPP_PHONE = '918056389214';
 
 export default function OrdersPage() {
   const { user } = useAuth();
+  const { clearCart } = useCart();
   const [orders, setOrders] = useState<OrderType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -68,7 +71,7 @@ export default function OrdersPage() {
   const cancelOrder = async (orderId: string) => {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
     setCancellingId(orderId);
-    const data = await fetchApi(`/orders/${orderId}/cancel`, { method: 'POST' });
+    const data = await fetchApi<any>(`/orders/${orderId}/cancel`, { method: 'POST' });
     if (data.success) {
       setOrders((current) => current.map((order) => order.id === orderId ? data.data : order));
     } else {
@@ -88,8 +91,8 @@ export default function OrdersPage() {
     setError('');
 
     try {
-      // 1. Request fresh Razorpay order initialization from backend
-      const retryRes = await fetchApi(`/orders/${order.id}/retry-payment`, {
+      // 1. Request fresh Razorpay order initialization or verify already captured from backend
+      const retryRes = await fetchApi<any>(`/orders/${order.id}/retry-payment`, {
         method: 'POST',
       });
 
@@ -97,6 +100,19 @@ export default function OrdersPage() {
         alert(retryRes.error || 'Payment retry window expired.');
         fetchOrders(true);
         setRetryingOrderId(null);
+        return;
+      }
+
+      // If already captured on Razorpay
+      if (retryRes.alreadyPaid) {
+        setPaymentSuccessOrder(order.orderNumber);
+        clearCart();
+        if (retryRes.data) {
+          setOrders((current) => current.map((ord) => (ord.id === order.id ? retryRes.data : ord)));
+        }
+        fetchOrders(true);
+        setRetryingOrderId(null);
+        setTimeout(() => setPaymentSuccessOrder(null), 8000);
         return;
       }
 
@@ -121,7 +137,7 @@ export default function OrdersPage() {
         handler: async function (response: any) {
           try {
             // 3. Verify Payment
-            const verifyData = await fetchApi('/payment/verify', {
+            const verifyData = await fetchApi<any>('/payment/verify', {
               method: 'POST',
               body: JSON.stringify({
                 razorpay_order_id: response.razorpay_order_id,
@@ -133,6 +149,10 @@ export default function OrdersPage() {
 
             if (verifyData.success) {
               setPaymentSuccessOrder(order.orderNumber);
+              clearCart();
+              if (verifyData.data) {
+                setOrders((current) => current.map((ord) => (ord.id === order.id ? verifyData.data : ord)));
+              }
               fetchOrders(true);
               setTimeout(() => setPaymentSuccessOrder(null), 8000);
             } else {
@@ -183,8 +203,8 @@ export default function OrdersPage() {
 
   // Open invoice in new tab
   const openInvoice = (orderId: string) => {
-    const token = typeof window !== 'undefined' ? sessionStorage.getItem('auth_token') : '';
-    window.open(`/api/orders/${orderId}/invoice?token=${encodeURIComponent(token || '')}`, '_blank');
+    const token = typeof window !== 'undefined' ? (localStorage.getItem('token') || sessionStorage.getItem('auth_token') || '') : '';
+    window.open(`/api/orders/${orderId}/invoice${token ? `?token=${encodeURIComponent(token)}` : ''}`, '_blank');
   };
 
   if (!user) {
@@ -312,10 +332,19 @@ export default function OrdersPage() {
                         <button
                           onClick={() => handleRetryPayment(order)}
                           disabled={retryingOrderId === order.id}
-                          className="px-4 py-2 bg-[#656B4F] hover:bg-[#50563D] text-white rounded-xl font-black text-xs flex items-center justify-center gap-1.5 shadow-md transition-all disabled:opacity-50 shrink-0"
+                          className="px-4 py-2 bg-[#656B4F] hover:bg-[#50563D] text-white rounded-xl font-black text-xs flex items-center justify-center gap-1.5 shadow-md transition-all disabled:opacity-50 shrink-0 cursor-pointer"
                         >
-                          <CreditCard className="w-3.5 h-3.5" />
-                          <span>{retryingOrderId === order.id ? 'Connecting...' : 'Pay Now / Retry'}</span>
+                          {retryingOrderId === order.id ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                              <span>Connecting...</span>
+                            </>
+                          ) : (
+                            <>
+                              <CreditCard className="w-3.5 h-3.5" />
+                              <span>Pay Now / Retry</span>
+                            </>
+                          )}
                         </button>
                       </div>
                     )}
@@ -410,8 +439,17 @@ export default function OrdersPage() {
                               disabled={retryingOrderId === order.id}
                               className="w-full rounded-xl bg-[#656B4F] hover:bg-[#50563D] px-3.5 py-2.5 text-xs font-black text-white transition-colors disabled:opacity-50 shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                             >
-                              <CreditCard className="w-3.5 h-3.5" />
-                              <span>{retryingOrderId === order.id ? 'Launching Gateway...' : 'Pay Now (Retry)'}</span>
+                              {retryingOrderId === order.id ? (
+                                <>
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                                  <span>Launching Gateway...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <CreditCard className="w-3.5 h-3.5" />
+                                  <span>Pay Now (Retry)</span>
+                                </>
+                              )}
                             </button>
                           )}
 
@@ -443,9 +481,16 @@ export default function OrdersPage() {
                             <button
                               onClick={() => cancelOrder(order.id)}
                               disabled={cancellingId === order.id}
-                              className="w-full rounded-xl border border-red-300 bg-red-50 hover:bg-red-100 px-3.5 py-2 text-xs font-black text-red-800 transition-colors disabled:opacity-50 shadow-xs cursor-pointer"
+                              className="w-full rounded-xl border border-red-300 bg-red-50 hover:bg-red-100 px-3.5 py-2 text-xs font-black text-red-800 transition-colors disabled:opacity-50 shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
                             >
-                              {cancellingId === order.id ? 'Cancelling...' : 'Cancel Order'}
+                              {cancellingId === order.id ? (
+                                <>
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-red-800" />
+                                  <span>Cancelling...</span>
+                                </>
+                              ) : (
+                                'Cancel Order'
+                              )}
                             </button>
                           )}
 
@@ -466,6 +511,11 @@ export default function OrdersPage() {
             })}
           </div>
         )}
+
+        {/* Browser Web Push Notification Setting */}
+        <div className="mt-10">
+          <NotificationManager />
+        </div>
       </main>
 
       <Footer />

@@ -5,10 +5,10 @@ const path = require('path');
 const COMPANY_NAME = 'SAKTHI FROZEN FOODS';
 const COMPANY_TAGLINE = '100% Plant-Based Meat & Vegan Delicacies';
 const COMPANY_EMAIL = process.env.EMAIL_FROM || 'sakthifrozenfoods@gmail.com';
-const COMPANY_PHONE = '+91 98765 43210';
-const COMPANY_ADDRESS = 'Tank Road, Puens colony, Koundampalayam, Coimbatore, Tamil Nadu - 641030, India';
+const COMPANY_PHONE = '+91 80563 89214';
+const COMPANY_ADDRESS = 'peons colony, Kalpana Theatre, opposite Edayarpalayam - Koundampalayam Road, Koundampalayam, Coimbatore, Tamil Nadu - 641030, India';
 const FSSAI_LIC_NO = '12421008000456';
-const WEBSITE_URL = 'www.sakthifrozenfoods.com';
+const WEBSITE_URL = 'buy.tnmockmeat.com';
 
 /**
  * Convert number into formal Indian Currency Words (e.g. "Four Hundred Sixteen and Fifty Paise")
@@ -84,13 +84,13 @@ function generateInvoicePdf(order) {
       doc.on('error', (err) => reject(err));
 
       // ─── Design Tokens & Color Palette ──────────────────────────────────────
-      const C_PRIMARY = '#1C2E1F';       // Deep Forest Primary
-      const C_ACCENT = '#2E4C33';        // Brand Dark Olive Green
-      const C_DARK = '#1F241E';          // Crisp Dark Neutral
+      const C_PRIMARY = '#50563D';       // Deep Olive Primary
+      const C_ACCENT = '#656B4F';        // Brand Olive Green
+      const C_DARK = '#1E201D';          // Crisp Dark Neutral
       const C_MUTED = '#555E51';         // Secondary Label Gray
-      const C_LIGHT_BG = '#F5F8F2';      // Subtle Shaded Background
-      const C_BORDER = '#C8D2C2';        // Fine Border
-      const C_BORDER_STRONG = '#2E4C33'; // Header Border
+      const C_LIGHT_BG = '#F4F7F0';      // Soft Light Olive Background
+      const C_BORDER = '#D4DBC9';        // Clean Box Border
+      const C_BORDER_STRONG = '#656B4F'; // Olive Accent Border
       const C_WHITE = '#FFFFFF';
 
       const pageWidth = doc.page.width;   // 595.28 pt
@@ -99,7 +99,7 @@ function generateInvoicePdf(order) {
       const contentWidth = pageWidth - (margin * 2); // 539.28 pt
 
       // ─── 1. TOP HEADER SECTION (Logo + Brand + Tax Invoice Meta) ────────────
-      const headerH = 92;
+      const headerH = 104;
       doc.roundedRect(margin, margin, contentWidth, headerH, 6).fillAndStroke(C_WHITE, C_BORDER);
       doc.rect(margin, margin, 5, headerH).fill(C_ACCENT);
 
@@ -107,35 +107,51 @@ function generateInvoicePdf(order) {
       let textStartX = margin + 16;
       if (logoPath) {
         try {
-          doc.image(logoPath, margin + 14, margin + 10, { fit: [72, 72], align: 'center', valign: 'center' });
-          textStartX = margin + 94;
+          doc.image(logoPath, margin + 14, margin + 16, { fit: [68, 68], align: 'center', valign: 'center' });
+          textStartX = margin + 92;
         } catch (e) {
           // fallback gracefully
         }
       }
 
-      // Company Info (Left Column)
-      doc.fillColor(C_PRIMARY).fontSize(16).font('Helvetica-Bold').text(COMPANY_NAME, textStartX, margin + 11);
-      doc.fillColor(C_ACCENT).fontSize(8.5).font('Helvetica-Bold').text(COMPANY_TAGLINE, textStartX, margin + 30);
-      doc.fillColor(C_MUTED).fontSize(7.5).font('Helvetica')
-        .text(COMPANY_ADDRESS, textStartX, margin + 43)
-        .text(`Phone: ${COMPANY_PHONE}  |  Email: ${COMPANY_EMAIL}`, textStartX, margin + 54)
-        .fillColor(C_PRIMARY).font('Helvetica-Bold')
-        .text(`FSSAI Central Lic. No: ${FSSAI_LIC_NO}  |  State: Tamil Nadu (33)`, textStartX, margin + 66);
-
       // Tax Invoice Meta Block (Right Column)
       const metaBoxW = 185;
-      const metaBoxX = pageWidth - margin - metaBoxW - 10;
-      doc.fillColor(C_PRIMARY).fontSize(16).font('Helvetica-Bold').text('TAX INVOICE', metaBoxX, margin + 10, { width: metaBoxW, align: 'right' });
+      const metaBoxX = pageWidth - margin - metaBoxW - 12;
 
-      doc.fillColor(C_DARK).fontSize(9).font('Helvetica-Bold')
-        .text(`Invoice No: ${order.orderNumber}`, metaBoxX, margin + 30, { width: metaBoxW, align: 'right' });
+      // Available width for Left Column (strictly bounded to prevent any overlap with right column)
+      const leftColW = metaBoxX - textStartX - 15;
+
+      // Company Info (Left Column)
+      doc.fillColor(C_PRIMARY).fontSize(14).font('Helvetica-Bold')
+        .text(COMPANY_NAME, textStartX, margin + 10, { width: leftColW, ellipsis: true });
+
+      doc.fillColor(C_ACCENT).fontSize(8).font('Helvetica-Bold')
+        .text(COMPANY_TAGLINE, textStartX, margin + 27, { width: leftColW, ellipsis: true });
+
+      doc.fillColor(C_MUTED).fontSize(7).font('Helvetica')
+        .text(COMPANY_ADDRESS, textStartX, margin + 39, { width: leftColW, height: 26, ellipsis: true, lineGap: 1 });
+
+      doc.fillColor(C_MUTED).fontSize(7).font('Helvetica')
+        .text(`Phone: ${COMPANY_PHONE}  |  Email: ${COMPANY_EMAIL}`, textStartX, margin + 67, { width: leftColW, ellipsis: true });
+
+      doc.fillColor(C_PRIMARY).fontSize(7).font('Helvetica-Bold')
+        .text(`FSSAI Lic. No: ${FSSAI_LIC_NO}  |  State: Tamil Nadu (33)`, textStartX, margin + 78, { width: leftColW, ellipsis: true });
+
+      doc.fillColor(C_ACCENT).fontSize(7).font('Helvetica-Bold')
+        .text(`Website: ${WEBSITE_URL}`, textStartX, margin + 89, { width: leftColW, ellipsis: true });
+
+      // Tax Invoice Meta Block (Right Column)
+      doc.fillColor(C_PRIMARY).fontSize(15).font('Helvetica-Bold')
+        .text('TAX INVOICE', metaBoxX, margin + 10, { width: metaBoxW, align: 'right' });
+
+      doc.fillColor(C_DARK).fontSize(8.5).font('Helvetica-Bold')
+        .text(`Invoice No: ${order.orderNumber}`, metaBoxX, margin + 28, { width: metaBoxW, align: 'right' });
 
       const formattedDate = new Date(order.createdAt || Date.now()).toLocaleDateString('en-IN', {
         day: '2-digit', month: 'short', year: 'numeric',
       });
-      doc.fillColor(C_MUTED).fontSize(8).font('Helvetica')
-        .text(`Invoice Date: ${formattedDate}`, metaBoxX, margin + 44, { width: metaBoxW, align: 'right' });
+      doc.fillColor(C_MUTED).fontSize(7.5).font('Helvetica')
+        .text(`Invoice Date: ${formattedDate}`, metaBoxX, margin + 41, { width: metaBoxW, align: 'right' });
 
       const isPaid = order.paymentStatus === 'Paid';
       const isCOD = String(order.paymentMethod || '').toLowerCase().includes('cash') || String(order.paymentMethod || '').toLowerCase().includes('cod');
@@ -143,10 +159,13 @@ function generateInvoicePdf(order) {
 
       doc.fillColor(isPaid ? '#15803D' : isCOD ? '#B45309' : '#DC2626')
         .fontSize(8).font('Helvetica-Bold')
-        .text(`Status: ${payStatusText}`, metaBoxX, margin + 57, { width: metaBoxW, align: 'right' });
+        .text(`Status: ${payStatusText}`, metaBoxX, margin + 55, { width: metaBoxW, align: 'right' });
 
       doc.fillColor(C_MUTED).fontSize(7.5).font('Helvetica')
-        .text(`Payment Mode: ${order.paymentMethod || 'Online'}`, metaBoxX, margin + 70, { width: metaBoxW, align: 'right' });
+        .text(`Payment Mode: ${order.paymentMethod || 'Online'}`, metaBoxX, margin + 68, { width: metaBoxW, align: 'right' });
+
+      doc.fillColor(C_PRIMARY).fontSize(7).font('Helvetica-Bold')
+        .text(`Delivery: -18°C Cold Chain Express`, metaBoxX, margin + 81, { width: metaBoxW, align: 'right' });
 
       let currentY = margin + headerH + 10;
 

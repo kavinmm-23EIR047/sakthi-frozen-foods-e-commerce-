@@ -38,13 +38,8 @@ body { font-size: 1rem; line-height: 1.5; }
   .page-spinner { width: 2.5rem; height: 2.5rem; border: 3px solid rgb(101 107 79 / 0.18); border-top-color: var(--olive-green); border-radius: 999px; animation: spin 700ms linear infinite; }
   .loading-shimmer { background: linear-gradient(90deg, #edf3e9 25%, #f9fcf5 37%, #edf3e9 63%); background-size: 400% 100%; animation: shimmer 1.35s ease infinite; }
   .delivery-loading-screen { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; overflow: hidden; padding: 1.25rem; background: radial-gradient(ellipse at 50% 38%, #fff 0%, #f3f8ed 54%, #e8efdf 100%); }
-  .delivery-loading-card { width: min(100%, 27rem); padding: 2rem 1.5rem; border: 1px solid rgb(79 83 76 / .14); border-radius: 1.75rem; background: rgb(255 255 255 / .9); box-shadow: 0 24px 75px rgb(47 55 36 / .13); text-align: center; }
-  .delivery-loading-scene { position: relative; display: grid; place-items: center; height: 10rem; overflow: hidden; border-radius: 1.25rem; background: linear-gradient(180deg,#f5f9f1,#eaf0e2); }
-  .delivery-loading-glow { position: absolute; width: 9rem; height: 5.5rem; border-radius: 50%; background: #dce8cf; filter: blur(24px); }
-  .delivery-loading-scooter { position: relative; width: min(15rem, 90%); animation: delivery-ride 2.2s ease-in-out infinite; }
-  .delivery-loading-package { position: absolute; right: 17%; top: 28%; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: .65rem; background: #fff; color: #656b4f; box-shadow: 0 5px 14px rgb(47 55 36 / .12); animation: delivery-package 1.2s ease-in-out infinite; }
-  .delivery-road-lines { animation: delivery-road 1s linear infinite; }
-  .delivery-speed-lines { animation: delivery-road .8s linear infinite; }
+  .delivery-loading-card { width: min(100%, 26rem); padding: 2rem 1.5rem; border: 1px solid rgb(79 83 76 / .14); border-radius: 1.75rem; background: rgb(255 255 255 / .92); backdrop-filter: blur(12px); box-shadow: 0 24px 75px rgb(47 55 36 / .13); text-align: center; }
+  .delivery-loading-scene { position: relative; display: flex; align-items: center; justify-content: center; min-height: 9rem; background: transparent; }
   .delivery-loading-dots { display: flex; justify-content: center; gap: .35rem; margin: 1.25rem 0 .85rem; }
   .delivery-loading-dots i { width: .4rem; height: .4rem; border-radius: 50%; background: #656b4f; animation: delivery-dot 1s ease-in-out infinite; }
   .delivery-loading-dots i:nth-child(2) { animation-delay: .15s; }

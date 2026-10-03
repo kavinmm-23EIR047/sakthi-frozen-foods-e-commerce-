@@ -2,7 +2,7 @@
 export const SHOP_COORDINATES = {
   lat: 11.0431204487083,
   lng: 76.81346682338442,
-  address: 'Tank Road, Puens colony, Koundampalayam, Coimbatore, Tamil Nadu 641030',
+  address: 'peons colony, Kalpana Theatre, opposite Edayarpalayam - Koundampalayam Road, Koundampalayam, Coimbatore, Tamil Nadu 641030',
 };
 
 export type DeliveryMode = 'BIKE' | 'BUS' | 'TRAVELS';
@@ -27,7 +27,7 @@ export const DELIVERY_ZONES: DeliveryZone[] = [
     mode: 'BIKE',
     price: 40, // Base Min ₹40, Max ₹250 (calculated via GPS distance)
     aliases: [
-      'coimbatore', 'kovai', 'koundampalayam', 'puens colony', 'tank road', 'kavundampalayam',
+      'coimbatore', 'kovai', 'koundampalayam', 'peons colony', 'puens colony', 'kalpana theatre', 'edayarpalayam', 'tank road', 'kavundampalayam',
       'peelamedu', 'rs puram', 'gandhipuram', 'saravanampatti', 'singanallur', 'saibaba colony',
       'thudiyalur', 'kuniyamuthur', 'ondipudur', 'kalapatti', 'vilankurichi',
       'ganapathy', 'race course', 'vadavalli', 'hopes',
