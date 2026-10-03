@@ -245,6 +245,42 @@ async function notifyAdminNewOrder(order) {
   }
 }
 
+async function broadcastProductUpdate(product, updateType = 'backInStock') {
+  try {
+    const subscriptions = await PushSubscription.find({
+      isActive: true,
+      'preferences.promotional': { $ne: false },
+    }).lean();
+
+    if (!subscriptions || subscriptions.length === 0) return { delivered: 0, total: 0 };
+
+    const title = updateType === 'bestSeller'
+      ? `🔥 Best Seller Alert: ${product.name}`
+      : `✨ Back in Stock: ${product.name}!`;
+
+    const body = updateType === 'bestSeller'
+      ? `Now trending as a Best Seller! Order your pack at ₹${product.price} today.`
+      : `Fresh batch is now in stock at ₹${product.price}. Order for express -18°C delivery.`;
+
+    const payload = formatPayload({
+      title,
+      body,
+      url: `/product/${product._id || product.id}`,
+      image: product.image || undefined,
+      tag: `prod-${product._id || product.id}-${updateType}`,
+    });
+
+    const results = await Promise.allSettled(
+      subscriptions.map((sub) => sendSinglePush(sub, payload))
+    );
+    const delivered = results.filter((r) => r.status === 'fulfilled' && r.value?.success).length;
+    return { delivered, total: subscriptions.length };
+  } catch (err) {
+    console.error('Error broadcasting product push update:', err.message);
+    return { delivered: 0, error: err.message };
+  }
+}
+
 async function sendTestNotification(userId) {
   return sendPushNotification(userId, {
     title: '🔔 Test Notification',
@@ -266,5 +302,6 @@ module.exports = {
   notifyOrderDelivered,
   notifyOrderCancelled,
   notifyAdminNewOrder,
+  broadcastProductUpdate,
   sendTestNotification,
 };

@@ -4,6 +4,7 @@ const router = express.Router();
 const Product = require('../models/Product');
 const { protect, admin } = require('../middleware/authMiddleware');
 const cacheService = require('../services/cacheService');
+const { broadcastProductUpdate } = require('../services/pushNotificationService');
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').slice(0, 80);
@@ -112,16 +113,28 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET single product by ID (Cached via Upstash Redis)
+// GET single product by ID or Code (Cached via Upstash Redis)
 router.get('/:id', async (req, res) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ success: false, error: 'Invalid product id' });
+    const paramId = String(req.params.id || '').trim();
+    if (!paramId) return res.status(400).json({ success: false, error: 'Product ID required' });
     res.set('Cache-Control', 'public, max-age=60, s-maxage=60, stale-while-revalidate=120');
 
-    const cacheKey = `sakthi:product:${req.params.id}`;
+    const cacheKey = `sakthi:product:${paramId}`;
 
     const { data: responsePayload } = await cacheService.getOrSet(cacheKey, async () => {
-      const product = await Product.findById(req.params.id);
+      let product = null;
+      if (mongoose.isValidObjectId(paramId)) {
+        product = await Product.findById(paramId);
+      }
+      if (!product) {
+        product = await Product.findOne({
+          $or: [
+            { code: paramId },
+            { name: new RegExp(`^${escapeRegex(paramId)}$`, 'i') }
+          ]
+        });
+      }
       if (!product) return null;
 
       return {
@@ -208,6 +221,13 @@ router.put('/:id', protect, admin, async (req, res) => {
       cacheService.delPattern('sakthi:products:*'),
       cacheService.delPattern('sakthi:categories:*'),
     ]);
+
+    // Send push notification when In Stock or Best Seller is enabled
+    if (input.isPopular === true) {
+      broadcastProductUpdate(updated, 'bestSeller').catch((e) => console.error('Push error:', e.message));
+    } else if (input.stock !== undefined && input.stock > 0 && req.body.broadcastStock) {
+      broadcastProductUpdate(updated, 'backInStock').catch((e) => console.error('Push error:', e.message));
+    }
 
     res.json({
       success: true,

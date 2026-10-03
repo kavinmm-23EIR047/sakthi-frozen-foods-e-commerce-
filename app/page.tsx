@@ -1128,45 +1128,49 @@ export default function StorefrontHomePage() {
                 </div>
               ))
             ) : (
-              topProducts.slice(0, 4).map((p, idx) => (
-                <div
-                  key={p.id || idx}
-                  className="bg-white rounded-2xl border border-stone-200/80 shadow-2xs hover:shadow-md transition-all p-3.5 flex flex-col justify-between group relative w-[220px] xs:w-[240px] sm:w-auto shrink-0 snap-start"
-                >
-                  <div className="relative w-full aspect-square max-h-[240px] rounded-xl overflow-hidden bg-stone-50 mb-3 border border-stone-100 flex items-center justify-center">
-                    <Link href={`/product/${p.id}`} className="w-full h-full block">
-                      {p.image ? (
-                        <img
-                          src={p.image}
-                          alt={p.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              topProducts.slice(0, 4).map((p, idx) => {
+                const prodId = p.id || (p as any)._id || '';
+                return (
+                  <div
+                    key={prodId || idx}
+                    onClick={() => prodId && router.push(`/product/${prodId}`)}
+                    className="bg-white rounded-2xl border border-stone-200/80 shadow-2xs hover:shadow-md transition-all p-3.5 flex flex-col justify-between group relative w-[220px] xs:w-[240px] sm:w-auto shrink-0 snap-start cursor-pointer"
+                  >
+                    <div className="relative w-full aspect-square max-h-[240px] rounded-xl overflow-hidden bg-stone-50 mb-3 border border-stone-100 flex items-center justify-center">
+                      <Link href={`/product/${prodId}`} className="w-full h-full block">
+                        {p.image ? (
+                          <img
+                            src={p.image}
+                            alt={p.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-[#F4F7F0]">
+                            <Utensils className="w-8 h-8 text-[#656B4F]/60 mb-2" />
+                            <span className="text-xs font-bold text-[#50563D]">{p.name}</span>
+                          </div>
+                        )}
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={(e) => toggleSaveProduct(e, p)}
+                        className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center text-stone-600 hover:text-rose-600 transition-colors shadow-2xs cursor-pointer"
+                        title={isInWishlist(prodId) ? 'Remove from wishlist' : 'Save to wishlist'}
+                        aria-label={isInWishlist(prodId) ? 'Remove from wishlist' : 'Save to wishlist'}
+                      >
+                        <Heart
+                          className={`w-3.5 h-3.5 ${isInWishlist(prodId) ? 'fill-rose-500 text-rose-500' : ''}`}
                         />
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-[#F4F7F0]">
-                          <Utensils className="w-8 h-8 text-[#656B4F]/60 mb-2" />
-                          <span className="text-xs font-bold text-[#50563D]">{p.name}</span>
-                        </div>
-                      )}
-                    </Link>
+                      </button>
+                    </div>
 
-                    <button
-                      onClick={(e) => toggleSaveProduct(e, p)}
-                      className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center text-stone-600 hover:text-rose-600 transition-colors shadow-2xs"
-                      title={isInWishlist(p.id) ? 'Remove from wishlist' : 'Save to wishlist'}
-                      aria-label={isInWishlist(p.id) ? 'Remove from wishlist' : 'Save to wishlist'}
-                    >
-                      <Heart
-                        className={`w-3.5 h-3.5 ${isInWishlist(p.id) ? 'fill-rose-500 text-rose-500' : ''}`}
-                      />
-                    </button>
-                  </div>
-
-                  <div className="space-y-1 mb-3">
-                    <Link href={`/product/${p.id}`}>
-                      <h3 className="font-extrabold text-sm sm:text-base text-[#1E201D] group-hover:text-[#50563D] transition-colors line-clamp-2 min-h-[44px] leading-snug">
-                        {p.name}
-                      </h3>
-                    </Link>
+                    <div className="space-y-1 mb-3">
+                      <Link href={`/product/${prodId}`}>
+                        <h3 className="font-extrabold text-sm sm:text-base text-[#1E201D] group-hover:text-[#50563D] transition-colors line-clamp-2 min-h-[44px] leading-snug">
+                          {p.name}
+                        </h3>
+                      </Link>
                     <p className="text-xs text-[#61665D] line-clamp-2 min-h-[32px] leading-relaxed">
                       {p.description || 'Juicy, tender and full of authentic flavor.'}
                     </p>
@@ -1260,8 +1264,9 @@ export default function StorefrontHomePage() {
                     );
                   })()}
                 </div>
-              ))
-            )}
+              );
+            })
+          )}
           </div>
         </section>
 

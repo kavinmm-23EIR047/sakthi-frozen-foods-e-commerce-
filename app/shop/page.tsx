@@ -136,7 +136,10 @@ function ProductCard({
   };
 
   const handleCardClick = () => {
-    router.push(`/product/${product.id}`);
+    const targetId = product.id || (product as any)._id || product.code;
+    if (targetId) {
+      router.push(`/product/${targetId}`);
+    }
   };
 
   if (viewMode === 'list') {
