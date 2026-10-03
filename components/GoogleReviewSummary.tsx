@@ -220,100 +220,49 @@ export default function GoogleReviewSummary({
   // Standard Light / Theme Card (Default for Loved by Customers section)
   return (
     <div
-      className={`rounded-2xl sm:rounded-3xl bg-white text-[#1E201D] p-5 sm:p-6 border border-stone-200/90 shadow-sm relative overflow-hidden ${className}`}
+      className={`rounded-2xl sm:rounded-3xl bg-white text-[#1E201D] p-4 sm:p-5 border border-stone-200/90 shadow-2xs relative overflow-hidden flex flex-col justify-between gap-3.5 ${className}`}
     >
-      {/* Header with Google Logo & Verified Badge */}
-      <div className="flex items-center justify-between pb-3 border-b border-stone-100 mb-4">
+      {/* Header with Google Logo, Score, Stars & Verified Badge */}
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-[#F8F9FA] border border-stone-200 flex items-center justify-center p-1.5 shadow-2xs">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#F8F9FA] border border-stone-200 flex items-center justify-center p-2 shadow-2xs shrink-0">
             <GoogleGIcon className="w-5 h-5" />
           </div>
           <div>
             <h3 className="text-xs sm:text-sm font-extrabold text-[#2C382A] leading-tight">
-              Google Review Summary
+              Google Customer Reviews
             </h3>
-            <p className="text-[11px] text-[#656B4F] leading-tight font-medium">
-              mock meat &amp; frozen foods supplier
-            </p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-xs sm:text-sm font-black text-[#2C382A]">4.9</span>
+              <div className="flex items-center text-amber-400">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star key={s} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                ))}
+              </div>
+              <span className="text-[11px] text-[#656B4F] font-bold">
+                (33 Reviews)
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#EAF0E5] text-[#50563D] text-[10.5px] font-extrabold">
+        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#EAF0E5] text-[#50563D] text-[10.5px] font-extrabold shrink-0">
           <ShieldCheck className="w-3.5 h-3.5 text-[#50563D]" />
           <span>Verified 4.9 ★</span>
         </div>
       </div>
 
-      {/* Rating Breakdown Bars & Score */}
-      <div className="grid grid-cols-12 gap-3 sm:gap-4 items-center mb-5">
-        {/* Rating Bars (Col 7) */}
-        <div className="col-span-7 space-y-1.5">
-          {/* 5 Stars */}
-          <div className="flex items-center gap-2 text-[11px] font-bold text-stone-600">
-            <span className="w-2.5">5</span>
-            <div className="flex-1 h-2 rounded-full bg-stone-100 border border-stone-200/60 overflow-hidden">
-              <div className="h-full bg-amber-400 rounded-full w-[94%]" />
-            </div>
-          </div>
-          {/* 4 Stars */}
-          <div className="flex items-center gap-2 text-[11px] font-bold text-stone-600">
-            <span className="w-2.5">4</span>
-            <div className="flex-1 h-2 rounded-full bg-stone-100 border border-stone-200/60 overflow-hidden">
-              <div className="h-full bg-amber-400 rounded-full w-[12%]" />
-            </div>
-          </div>
-          {/* 3 Stars */}
-          <div className="flex items-center gap-2 text-[11px] font-bold text-stone-400">
-            <span className="w-2.5">3</span>
-            <div className="flex-1 h-2 rounded-full bg-stone-100 border border-stone-200/60 overflow-hidden">
-              <div className="h-full bg-amber-400 rounded-full w-[0%]" />
-            </div>
-          </div>
-          {/* 2 Stars */}
-          <div className="flex items-center gap-2 text-[11px] font-bold text-stone-400">
-            <span className="w-2.5">2</span>
-            <div className="flex-1 h-2 rounded-full bg-stone-100 border border-stone-200/60 overflow-hidden">
-              <div className="h-full bg-amber-400 rounded-full w-[0%]" />
-            </div>
-          </div>
-          {/* 1 Star */}
-          <div className="flex items-center gap-2 text-[11px] font-bold text-stone-400">
-            <span className="w-2.5">1</span>
-            <div className="flex-1 h-2 rounded-full bg-stone-100 border border-stone-200/60 overflow-hidden">
-              <div className="h-full bg-amber-400 rounded-full w-[0%]" />
-            </div>
-          </div>
-        </div>
-
-        {/* Big 4.9 Score (Col 5) */}
-        <div className="col-span-5 flex flex-col items-center justify-center text-center pl-2 border-l border-stone-100">
-          <span className="text-4xl sm:text-5xl font-black text-[#2C382A] tracking-tight leading-none font-display">
-            4.9
-          </span>
-          <div className="flex items-center text-amber-400 mt-1.5 gap-0.5">
-            {[1, 2, 3, 4, 5].map((s) => (
-              <Star key={s} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-            ))}
-          </div>
-          <span className="text-[11px] text-[#656B4F] font-bold mt-1">
-            (33 Reviews)
-          </span>
-        </div>
-      </div>
-
-      {/* Action Buttons - Purely Direct Google Reviews */}
-      <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
-        <a
-          href={GOOGLE_MAPS_REVIEW_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full py-2.5 px-4 rounded-xl bg-[#50563D] hover:bg-[#3D422E] text-white font-black text-xs flex items-center justify-center gap-2 transition-all shadow-md hover:scale-[1.02] active:scale-[0.98]"
-        >
-          <GoogleGIcon className="w-4 h-4 bg-white rounded-full p-0.5" />
-          <span>Add Your Review on Google</span>
-          <ExternalLink className="w-3.5 h-3.5 text-white/80" />
-        </a>
-      </div>
+      {/* Direct Action Button */}
+      <a
+        href={GOOGLE_MAPS_REVIEW_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="w-full py-2.5 px-4 rounded-xl bg-[#50563D] hover:bg-[#3D422E] text-white font-black text-xs flex items-center justify-center gap-2 transition-all shadow-xs hover:scale-[1.01] active:scale-[0.98]"
+      >
+        <GoogleGIcon className="w-4 h-4 bg-white rounded-full p-0.5" />
+        <span>Add Your Review on Google</span>
+        <ExternalLink className="w-3.5 h-3.5 text-white/80" />
+      </a>
     </div>
   );
 }

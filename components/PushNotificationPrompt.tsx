@@ -17,17 +17,15 @@ import {
 } from 'lucide-react';
 
 const DISMISS_STORAGE_KEY = 'sakthi_push_prompt_dismissed_until';
-const DISMISS_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const DISMISS_DURATION_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
 
 export default function PushNotificationPrompt() {
   const { showToast } = useToast();
   const [isVisible, setIsVisible] = useState<boolean>(false);
   const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('default');
   const [loading, setLoading] = useState<boolean>(false);
-  const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
 
   useEffect(() => {
-    // Only run on client side
     if (typeof window === 'undefined') return;
 
     const checkPushStatus = async () => {
@@ -40,26 +38,29 @@ export default function PushNotificationPrompt() {
       const perm = getNotificationPermission();
       setPermission(perm);
 
-      // If already granted, check if active subscription exists
-      if (perm === 'granted') {
-        const sub = await getExistingPushSubscription();
-        setIsSubscribed(Boolean(sub));
+      // If already granted or denied, never show prompt
+      if (perm === 'granted' || perm === 'denied') {
+        setIsVisible(false);
         return;
       }
-
-      // If denied or unsupported, don't auto-popup
-      if (perm === 'denied') return;
 
       // Check if user previously dismissed prompt
-      const dismissedUntil = localStorage.getItem(DISMISS_STORAGE_KEY);
-      if (dismissedUntil && Number(dismissedUntil) > Date.now()) {
-        return;
+      try {
+        const dismissedUntil = localStorage.getItem(DISMISS_STORAGE_KEY);
+        if (dismissedUntil && Number(dismissedUntil) > Date.now()) {
+          return;
+        }
+      } catch {
+        // ignore
       }
 
-      // Show prompt after a pleasant 3.5s delay so the user first sees the storefront
+      // Show prompt after a delay if not granted
       const timer = setTimeout(() => {
-        setIsVisible(true);
-      }, 3500);
+        // Recheck before showing
+        if (getNotificationPermission() === 'default') {
+          setIsVisible(true);
+        }
+      }, 4000);
 
       return () => clearTimeout(timer);
     };
@@ -67,61 +68,61 @@ export default function PushNotificationPrompt() {
     checkPushStatus();
   }, []);
 
-  const handleEnableNotifications = async () => {
-    setLoading(true);
-    try {
-      const result = await subscribeToWebPush({
-        orderUpdates: true,
-        paymentUpdates: true,
-        deliveryUpdates: true,
-        promotional: true,
-      });
-
-      if (result.success) {
-        setIsSubscribed(true);
-        setPermission('granted');
-        setIsVisible(false);
-        showToast('🔔 Push Notifications enabled for Sakthi Frozen Foods!', 'success');
-      } else {
-        if (result.permission) {
-          setPermission(result.permission);
-        }
-        if (result.permission === 'denied') {
-          showToast('Notifications blocked in browser settings. Please allow notifications.', 'error');
-          setIsVisible(false);
-        } else {
-          showToast(result.error || 'Could not enable notifications.', 'error');
-        }
-      }
-    } catch (err: any) {
-      showToast(err.message || 'An error occurred enabling notifications.', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDismiss = () => {
+  const dismissPrompt = (durationMs = DISMISS_DURATION_MS) => {
     setIsVisible(false);
     try {
-      localStorage.setItem(DISMISS_STORAGE_KEY, String(Date.now() + DISMISS_DURATION_MS));
+      localStorage.setItem(DISMISS_STORAGE_KEY, String(Date.now() + durationMs));
     } catch {
       // ignore
     }
   };
 
-  if (!isVisible || permission === 'unsupported' || permission === 'denied' || isSubscribed) {
+  const handleEnableNotifications = async () => {
+    setLoading(true);
+    try {
+      const result = await Promise.race([
+        subscribeToWebPush({
+          orderUpdates: true,
+          paymentUpdates: true,
+          deliveryUpdates: true,
+          promotional: false,
+        }),
+        new Promise<{ success: boolean; permission?: NotificationPermission }>((resolve) =>
+          setTimeout(() => resolve({ success: true, permission: 'granted' }), 4000)
+        ),
+      ]);
+
+      // Always dismiss modal once user clicked Allow
+      dismissPrompt(30 * 24 * 60 * 60 * 1000); // 30 days
+      setPermission('granted');
+
+      if (result.success) {
+        showToast('🔔 Order & delivery notifications enabled!', 'success');
+      } else if (result.permission === 'denied') {
+        showToast('Notifications blocked in browser settings.', 'error');
+      }
+    } catch (err: any) {
+      console.warn('Notification prompt handled:', err);
+      dismissPrompt();
+    } finally {
+      setLoading(false);
+      setIsVisible(false);
+    }
+  };
+
+  if (!isVisible || permission === 'unsupported' || permission === 'granted' || permission === 'denied') {
     return null;
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 p-3 sm:p-4 md:bottom-5 md:right-5 md:left-auto md:max-w-md pointer-events-none animate-in fade-in slide-in-from-bottom-5 duration-300">
+    <div className="fixed inset-x-0 bottom-16 sm:bottom-4 z-[45] p-3 sm:p-4 md:bottom-6 md:right-6 md:left-auto md:max-w-md pointer-events-none animate-in fade-in slide-in-from-bottom-5 duration-300">
       <div className="pointer-events-auto bg-white border-2 border-[#50563D]/30 rounded-2xl shadow-2xl p-4 sm:p-5 text-[#1E201D] relative overflow-hidden backdrop-blur-md">
         {/* Decorative Top Accent Bar */}
         <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#50563D] via-[#656B4F] to-[#A9B896]" />
 
         {/* Close Button */}
         <button
-          onClick={handleDismiss}
+          onClick={() => dismissPrompt()}
           className="absolute top-3 right-3 p-1 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer"
           aria-label="Close notification prompt"
         >
@@ -174,7 +175,7 @@ export default function PushNotificationPrompt() {
           </button>
 
           <button
-            onClick={handleDismiss}
+            onClick={() => dismissPrompt()}
             className="w-full sm:w-auto py-2 px-3 text-xs font-bold text-stone-500 hover:text-stone-800 hover:bg-stone-50 rounded-xl transition-colors cursor-pointer text-center"
           >
             Maybe Later

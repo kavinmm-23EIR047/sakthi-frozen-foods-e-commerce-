@@ -35,6 +35,7 @@ import {
   Bell,
   Building2,
   ExternalLink,
+  FileText,
 } from 'lucide-react';
 import { MAIN_SITE_URL } from '@/lib/config';
 import { useCart } from '@/context/CartContext';
@@ -274,11 +275,35 @@ export default function Navbar({
                 )}
               </div>
 
-              <a href="#about" className="px-3 py-2 rounded-lg hover:text-[#656B4F] hover:bg-gray-100 transition-all">
-                About
+              <Link
+                href="/help"
+                className={`px-3 py-2 rounded-lg transition-all ${
+                  pathname === '/help'
+                    ? 'text-[#50563D] bg-[#EAF0E5] font-black'
+                    : 'hover:text-[#656B4F] hover:bg-gray-100'
+                }`}
+              >
+                Help
+              </Link>
+
+              <a
+                href={`${MAIN_SITE_URL}/about`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 px-3 py-2 rounded-lg hover:text-[#656B4F] hover:bg-gray-100 transition-all"
+              >
+                <span>About</span>
+                <ExternalLink className="w-3 h-3 opacity-50" />
               </a>
-              <a href="#contact" className="px-3 py-2 rounded-lg hover:text-[#656B4F] hover:bg-gray-100 transition-all">
-                Contact
+
+              <a
+                href={`${MAIN_SITE_URL}/contact`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 px-3 py-2 rounded-lg hover:text-[#656B4F] hover:bg-gray-100 transition-all"
+              >
+                <span>Contact</span>
+                <ExternalLink className="w-3 h-3 opacity-50" />
               </a>
 
               {/* Corporate & Wholesale Cross-Domain Link */}
@@ -437,20 +462,22 @@ export default function Navbar({
 
               <span className="text-stone-300 select-none text-[9px]">•</span>
 
-              <a
-                href="#contact"
+              <Link
+                href="/help"
                 className="inline-flex items-center gap-1.5 font-medium text-gray-700 hover:text-[#656B4F] transition-colors shrink-0"
               >
                 <HelpCircle className="w-3.5 h-3.5 text-[#656B4F] shrink-0" />
                 <span>Help</span>
-              </a>
+              </Link>
 
               <span className="text-stone-300 select-none text-[9px]">•</span>
 
               <a
-                href="tel:+918056389214"
+                href={`${MAIN_SITE_URL}/contact`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-[#656B4F] font-bold hover:underline shrink-0"
-                title="Contact Us"
+                title="Contact Sakthi Foods"
               >
                 <PhoneCall className="w-3.5 h-3.5 text-[#656B4F] shrink-0" />
                 <span>Contact</span>
@@ -551,8 +578,55 @@ export default function Navbar({
                     <ExternalLink className="ml-auto h-3.5 w-3.5 text-emerald-600" />
                   </a>
 
-                  <a href="#about" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"><Leaf className="h-4 w-4" />About Sakthi Frozen</a>
-                  <a href="#contact" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"><HelpCircle className="h-4 w-4" />Help & contact</a>
+                  <Link
+                    href="/help"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition-all ${
+                      pathname === '/help'
+                        ? 'bg-[#EAF0E5] text-[#50563D] font-black shadow-2xs'
+                        : 'font-semibold text-[#26362a] hover:bg-[#edf3e9]'
+                    }`}
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                    <span>Help & Ordering Guide</span>
+                  </Link>
+
+                  <Link
+                    href="/terms"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition-all ${
+                      pathname === '/terms'
+                        ? 'bg-[#EAF0E5] text-[#50563D] font-black shadow-2xs'
+                        : 'font-semibold text-[#26362a] hover:bg-[#edf3e9]'
+                    }`}
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span>Terms & Storage Policy</span>
+                  </Link>
+
+                  <a
+                    href={`${MAIN_SITE_URL}/about`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"
+                  >
+                    <Leaf className="h-4 w-4" />
+                    <span>About Sakthi Frozen</span>
+                    <ExternalLink className="ml-auto h-3.5 w-3.5 text-gray-400" />
+                  </a>
+
+                  <a
+                    href={`${MAIN_SITE_URL}/contact`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"
+                  >
+                    <PhoneCall className="h-4 w-4" />
+                    <span>Contact Us</span>
+                    <ExternalLink className="ml-auto h-3.5 w-3.5 text-gray-400" />
+                  </a>
                 </nav>
                 <div className="mt-6 border-t border-[#e4e9df] pt-4">
                   <p className="mb-2 px-3 text-[10px] font-extrabold uppercase tracking-widest text-[#818b7c]">Shop categories</p>
@@ -662,7 +736,7 @@ export default function Navbar({
             }`}
           >
             <UserRound className="w-4.5 h-4.5 mb-0.5" />
-            <span className="text-[10px] font-bold leading-none">{user ? 'Orders' : 'Account'}</span>
+            <span className="text-[10px] font-bold leading-none">Account</span>
           </Link>
         </div>
       </div>

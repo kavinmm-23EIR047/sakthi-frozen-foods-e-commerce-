@@ -877,29 +877,29 @@ export default function StorefrontHomePage() {
             {/* All Categories Item */}
             <div
               onClick={(e) => handleCategoryItemClick(e, '/shop')}
-              className="flex w-[100px] sm:w-[115px] md:w-auto min-w-0 bg-[#50563D] text-white rounded-2xl p-2.5 sm:p-3 flex-col items-center justify-center shrink-0 md:shrink h-[105px] sm:h-[115px] md:h-[125px] shadow-xs border border-[#50563D] active:scale-[0.98] cursor-pointer snap-start transition-transform"
+              className="flex w-[104px] sm:w-[120px] md:w-auto min-w-0 bg-[#50563D] text-white rounded-2xl p-2 sm:p-2.5 flex-col items-center justify-center shrink-0 md:shrink h-[114px] sm:h-[124px] md:h-[134px] shadow-xs border border-[#50563D] active:scale-[0.98] cursor-pointer snap-start transition-transform"
             >
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/15 flex items-center justify-center ring-1 ring-white/20 shadow-2xs shrink-0 mb-1.5">
-                <LayoutGrid className="w-5 h-5 text-[#EAF0E5]" />
+              <div className="w-12 h-12 sm:w-13 sm:h-13 rounded-2xl bg-white/15 flex items-center justify-center ring-1 ring-white/20 shadow-2xs shrink-0 mb-1.5">
+                <LayoutGrid className="w-6 h-6 text-[#EAF0E5]" />
               </div>
               <span className="text-[11px] sm:text-xs font-black text-white leading-tight tracking-tight text-center">
                 All Products
               </span>
             </div>
 
-            {/* Clean Category Items */}
+            {/* Clean Category Items with Larger Food Image */}
             {categoriesList.map((cat, idx) => (
               <div
                 key={cat.id || cat.name || idx}
                 onClick={(e) => handleCategoryItemClick(e, cat.link)}
-                className="flex w-[100px] sm:w-[115px] md:w-auto min-w-0 bg-white rounded-2xl p-2.5 sm:p-3 flex-col items-center justify-center shrink-0 md:shrink h-[105px] sm:h-[115px] md:h-[125px] shadow-2xs border border-[#DFE7DB] active:scale-[0.98] cursor-pointer snap-start transition-transform hover:border-[#656B4F]/40"
+                className="flex w-[104px] sm:w-[120px] md:w-auto min-w-0 bg-white rounded-2xl p-2 sm:p-2.5 flex-col items-center justify-center shrink-0 md:shrink h-[114px] sm:h-[124px] md:h-[134px] shadow-2xs border border-[#DFE7DB] active:scale-[0.98] cursor-pointer snap-start transition-transform hover:border-[#656B4F]/40"
               >
-                {/* Circular Food Image */}
-                <div className="relative w-11 h-11 sm:w-13 sm:h-13 rounded-full p-0.5 bg-[#FAFBF7] border border-[#D5DFD0] shadow-xs shrink-0 mb-1.5">
+                {/* Large Prominent Circular Food Image */}
+                <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full p-0.5 bg-[#FAFBF7] border border-[#D5DFD0] shadow-xs shrink-0 mb-1.5 overflow-hidden">
                   <img
                     src={cat.img}
                     alt={cat.name}
-                    className="w-full h-full rounded-full object-cover pointer-events-none"
+                    className="w-full h-full rounded-full object-cover pointer-events-none scale-105"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = getCategoryFallbackImage(cat.name);
                     }}
@@ -907,7 +907,7 @@ export default function StorefrontHomePage() {
                 </div>
 
                 {/* Clean Category Title */}
-                <span className="text-[11px] sm:text-xs font-bold text-[#1E201D] leading-tight line-clamp-2 px-0.5 text-center tracking-tight">
+                <span className="text-[11px] sm:text-xs font-black text-[#1E201D] leading-tight line-clamp-2 px-0.5 text-center tracking-tight">
                   {formatCategoryTitle(cat.name)}
                 </span>
               </div>

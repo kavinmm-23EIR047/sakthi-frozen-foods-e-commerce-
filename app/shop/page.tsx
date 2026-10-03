@@ -226,10 +226,12 @@ function ProductCard({
             </div>
 
             {packOptions.length > 1 ? (
-              <div className="w-full" onClick={(e) => e.stopPropagation()}>
-                <div className="p-1 bg-[#E8EEE0] rounded-xl border border-[#4F534C]/20 shadow-inner flex items-center gap-1">
+              <div className="w-full max-w-[280px]" onClick={(e) => e.stopPropagation()}>
+                <div className="p-0.5 bg-[#EAEFE3] rounded-xl border border-[#50563D]/20 shadow-inner grid grid-cols-2 gap-1">
                   {packOptions.map((opt, idx) => {
                     const isSelected = selectedWeightIdx === idx;
+                    const cleanW = formatCleanWeight(opt.weight);
+                    const badgeLabel = opt.badge === 'Retail' ? 'Retail' : 'Bulk';
                     return (
                       <button
                         key={opt.weight}
@@ -239,33 +241,39 @@ function ProductCard({
                           e.stopPropagation();
                           setSelectedWeightIdx(idx);
                         }}
-                        className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${
+                        className={`py-1.5 px-2 rounded-lg text-center transition-all cursor-pointer select-none flex items-center justify-center gap-1.5 min-w-0 ${
                           isSelected
-                            ? 'bg-[#50563D] text-white shadow-xs border border-[#50563D]'
-                            : 'text-[#4F534C] hover:bg-white/70 hover:text-[#1E201D] border border-transparent'
+                            ? 'bg-[#50563D] text-white shadow-xs font-black'
+                            : 'text-[#4A5344] hover:bg-white/70 hover:text-[#1E201D] font-bold'
                         }`}
                         aria-pressed={isSelected}
                       >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${
-                            isSelected ? 'bg-[#86EFAC]' : 'bg-[#656B4F]/40'
+                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                            isSelected ? 'bg-[#A9F2B7]' : 'bg-[#50563D]/30'
                           }`}
                         />
-                        <span className="uppercase text-[9px] tracking-wider font-extrabold opacity-90">
-                          {opt.badge}
+                        <span className="text-xs font-extrabold whitespace-nowrap leading-none">
+                          {cleanW}
                         </span>
-                        <span className="font-extrabold text-[11px]">{opt.weight}</span>
+                        <span
+                          className={`text-[9px] uppercase tracking-wider font-extrabold whitespace-nowrap leading-none ${
+                            isSelected ? 'text-white/80' : 'text-[#656B4F]'
+                          }`}
+                        >
+                          {badgeLabel}
+                        </span>
                       </button>
                     );
                   })}
                 </div>
               </div>
             ) : packOptions.length === 1 ? (
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 text-xs font-bold text-[#50563D]">
-                <span className="text-[9px] font-black uppercase bg-white/80 px-1.5 py-0.5 rounded text-[#50563D]">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#EAEFE3] border border-[#50563D]/20 text-xs font-bold text-[#50563D]">
+                <span className="text-[9px] font-black uppercase bg-white/90 px-1.5 py-0.5 rounded text-[#50563D]">
                   {packOptions[0].badge}
                 </span>
-                <span className="font-extrabold text-[11px]">{packOptions[0].weight}</span>
+                <span className="font-extrabold text-[11px]">{formatCleanWeight(packOptions[0].weight)}</span>
               </div>
             ) : null}
 
@@ -416,9 +424,11 @@ function ProductCard({
 
         {packOptions.length > 1 ? (
           <div className="w-full" onClick={(e) => e.stopPropagation()}>
-            <div className="p-0.5 bg-[#E8EEE0] rounded-xl border border-[#4F534C]/20 shadow-inner flex items-center gap-1">
+            <div className="p-0.5 bg-[#EAEFE3] rounded-xl border border-[#50563D]/20 shadow-inner grid grid-cols-2 gap-1">
               {packOptions.map((opt, idx) => {
                 const isSelected = selectedWeightIdx === idx;
+                const cleanW = formatCleanWeight(opt.weight);
+                const badgeLabel = opt.badge === 'Retail' ? 'Retail' : 'Bulk';
                 return (
                   <button
                     key={opt.weight}
@@ -428,33 +438,39 @@ function ProductCard({
                       e.stopPropagation();
                       setSelectedWeightIdx(idx);
                     }}
-                    className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer relative ${
+                    className={`py-1.5 px-1 rounded-lg text-center transition-all cursor-pointer select-none flex items-center justify-center gap-1 min-w-0 ${
                       isSelected
-                        ? 'bg-[#50563D] text-white shadow-xs border border-[#50563D]'
-                        : 'text-[#4F534C] hover:bg-white/70 hover:text-[#1E201D] border border-transparent'
+                        ? 'bg-[#50563D] text-white shadow-xs font-black'
+                        : 'text-[#4A5344] hover:bg-white/70 hover:text-[#1E201D] font-bold'
                     }`}
                     aria-pressed={isSelected}
                   >
                     <span
-                      className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${
-                        isSelected ? 'bg-[#86EFAC]' : 'bg-[#656B4F]/40'
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        isSelected ? 'bg-[#A9F2B7]' : 'bg-[#50563D]/30'
                       }`}
                     />
-                    <span className="uppercase text-[8px] tracking-wider font-extrabold opacity-90">
-                      {opt.badge}
+                    <span className="text-[10px] sm:text-[11px] font-black whitespace-nowrap leading-none">
+                      {cleanW}
                     </span>
-                    <span className="font-extrabold">{opt.weight}</span>
+                    <span
+                      className={`text-[8px] sm:text-[9px] uppercase tracking-wider font-extrabold whitespace-nowrap leading-none ${
+                        isSelected ? 'text-white/80' : 'text-[#656B4F]'
+                      }`}
+                    >
+                      {badgeLabel}
+                    </span>
                   </button>
                 );
               })}
             </div>
           </div>
         ) : packOptions.length === 1 ? (
-          <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#E8EEE0] border border-[#4F534C]/20 text-[11px] font-bold text-[#50563D]">
-            <span className="text-[8px] font-black uppercase bg-white/80 px-1 py-0.2 rounded text-[#50563D]">
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#EAEFE3] border border-[#50563D]/20 text-[11px] font-bold text-[#50563D]">
+            <span className="text-[8px] font-black uppercase bg-white/90 px-1 py-0.2 rounded text-[#50563D]">
               {packOptions[0].badge}
             </span>
-            <span className="font-extrabold">{packOptions[0].weight}</span>
+            <span className="font-extrabold">{formatCleanWeight(packOptions[0].weight)}</span>
           </div>
         ) : null}
 

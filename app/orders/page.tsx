@@ -8,7 +8,32 @@ import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { fetchApi, fetchCachedApi, getCachedData } from '@/lib/apiConfig';
 import { OrderType } from '@/lib/types';
-import { Package, Clock, CheckCircle2, XCircle, CreditCard, Lock, FileText, Copy, MessageCircle, Loader2, Printer } from 'lucide-react';
+import {
+  Package,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  CreditCard,
+  Lock,
+  FileText,
+  Copy,
+  MessageCircle,
+  Loader2,
+  Printer,
+  UserRound,
+  Mail,
+  Phone,
+  MapPin,
+  LogOut,
+  ShieldCheck,
+  Bell,
+  ArrowRight,
+  Sparkles,
+  LayoutDashboard,
+  Store,
+  Heart,
+  HelpCircle,
+} from 'lucide-react';
 import Link from 'next/link';
 import NotificationManager from '@/components/NotificationManager';
 import { printCommercialBill } from '@/lib/printUtils';
@@ -21,9 +46,11 @@ declare global {
 
 const WHATSAPP_PHONE = '918056389214';
 
-export default function OrdersPage() {
-  const { user } = useAuth();
+export default function OrdersAndAccountPage() {
+  const { user, logout, loading: authLoading } = useAuth();
   const { clearCart } = useCart();
+
+  const [activeTab, setActiveTab] = useState<'orders' | 'profile' | 'notifications'>('orders');
   const [orders, setOrders] = useState<OrderType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -32,6 +59,7 @@ export default function OrdersPage() {
   const [now, setNow] = useState<number>(Date.now());
   const [paymentSuccessOrder, setPaymentSuccessOrder] = useState<string | null>(null);
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Live 1-second clock for 30-minute grace period timers
   useEffect(() => {
@@ -42,7 +70,11 @@ export default function OrdersPage() {
   const fetchOrders = async (silent = false) => {
     if (!silent && orders.length === 0) setLoading(true);
     try {
-      const data = await fetchCachedApi<OrderType[]>('/orders/mine', { cacheKey: 'user_orders_cache', ttlMs: 30000, bypassCache: !silent });
+      const data = await fetchCachedApi<OrderType[]>('/orders/mine', {
+        cacheKey: 'user_orders_cache',
+        ttlMs: 30000,
+        bypassCache: !silent,
+      });
       if (data.success && Array.isArray(data.data)) {
         setOrders(data.data);
       } else if (!data.success) {
@@ -60,7 +92,6 @@ export default function OrdersPage() {
       setLoading(false);
       return;
     }
-    // Instant cache hydration
     const cached = getCachedData<OrderType[]>('user_orders_cache');
     if (cached && Array.isArray(cached) && cached.length > 0) {
       setOrders(cached);
@@ -74,7 +105,7 @@ export default function OrdersPage() {
     setCancellingId(orderId);
     const data = await fetchApi<any>(`/orders/${orderId}/cancel`, { method: 'POST' });
     if (data.success) {
-      setOrders((current) => current.map((order) => order.id === orderId ? data.data : order));
+      setOrders((current) => current.map((order) => (order.id === orderId ? data.data : order)));
     } else {
       setError(data.error || 'Unable to cancel order.');
     }
@@ -92,7 +123,6 @@ export default function OrdersPage() {
     setError('');
 
     try {
-      // 1. Request fresh Razorpay order initialization or verify already captured from backend
       const retryRes = await fetchApi<any>(`/orders/${order.id}/retry-payment`, {
         method: 'POST',
       });
@@ -104,7 +134,6 @@ export default function OrdersPage() {
         return;
       }
 
-      // If already captured on Razorpay
       if (retryRes.alreadyPaid) {
         setPaymentSuccessOrder(order.orderNumber);
         clearCart();
@@ -119,7 +148,6 @@ export default function OrdersPage() {
 
       const { razorpayOrderId, razorpayAmount, razorpayKeyId } = retryRes;
 
-      // 2. Open Razorpay Checkout Modal
       const options = {
         key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_Tb3aRjusts7JYy',
         amount: razorpayAmount,
@@ -137,7 +165,6 @@ export default function OrdersPage() {
         },
         handler: async function (response: any) {
           try {
-            // 3. Verify Payment
             const verifyData = await fetchApi<any>('/payment/verify', {
               method: 'POST',
               body: JSON.stringify({
@@ -191,7 +218,6 @@ export default function OrdersPage() {
     return Math.max(0, diff);
   };
 
-  // Copy reference ID to clipboard
   const copyReference = async (orderId: string) => {
     try {
       await navigator.clipboard.writeText(orderId);
@@ -202,23 +228,62 @@ export default function OrdersPage() {
     }
   };
 
-  // Open invoice in new tab
   const openInvoice = (orderId: string) => {
-    const token = typeof window !== 'undefined' ? (localStorage.getItem('token') || sessionStorage.getItem('auth_token') || '') : '';
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') || sessionStorage.getItem('auth_token') || '' : '';
     window.open(`/api/orders/${orderId}/invoice${token ? `?token=${encodeURIComponent(token)}` : ''}`, '_blank');
   };
 
+  const handleLogout = async () => {
+    if (!window.confirm('Are you sure you want to sign out?')) return;
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#FBFDF8] flex flex-col font-sans">
+        <Navbar />
+        <main className="flex-1 max-w-5xl mx-auto w-full p-4 sm:p-8 space-y-6">
+          <div className="h-32 bg-stone-200/70 rounded-3xl animate-pulse" />
+          <div className="h-64 bg-stone-200/70 rounded-3xl animate-pulse" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#EAF0E5] flex flex-col font-sans">
+      <div className="min-h-screen bg-[#FBFDF8] flex flex-col font-sans">
         <Navbar />
         <main className="flex-1 flex items-center justify-center p-4">
-          <div className="text-center p-8 bg-white rounded-3xl shadow-md border border-[#656B4F]/20 max-w-md w-full">
-            <h2 className="text-2xl font-bold text-[#1E201D] mb-2 font-poppins">Please Login</h2>
-            <p className="text-sm text-[#61665D] mb-6">You need to be logged in to view your orders.</p>
-            <Link href="/login" className="inline-block px-6 py-3 bg-[#656B4F] text-white font-bold rounded-xl hover:bg-[#50563D] transition-all shadow-md">
-              Go to Login
-            </Link>
+          <div className="text-center p-8 sm:p-10 bg-white rounded-3xl shadow-lg border border-stone-200 max-w-md w-full">
+            <div className="w-16 h-16 rounded-2xl bg-[#EAF0E5] text-[#50563D] flex items-center justify-center mx-auto mb-4">
+              <UserRound className="w-8 h-8" />
+            </div>
+            <h2 className="text-2xl font-black text-[#1E201D] mb-2 font-display">Sign In to Your Account</h2>
+            <p className="text-xs sm:text-sm text-stone-600 mb-6 leading-relaxed">
+              Sign in to view your profile details, manage delivery addresses, permissions, and track active cold-chain orders.
+            </p>
+            <div className="space-y-3">
+              <Link
+                href="/login"
+                className="w-full py-3 bg-[#50563D] hover:bg-[#3D422E] text-white font-bold text-sm rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
+              >
+                <span>Sign In / Create Account</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                href="/shop"
+                className="w-full py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs rounded-xl transition-all block text-center"
+              >
+                Browse Storefront
+              </Link>
+            </div>
           </div>
         </main>
         <Footer />
@@ -227,315 +292,568 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F8F4] text-[#1E201D] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#FBFDF8] text-[#1E201D] flex flex-col font-sans selection:bg-[#50563D] selection:text-white">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <Navbar />
 
-      <main className="mx-auto w-full max-w-[1180px] px-3 py-5 sm:px-4 sm:py-8 md:py-10 flex-1">
-        <div className="mb-6 sm:mb-8 max-w-2xl">
-          <p className="text-xs font-black tracking-[0.16em] text-[#50563D] uppercase mb-1.5">Purchase History</p>
-          <h1 className="text-3xl sm:text-4xl font-black text-[#1A1E16] font-poppins">My Orders</h1>
-          <p className="text-sm font-semibold text-[#50563D] mt-1.5">View your order details and download official invoices.</p>
+      <main className="mx-auto w-full max-w-[1180px] px-3 py-5 sm:px-6 sm:py-8 flex-1 space-y-6">
+        
+        {/* ========================================================================= */}
+        {/* 1. TOP USER PROFILE HERO CARD */}
+        {/* ========================================================================= */}
+        <section className="bg-white rounded-3xl border border-stone-200/90 shadow-sm overflow-hidden">
+          <div className="bg-gradient-to-r from-[#50563D] via-[#656B4F] to-[#7B8563] text-white p-5 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/15 backdrop-blur-xs border border-white/25 flex items-center justify-center text-white shrink-0 shadow-inner">
+                <UserRound className="w-7 h-7 sm:w-8 sm:h-8" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl sm:text-2xl font-black truncate tracking-tight font-display">
+                    {user.name}
+                  </h1>
+                  <span className="px-2 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-black uppercase tracking-wider">
+                    {user.role || 'Customer'}
+                  </span>
+                </div>
+                <p className="text-xs text-white/80 mt-0.5">
+                  Sakthi Frozen Foods Verified Account
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {user.role === 'Admin' && (
+                <Link
+                  href="/admin"
+                  className="px-3.5 py-2 rounded-xl bg-white/20 hover:bg-white text-white hover:text-[#50563D] font-bold text-xs transition-all flex items-center gap-1.5 shadow-xs"
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  <span>Admin Panel</span>
+                </Link>
+              )}
+
+              <button
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="px-3.5 py-2 rounded-xl bg-red-500/20 hover:bg-red-500 text-white font-bold text-xs transition-all flex items-center gap-1.5 border border-red-300/30 cursor-pointer disabled:opacity-60"
+              >
+                {isLoggingOut ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <LogOut className="w-3.5 h-3.5" />
+                )}
+                <span>{isLoggingOut ? 'Signing out...' : 'Sign Out'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Profile Contact Info Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-stone-100 text-xs">
+            <div className="bg-white p-4 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#EAF0E5] text-[#50563D] flex items-center justify-center shrink-0">
+                <Mail className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Email Address</span>
+                <span className="font-bold text-stone-800 truncate block">{user.email}</span>
+              </div>
+            </div>
+
+            <div className="bg-white p-4 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#EAF0E5] text-[#50563D] flex items-center justify-center shrink-0">
+                <Phone className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Phone Number</span>
+                <span className="font-bold text-stone-800 truncate block">{user.phone || '+91 80563 89214'}</span>
+              </div>
+            </div>
+
+            <div className="bg-white p-4 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#EAF0E5] text-[#50563D] flex items-center justify-center shrink-0">
+                <MapPin className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Delivery Location</span>
+                <span className="font-bold text-stone-800 truncate block">
+                  {user.address || 'Coimbatore & Tamil Nadu Region'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ========================================================================= */}
+        {/* 2. TAB CONTROLS */}
+        {/* ========================================================================= */}
+        <div className="flex items-center gap-2 border-b border-stone-200 pb-2 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab('orders')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+              activeTab === 'orders'
+                ? 'bg-[#50563D] text-white shadow-xs'
+                : 'bg-white text-stone-600 hover:bg-stone-100 hover:text-stone-900 border border-stone-200'
+            }`}
+          >
+            <Package className="w-4 h-4" />
+            <span>My Orders</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+              activeTab === 'orders' ? 'bg-white/25 text-white' : 'bg-stone-200 text-stone-800'
+            }`}>
+              {orders.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+              activeTab === 'profile'
+                ? 'bg-[#50563D] text-white shadow-xs'
+                : 'bg-white text-stone-600 hover:bg-stone-100 hover:text-stone-900 border border-stone-200'
+            }`}
+          >
+            <UserRound className="w-4 h-4" />
+            <span>Profile & Addresses</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('notifications')}
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+              activeTab === 'notifications'
+                ? 'bg-[#50563D] text-white shadow-xs'
+                : 'bg-white text-stone-600 hover:bg-stone-100 hover:text-stone-900 border border-stone-200'
+            }`}
+          >
+            <Bell className="w-4 h-4" />
+            <span>Notifications & Permissions</span>
+          </button>
         </div>
 
-        {paymentSuccessOrder && (
-          <div className="mb-6 p-4 rounded-2xl bg-[#EAF0E5] border border-[#656B4F]/30 text-[#2D3823] flex items-center gap-3 animate-in fade-in slide-in-from-top duration-300">
-            <CheckCircle2 className="w-6 h-6 text-[#656B4F] shrink-0" />
-            <div>
-              <p className="font-extrabold text-sm">Payment Successful for Order #{paymentSuccessOrder}!</p>
-              <p className="text-xs text-[#50563D] mt-0.5">Your order is confirmed and being prepared.</p>
-            </div>
-          </div>
-        )}
-
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((n) => (
-              <div key={n} className="bg-white rounded-2xl h-40 animate-pulse border border-[#D4DBC9] shadow-xs" />
-            ))}
-          </div>
-        ) : error ? (
-          <div className="p-4 bg-red-50 text-red-800 rounded-xl border border-red-200 font-bold text-sm">
-            {error}
-          </div>
-        ) : orders.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-3xl border border-[#D4DBC9] shadow-xs max-w-md mx-auto">
-            <div className="w-20 h-20 rounded-full bg-[#EAF0E5] flex items-center justify-center mx-auto mb-4 text-[#656B4F]">
-              <Package className="w-10 h-10" />
-            </div>
-            <h3 className="text-xl font-black text-[#1A1E16] font-poppins">No Orders Found</h3>
-            <p className="text-sm font-semibold text-[#50563D] mt-2 mb-6">Looks like you haven&apos;t placed any orders yet.</p>
-            <Link href="/shop" className="inline-block px-6 py-3 bg-[#656B4F] text-white font-extrabold rounded-xl hover:bg-[#50563D] transition-all shadow-md">
-              Start Shopping
-            </Link>
-          </div>
-        ) : (
+        {/* ========================================================================= */}
+        {/* 3. TAB CONTENT: MY ORDERS */}
+        {/* ========================================================================= */}
+        {activeTab === 'orders' && (
           <div className="space-y-6">
-            {orders.map((order) => {
-              const isOnline = order.paymentMethod === 'Razorpay (Online)';
-              const isPendingPayment = order.paymentStatus === 'Pending';
-              const remainingSecs = isOnline && isPendingPayment ? getRemainingSeconds(order.createdAt) : 0;
-              const isWithinGracePeriod = remainingSecs > 0 && !order.isLocked && order.paymentStatus !== 'Failed';
-              const isExpiredFailed = (isOnline && isPendingPayment && remainingSecs === 0) || order.paymentStatus === 'Failed' || (order.status === 'Cancelled' && isPendingPayment);
-              const isPaid = order.paymentStatus === 'Paid';
-              const isCOD = order.paymentMethod === 'Cash on Delivery';
+            {paymentSuccessOrder && (
+              <div className="p-4 rounded-2xl bg-[#EAF0E5] border border-[#656B4F]/30 text-[#2D3823] flex items-center gap-3 animate-in fade-in slide-in-from-top duration-300">
+                <CheckCircle2 className="w-6 h-6 text-[#656B4F] shrink-0" />
+                <div>
+                  <p className="font-extrabold text-sm">Payment Successful for Order #{paymentSuccessOrder}!</p>
+                  <p className="text-xs text-[#50563D] mt-0.5">Your order is confirmed and scheduled for cold-chain packing.</p>
+                </div>
+              </div>
+            )}
 
-              const mins = Math.floor(remainingSecs / 60);
-              const secs = remainingSecs % 60;
+            {loading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((n) => (
+                  <div key={n} className="bg-white rounded-2xl h-40 animate-pulse border border-stone-200 shadow-xs" />
+                ))}
+              </div>
+            ) : error ? (
+              <div className="p-4 bg-red-50 text-red-800 rounded-2xl border border-red-200 font-bold text-xs sm:text-sm flex items-center justify-between">
+                <span>{error}</span>
+                <button
+                  onClick={() => fetchOrders(false)}
+                  className="px-3 py-1 bg-red-800 text-white rounded-lg text-xs hover:bg-red-900 cursor-pointer"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="text-center py-12 px-6 bg-white rounded-3xl border border-stone-200/90 shadow-sm max-w-lg mx-auto">
+                <div className="w-16 h-16 rounded-2xl bg-[#EAF0E5] flex items-center justify-center mx-auto mb-4 text-[#50563D]">
+                  <Package className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg sm:text-xl font-black text-stone-900 font-display">No Orders Found Yet</h3>
+                <p className="text-xs sm:text-sm text-stone-600 mt-1.5 mb-6 max-w-sm mx-auto leading-relaxed">
+                  You haven&apos;t placed any plant-based orders yet. Explore our juicy soya chaap, veg mutton chukka, and crispy momos!
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <Link
+                    href="/shop"
+                    className="px-5 py-2.5 bg-[#50563D] hover:bg-[#3D422E] text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5"
+                  >
+                    <Store className="w-4 h-4" />
+                    <span>Start Shopping</span>
+                  </Link>
+                  <Link
+                    href="/wishlist"
+                    className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5"
+                  >
+                    <Heart className="w-4 h-4 text-rose-500" />
+                    <span>My Wishlist</span>
+                  </Link>
+                  <Link
+                    href="/help"
+                    className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5"
+                  >
+                    <HelpCircle className="w-4 h-4 text-[#50563D]" />
+                    <span>Help Guide</span>
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {orders.map((order) => {
+                  const isOnline = order.paymentMethod === 'Razorpay (Online)';
+                  const isPendingPayment = order.paymentStatus === 'Pending';
+                  const remainingSecs = isOnline && isPendingPayment ? getRemainingSeconds(order.createdAt) : 0;
+                  const isWithinGracePeriod = remainingSecs > 0 && !order.isLocked && order.paymentStatus !== 'Failed';
+                  const isExpiredFailed =
+                    (isOnline && isPendingPayment && remainingSecs === 0) ||
+                    order.paymentStatus === 'Failed' ||
+                    (order.status === 'Cancelled' && isPendingPayment);
+                  const isPaid = order.paymentStatus === 'Paid';
+                  const isCOD = order.paymentMethod === 'Cash on Delivery';
 
-              const whatsappQueryUrl = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(`Hi Sakthi Frozen Foods, I have a question regarding my Order #${order.orderNumber}.`)}`;
+                  const mins = Math.floor(remainingSecs / 60);
+                  const secs = remainingSecs % 60;
 
-              return (
-                <div key={order.id} className="bg-white rounded-2xl border border-[#D4DBC9] shadow-xs overflow-hidden transition-shadow hover:shadow-md">
-                  {/* Order Header */}
-                  <div className="bg-[#EAF0E5] px-5 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#D4DBC9]">
-                    <div>
-                      <span className="text-xs font-black text-[#262E1F] uppercase tracking-wider block mb-1 font-mono">
-                        Order #{order.orderNumber}
-                      </span>
-                      <span className="text-xs font-bold text-[#50563D] block">
-                        Placed on {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-start sm:items-end gap-0.5">
-                      <span className="text-xs font-extrabold uppercase tracking-wider text-[#50563D]">Total Amount</span>
-                      <span className="text-xl font-black text-[#1A1E16]">₹{order.totalAmount}</span>
-                      {order.convenienceFee ? (
-                        <span className="text-[10px] font-bold text-[#656B4F]">
-                          (Incl. ₹{order.convenienceFee} fee)
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
+                  const whatsappQueryUrl = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(
+                    `Hi Sakthi Frozen Foods, I have a question regarding my Order #${order.orderNumber}.`
+                  )}`;
 
-                  <div className="p-5 sm:p-6">
-                    {/* 30-Minute Grace Alert Bar for Pending Online Orders */}
-                    {isWithinGracePeriod && (
-                      <div className="mb-5 p-3.5 rounded-xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex items-center gap-2.5">
-                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping shrink-0" />
-                          <div>
-                            <p className="text-xs font-black text-amber-950">
-                              Payment Pending — {mins}m {secs.toString().padStart(2, '0')}s remaining to complete
-                            </p>
-                            <p className="text-[11px] text-amber-800">
-                              Please complete payment within 30 minutes to confirm your order. Unpaid orders will auto-cancel.
-                            </p>
-                          </div>
+                  return (
+                    <div
+                      key={order.id}
+                      className="bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden transition-shadow hover:shadow-md"
+                    >
+                      {/* Order Card Header */}
+                      <div className="bg-[#FAFBF7] px-5 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-200">
+                        <div>
+                          <span className="text-xs font-black text-[#262E1F] uppercase tracking-wider block mb-0.5 font-mono">
+                            Order #{order.orderNumber}
+                          </span>
+                          <span className="text-[11px] sm:text-xs font-semibold text-stone-500 block">
+                            Placed on{' '}
+                            {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
                         </div>
 
-                        <button
-                          onClick={() => handleRetryPayment(order)}
-                          disabled={retryingOrderId === order.id}
-                          className="px-4 py-2 bg-[#656B4F] hover:bg-[#50563D] text-white rounded-xl font-black text-xs flex items-center justify-center gap-1.5 shadow-md transition-all disabled:opacity-50 shrink-0 cursor-pointer"
-                        >
-                          {retryingOrderId === order.id ? (
-                            <>
-                              <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-                              <span>Connecting...</span>
-                            </>
-                          ) : (
-                            <>
-                              <CreditCard className="w-3.5 h-3.5" />
-                              <span>Pay Now / Retry</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Expired / Failed Notice */}
-                    {isExpiredFailed && (
-                      <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
-                        <Lock className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                        <div className="text-xs">
-                          <p className="font-black text-red-900">Payment Window Expired (&gt;30 mins) — Order Cancelled</p>
-                          <p className="text-red-700 mt-0.5">
-                            This order can no longer be paid. You can place a fresh order anytime.
-                          </p>
+                        <div className="flex flex-col items-start sm:items-end gap-0.5">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">
+                            Total Paid Amount
+                          </span>
+                          <span className="text-lg sm:text-xl font-black text-[#1A1E16]">₹{order.totalAmount}</span>
+                          {order.convenienceFee ? (
+                            <span className="text-[10px] font-bold text-[#656B4F]">
+                              (Incl. ₹{order.convenienceFee} handling fee)
+                            </span>
+                          ) : null}
                         </div>
                       </div>
-                    )}
 
-                    <div className="flex flex-col md:flex-row gap-6 md:gap-8 justify-between">
-                      {/* Left Column: Items List */}
-                      <div className="flex-1 space-y-4">
-                        {order.items.map((item, idx) => (
-                          <div key={idx} className="flex items-start gap-3.5 sm:gap-4">
-                            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-[#656B4F] text-white flex items-center justify-center font-black text-sm shadow-xs flex-shrink-0">
-                              {item.quantity}x
-                            </div>
-                            <div>
-                              <h4 className="text-sm sm:text-base font-extrabold text-[#1A1E16] leading-snug">{item.name}</h4>
-                              <div className="text-xs font-bold text-[#50563D] mt-1">
-                                {item.weight} • ₹{item.price} each
+                      <div className="p-5 sm:p-6">
+                        {/* 30-Minute Grace Alert Bar for Pending Online Orders */}
+                        {isWithinGracePeriod && (
+                          <div className="mb-5 p-3.5 rounded-xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5">
+                              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping shrink-0" />
+                              <div>
+                                <p className="text-xs font-black text-amber-950">
+                                  Payment Pending — {mins}m {secs.toString().padStart(2, '0')}s remaining to complete
+                                </p>
+                                <p className="text-[11px] text-amber-800">
+                                  Please complete payment within 30 minutes to confirm your order.
+                                </p>
                               </div>
                             </div>
-                          </div>
-                        ))}
 
-                        {/* Reference ID */}
-                        <div className="mt-4 pt-3 border-t border-[#D4DBC9]/60">
-                          <p className="text-[10px] font-black uppercase tracking-wider text-[#656B4F] mb-1">Reference ID</p>
-                          <div className="flex items-center gap-2">
-                            <code className="text-[11px] font-mono font-bold text-[#50563D] bg-[#F9FAF6] px-2 py-1 rounded-md border border-[#D4DBC9] select-all">
-                              {order.id}
-                            </code>
-                            <button
-                              onClick={() => copyReference(order.id)}
-                              className="p-1.5 rounded-md hover:bg-[#EAF0E5] transition-colors"
-                              title="Copy reference"
-                            >
-                              {copiedRef === order.id ? (
-                                <CheckCircle2 className="w-3.5 h-3.5 text-[#656B4F]" />
-                              ) : (
-                                <Copy className="w-3.5 h-3.5 text-[#656B4F]" />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right Column: Order Summary, Status & Direct Actions */}
-                      <div className="w-full md:w-64 space-y-4 border-t md:border-t-0 md:border-l border-[#D4DBC9] pt-4 md:pt-0 md:pl-6">
-                        <div>
-                          <span className="block text-xs font-black uppercase tracking-wider text-[#50563D] mb-1.5">Order Status</span>
-                          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-black ${
-                            isExpiredFailed ? 'bg-red-100 text-red-800 border-red-200' :
-                            isPaid || isCOD || order.status === 'Confirmed' ? 'bg-[#EAF0E5] text-[#2D3823] border-[#656B4F]/30' :
-                            'bg-amber-100 text-amber-800 border-amber-200'
-                          }`}>
-                            {isExpiredFailed ? <XCircle className="w-4 h-4 text-red-600" /> :
-                             isPaid || isCOD || order.status === 'Confirmed' ? <CheckCircle2 className="w-4 h-4 text-[#656B4F]" /> :
-                             <Clock className="w-4 h-4 text-amber-600" />}
-                            <span>
-                              {isExpiredFailed ? (order.status === 'Cancelled' ? 'Order Cancelled' : 'Payment Failed') :
-                               isPaid || isCOD || order.status === 'Confirmed' ? 'Order Confirmed' :
-                               'Awaiting Payment'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div>
-                          <span className="block text-xs font-black uppercase tracking-wider text-[#50563D] mb-1">Payment Method</span>
-                          <p className="text-xs font-bold text-[#1A1E16]">{order.paymentMethod}</p>
-                        </div>
-                        
-                        <div>
-                          <span className="block text-xs font-black uppercase tracking-wider text-[#50563D] mb-1">Delivery Address</span>
-                          <p className="text-xs font-semibold text-[#50563D] leading-snug">{order.shippingAddress}</p>
-                        </div>
-
-                        {/* ─── Clean Action Buttons (Side-by-Side Horizontal Buttons on Mobile & Desktop) ──────────────────────── */}
-                        <div className="pt-2 space-y-2">
-                          {isWithinGracePeriod && (
                             <button
                               onClick={() => handleRetryPayment(order)}
                               disabled={retryingOrderId === order.id}
-                              className="w-full rounded-xl bg-[#656B4F] hover:bg-[#50563D] px-3.5 py-2.5 text-xs font-black text-white transition-colors disabled:opacity-50 shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                              className="px-4 py-2 bg-[#50563D] hover:bg-[#3D422E] text-white rounded-xl font-black text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all disabled:opacity-50 shrink-0 cursor-pointer"
                             >
                               {retryingOrderId === order.id ? (
                                 <>
                                   <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-                                  <span>Launching Gateway...</span>
+                                  <span>Connecting...</span>
                                 </>
                               ) : (
                                 <>
                                   <CreditCard className="w-3.5 h-3.5" />
-                                  <span>Pay Now (Retry)</span>
+                                  <span>Pay Now / Retry</span>
                                 </>
                               )}
                             </button>
-                          )}
+                          </div>
+                        )}
 
-                          {/* Horizontal Action Buttons */}
-                          {(isPaid || isCOD || order.status === 'Confirmed') ? (
-                            <div className="grid grid-cols-2 gap-2 w-full">
-                              <button
-                                onClick={() => printCommercialBill(order)}
-                                className="w-full rounded-xl border border-[#656B4F]/40 bg-[#F9FAF6] hover:bg-[#EAF0E5] px-2 sm:px-3 py-2 text-[11px] sm:text-xs font-black text-[#656B4F] transition-colors shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer text-center"
-                                title="Print clean 1-page commercial packing slip"
-                              >
-                                <Printer className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate">Print Slip</span>
-                              </button>
-
-                              <button
-                                onClick={() => openInvoice(order.id)}
-                                className="w-full rounded-xl border border-stone-300 bg-white hover:bg-stone-50 px-2 sm:px-3 py-2 text-[11px] sm:text-xs font-black text-[#1E201D] transition-colors shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer text-center"
-                                title="Download PDF invoice"
-                              >
-                                <FileText className="w-3.5 h-3.5 shrink-0 text-[#50563D]" />
-                                <span className="truncate">PDF Invoice</span>
-                              </button>
-
-                              <a
-                                href={whatsappQueryUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="col-span-2 w-full rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] px-2 sm:px-3 py-2 text-[11px] sm:text-xs font-black text-white transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-center"
-                              >
-                                <MessageCircle className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate">WhatsApp Support</span>
-                              </a>
+                        {/* Expired Notice */}
+                        {isExpiredFailed && (
+                          <div className="mb-5 p-3.5 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
+                            <Lock className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                            <div className="text-xs">
+                              <p className="font-black text-red-900">Payment Window Expired — Order Cancelled</p>
+                              <p className="text-red-700 mt-0.5">
+                                This order can no longer be paid. You can place a fresh order anytime.
+                              </p>
                             </div>
-                          ) : (
-                            <a
-                              href={whatsappQueryUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="w-full rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] px-2 sm:px-3.5 py-2.5 text-[11px] sm:text-xs font-black text-white transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-center"
-                            >
-                              <MessageCircle className="w-3.5 h-3.5 shrink-0" />
-                              <span className="truncate">WhatsApp Help</span>
-                            </a>
-                          )}
+                          </div>
+                        )}
 
-                          {(order.status === 'Pending' || order.status === 'Awaiting Payment') && !isExpiredFailed && (
-                            <button
-                              onClick={() => cancelOrder(order.id)}
-                              disabled={cancellingId === order.id}
-                              className="w-full rounded-xl border border-red-300 bg-red-50 hover:bg-red-100 px-3.5 py-2 text-xs font-black text-red-800 transition-colors disabled:opacity-50 shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
-                            >
-                              {cancellingId === order.id ? (
-                                <>
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-red-800" />
-                                  <span>Cancelling...</span>
-                                </>
-                              ) : (
-                                'Cancel Order'
+                        <div className="flex flex-col md:flex-row gap-6 md:gap-8 justify-between">
+                          {/* Items List */}
+                          <div className="flex-1 space-y-4">
+                            {order.items.map((item, idx) => (
+                              <div key={idx} className="flex items-start gap-3.5 sm:gap-4">
+                                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[#50563D] text-white flex items-center justify-center font-black text-xs shadow-xs shrink-0">
+                                  {item.quantity}x
+                                </div>
+                                <div>
+                                  <h4 className="text-sm sm:text-base font-extrabold text-stone-900 leading-snug">
+                                    {item.name}
+                                  </h4>
+                                  <div className="text-xs font-bold text-[#50563D] mt-0.5">
+                                    {item.weight} • ₹{item.price} each
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+
+                            {/* Reference ID */}
+                            <div className="mt-4 pt-3 border-t border-stone-200/80">
+                              <p className="text-[10px] font-black uppercase tracking-wider text-[#656B4F] mb-1">
+                                Reference Order ID
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <code className="text-[11px] font-mono font-bold text-stone-800 bg-stone-100 px-2 py-1 rounded-md border border-stone-200 select-all">
+                                  {order.id}
+                                </code>
+                                <button
+                                  onClick={() => copyReference(order.id)}
+                                  className="p-1.5 rounded-md hover:bg-[#EAF0E5] transition-colors cursor-pointer"
+                                  title="Copy reference"
+                                >
+                                  {copiedRef === order.id ? (
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                  ) : (
+                                    <Copy className="w-3.5 h-3.5 text-stone-500" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Right Column: Status & Direct Actions */}
+                          <div className="w-full md:w-64 space-y-4 border-t md:border-t-0 md:border-l border-stone-200 pt-4 md:pt-0 md:pl-6">
+                            <div>
+                              <span className="block text-xs font-black uppercase tracking-wider text-stone-400 mb-1.5">
+                                Order Status
+                              </span>
+                              <div
+                                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-black ${
+                                  isExpiredFailed
+                                    ? 'bg-red-50 text-red-800 border-red-200'
+                                    : isPaid || isCOD || order.status === 'Confirmed'
+                                    ? 'bg-[#EAF0E5] text-[#2D3823] border-[#656B4F]/30'
+                                    : 'bg-amber-50 text-amber-800 border-amber-200'
+                                }`}
+                              >
+                                {isExpiredFailed ? (
+                                  <XCircle className="w-4 h-4 text-red-600" />
+                                ) : isPaid || isCOD || order.status === 'Confirmed' ? (
+                                  <CheckCircle2 className="w-4 h-4 text-[#50563D]" />
+                                ) : (
+                                  <Clock className="w-4 h-4 text-amber-600" />
+                                )}
+                                <span>
+                                  {isExpiredFailed
+                                    ? order.status === 'Cancelled'
+                                      ? 'Order Cancelled'
+                                      : 'Payment Failed'
+                                    : isPaid || isCOD || order.status === 'Confirmed'
+                                    ? 'Order Confirmed'
+                                    : 'Awaiting Payment'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div>
+                              <span className="block text-[10px] font-black uppercase tracking-wider text-stone-400 mb-0.5">
+                                Payment Mode
+                              </span>
+                              <p className="text-xs font-bold text-stone-900">{order.paymentMethod}</p>
+                            </div>
+
+                            <div>
+                              <span className="block text-[10px] font-black uppercase tracking-wider text-stone-400 mb-0.5">
+                                Shipping Address
+                              </span>
+                              <p className="text-xs font-semibold text-stone-600 leading-snug">
+                                {order.shippingAddress}
+                              </p>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="pt-2 space-y-2">
+                              {isWithinGracePeriod && (
+                                <button
+                                  onClick={() => handleRetryPayment(order)}
+                                  disabled={retryingOrderId === order.id}
+                                  className="w-full rounded-xl bg-[#50563D] hover:bg-[#3D422E] px-3.5 py-2.5 text-xs font-black text-white transition-colors disabled:opacity-50 shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                                >
+                                  {retryingOrderId === order.id ? (
+                                    <>
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                                      <span>Connecting...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CreditCard className="w-3.5 h-3.5" />
+                                      <span>Pay Now (Retry)</span>
+                                    </>
+                                  )}
+                                </button>
                               )}
-                            </button>
-                          )}
 
-                          {isExpiredFailed && (
-                            <Link
-                              href="/shop"
-                              className="w-full rounded-xl bg-[#656B4F] hover:bg-[#50563D] px-3.5 py-2.5 text-xs font-black text-white text-center transition-colors block shadow-xs"
-                            >
-                              Place Fresh Order
-                            </Link>
-                          )}
+                              {isPaid || isCOD || order.status === 'Confirmed' ? (
+                                <div className="grid grid-cols-2 gap-2 w-full">
+                                  <button
+                                    onClick={() => printCommercialBill(order)}
+                                    className="w-full rounded-xl border border-stone-300 bg-white hover:bg-stone-50 px-2 py-2 text-xs font-bold text-stone-700 transition-colors shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer text-center"
+                                    title="Print packing slip"
+                                  >
+                                    <Printer className="w-3.5 h-3.5 text-[#50563D]" />
+                                    <span>Print Slip</span>
+                                  </button>
+
+                                  <button
+                                    onClick={() => openInvoice(order.id)}
+                                    className="w-full rounded-xl border border-stone-300 bg-white hover:bg-stone-50 px-2 py-2 text-xs font-bold text-stone-700 transition-colors shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer text-center"
+                                    title="Download PDF invoice"
+                                  >
+                                    <FileText className="w-3.5 h-3.5 text-[#50563D]" />
+                                    <span>Invoice</span>
+                                  </button>
+
+                                  <a
+                                    href={whatsappQueryUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="col-span-2 w-full rounded-xl bg-[#25D366] hover:bg-[#20ba59] px-3 py-2 text-xs font-bold text-white transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-center"
+                                  >
+                                    <MessageCircle className="w-3.5 h-3.5" />
+                                    <span>WhatsApp Support</span>
+                                  </a>
+                                </div>
+                              ) : (
+                                <a
+                                  href={whatsappQueryUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="w-full rounded-xl bg-[#25D366] hover:bg-[#20ba59] px-3 py-2 text-xs font-bold text-white transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-center"
+                                >
+                                  <MessageCircle className="w-3.5 h-3.5" />
+                                  <span>WhatsApp Help</span>
+                                </a>
+                              )}
+
+                              {(order.status === 'Pending' || order.status === 'Awaiting Payment') &&
+                                !isExpiredFailed && (
+                                  <button
+                                    onClick={() => cancelOrder(order.id)}
+                                    disabled={cancellingId === order.id}
+                                    className="w-full rounded-xl border border-red-300 bg-red-50 hover:bg-red-100 px-3.5 py-2 text-xs font-bold text-red-800 transition-colors disabled:opacity-50 shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+                                  >
+                                    {cancellingId === order.id ? (
+                                      <>
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin text-red-800" />
+                                        <span>Cancelling...</span>
+                                      </>
+                                    ) : (
+                                      'Cancel Order'
+                                    )}
+                                  </button>
+                                )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Browser Web Push Notification Setting */}
-        <div className="mt-10">
-          <NotificationManager />
-        </div>
+        {/* ========================================================================= */}
+        {/* 4. TAB CONTENT: PROFILE & ADDRESSES */}
+        {/* ========================================================================= */}
+        {activeTab === 'profile' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-3xl border border-stone-200 p-6 sm:p-8 space-y-6">
+              <div>
+                <h3 className="text-base sm:text-lg font-black text-stone-900 font-display">Account Profile</h3>
+                <p className="text-xs sm:text-sm text-stone-500 mt-0.5">Manage your personal and delivery details.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Full Name</span>
+                  <p className="font-bold text-stone-900 text-sm">{user.name}</p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Email Address</span>
+                  <p className="font-bold text-stone-900 text-sm">{user.email}</p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Contact Number</span>
+                  <p className="font-bold text-stone-900 text-sm">{user.phone || '+91 80563 89214'}</p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Account Type</span>
+                  <p className="font-bold text-stone-900 text-sm">{user.role || 'Verified Customer'}</p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-1 sm:col-span-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Default Shipping Address</span>
+                  <p className="font-bold text-stone-900 text-sm leading-relaxed">
+                    {user.address || 'Peons Colony, Kalpana Theatre Opposite, Edayarpalayam - Koundampalayam Rd, Kavundampalayam, Coimbatore, Tamil Nadu 641030'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#EAF0E5] border border-[#50563D]/20 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <ShieldCheck className="w-5 h-5 text-[#50563D] shrink-0" />
+                  <div>
+                    <h4 className="text-xs font-bold text-stone-900">100% Pure Veg & FSSAI Certified</h4>
+                    <p className="text-[11px] text-[#50563D]">All orders handled with express -18°C cold chain logistics.</p>
+                  </div>
+                </div>
+                <Link
+                  href="/terms"
+                  className="text-xs font-bold text-[#50563D] hover:underline shrink-0"
+                >
+                  View Policies
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* 5. TAB CONTENT: NOTIFICATIONS & PERMISSIONS */}
+        {/* ========================================================================= */}
+        {activeTab === 'notifications' && (
+          <div className="space-y-6">
+            <NotificationManager />
+          </div>
+        )}
+
       </main>
 
       <Footer />

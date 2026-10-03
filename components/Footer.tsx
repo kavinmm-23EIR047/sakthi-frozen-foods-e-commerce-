@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Phone, Mail, MapPin, ShieldCheck, FileText, RefreshCw, Lock, MessageCircle, X, ExternalLink, Building2 } from 'lucide-react';
+import { Phone, Mail, MapPin, ShieldCheck, FileText, RefreshCw, Lock, MessageCircle, X, ExternalLink, Building2, HelpCircle } from 'lucide-react';
 import { fetchApi } from '@/lib/apiConfig';
 import { MAIN_SITE_URL } from '@/lib/config';
 import GoogleReviewSummary from './GoogleReviewSummary';
@@ -115,21 +115,24 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/help" className="hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2 group">
+                  <HelpCircle className="w-3.5 h-3.5 text-[#A9F2B7] group-hover:text-white transition-colors" />
+                  <span>Help & Ordering Guide</span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2 group">
+                  <FileText className="w-3.5 h-3.5 text-[#A9F2B7] group-hover:text-white transition-colors" />
+                  <span>Terms & Storage Policy</span>
+                </Link>
+              </li>
+              <li>
                 <button
                   onClick={() => setActivePolicyModal('refund')}
                   className="hover:text-white text-left hover:translate-x-1 transition-all duration-300 flex items-center gap-2 group"
                 >
-                  <RefreshCw className="w-3.5 h-3.5 text-[#A9F2B7] group-hover:text-white transition-colors" />
+                  <RefreshCw className="w-3.5 h-3.5 text-white/60 group-hover:text-white transition-colors" />
                   <span>Refund & Return Policy</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setActivePolicyModal('terms')}
-                  className="hover:text-white text-left hover:translate-x-1 transition-all duration-300 flex items-center gap-2 group"
-                >
-                  <FileText className="w-3.5 h-3.5 text-white/60 group-hover:text-white transition-colors" />
-                  <span>Terms & Conditions</span>
                 </button>
               </li>
               <li>
@@ -261,13 +264,17 @@ export default function Footer() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+          <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1">
+            <Link href="/help" className="hover:text-white transition-colors">
+              Help & Support
+            </Link>
+            <span className="text-white/55">•</span>
+            <Link href="/terms" className="hover:text-white transition-colors">
+              Terms & Conditions
+            </Link>
+            <span className="text-white/55">•</span>
             <button onClick={() => setActivePolicyModal('refund')} className="hover:text-white transition-colors">
               Refund Policy
-            </button>
-            <span className="text-white/55">•</span>
-            <button onClick={() => setActivePolicyModal('terms')} className="hover:text-white transition-colors">
-              Terms & Conditions
             </button>
             <span className="text-white/55">•</span>
             <button onClick={() => setActivePolicyModal('privacy')} className="hover:text-white transition-colors">
