@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Phone, Mail, MapPin, ShieldCheck, FileText, RefreshCw, Lock, MessageCircle, X } from 'lucide-react';
+import { Phone, Mail, MapPin, ShieldCheck, FileText, RefreshCw, Lock, MessageCircle, X, Star } from 'lucide-react';
 import { fetchApi } from '@/lib/apiConfig';
+import GoogleReviewSummary from './GoogleReviewSummary';
 import logo from '../logo.png';
 
 export default function Footer() {
@@ -198,6 +199,9 @@ export default function Footer() {
                 className="w-full h-full"
               />
             </div>
+
+            {/* Google Rating & Review Link Badge */}
+            <GoogleReviewSummary variant="compact" />
 
             <div>
               <a

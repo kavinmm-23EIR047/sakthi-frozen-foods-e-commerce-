@@ -6,6 +6,8 @@ import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import TransparentPattyGraphic from '@/components/TransparentPattyGraphic';
+import SeoCoverageSection from '@/components/SeoCoverageSection';
+import GoogleReviewSummary, { GoogleGIcon, GOOGLE_MAPS_REVIEW_URL } from '@/components/GoogleReviewSummary';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/context/ToastContext';
 import { useWishlist } from '@/context/WishlistContext';
@@ -602,13 +604,17 @@ export default function StorefrontHomePage() {
 
                   {/* Top Text Block */}
                   <div className="space-y-2.5 sm:space-y-3.5">
-                    {/* Pulsing Brand Tagline */}
-                    <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 py-0.5 sm:py-1 rounded-full bg-[#EAF0E5] border border-white text-[#50563D] text-[10px] sm:text-xs font-black uppercase tracking-wider w-fit shadow-2xs">
-                      <span className="relative flex h-1.5 sm:h-2 w-1.5 sm:w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#656B4F] opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-1.5 sm:h-2 w-1.5 sm:w-2 bg-[#656B4F]"></span>
-                      </span>
-                      <span>100% VEGETARIAN • PLANT-BASED MEATS</span>
+                    {/* Pulsing Brand Tagline & Google Rating Badge */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 py-0.5 sm:py-1 rounded-full bg-[#EAF0E5] border border-white text-[#50563D] text-[10px] sm:text-xs font-black uppercase tracking-wider w-fit shadow-2xs">
+                        <span className="relative flex h-1.5 sm:h-2 w-1.5 sm:w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#656B4F] opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 sm:h-2 w-1.5 sm:w-2 bg-[#656B4F]"></span>
+                        </span>
+                        <span>100% VEGETARIAN • PLANT-BASED MEATS</span>
+                      </div>
+
+                      <GoogleReviewSummary variant="hero-badge" />
                     </div>
 
                     {/* Headline */}
@@ -1471,84 +1477,82 @@ export default function StorefrontHomePage() {
         <section className="py-10 md:py-14 site-shell">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
 
-            <div className="lg:col-span-5 bg-[#EAF3E7] rounded-[28px] sm:rounded-[36px] p-6 sm:p-8 border border-[#DFEBE0] shadow-xs flex flex-col justify-between text-left relative overflow-hidden">
+            <div className="lg:col-span-5 bg-[#EAF3E7] rounded-[28px] sm:rounded-[36px] p-5 sm:p-7 border border-[#DFEBE0] shadow-xs flex flex-col justify-between text-left relative overflow-hidden space-y-4">
               <div className="space-y-1">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <h2 className="text-2xl sm:text-3xl font-extrabold text-[#50563D] tracking-tight font-display">
                     Loved by Customers
                   </h2>
                   <button
                     onClick={() => setIsReviewModalOpen(true)}
-                    className="px-3 py-1 bg-[#50563D] hover:bg-[#3D422E] text-white rounded-full text-[11px] font-bold transition-all shadow-xs"
+                    className="px-3 py-1 bg-[#50563D] hover:bg-[#3D422E] text-white rounded-full text-[11px] font-bold transition-all shadow-xs shrink-0"
                   >
                     + Write Review
                   </button>
                 </div>
                 <p className="text-xs sm:text-sm text-[#4E5E4C] font-medium">
-                  Join thousands of happy customers choosing a healthier lifestyle.
+                  Join thousands of happy customers choosing a healthier plant-based lifestyle.
                 </p>
               </div>
 
+              {/* Official Google Review Summary Card with Overall 4.9 Ranking, Star Breakdown & Direct Link */}
+              <GoogleReviewSummary
+                variant="card"
+                onWriteWebsiteReview={() => setIsReviewModalOpen(true)}
+              />
+
+              {/* Customer Testimonial Slider */}
               {loading && displayReviews.length === 0 ? (
-                <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-7 shadow-xs border border-stone-200/80 my-5 animate-pulse space-y-3">
+                <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-xs border border-stone-200/80 animate-pulse space-y-2">
                   <div className="flex gap-1">
                     {[1, 2, 3, 4, 5].map((n) => (
-                      <div key={n} className="w-4 h-4 rounded bg-stone-200" />
+                      <div key={n} className="w-3.5 h-3.5 rounded bg-stone-200" />
                     ))}
                   </div>
-                  <div className="h-4 bg-stone-200 rounded w-full" />
-                  <div className="h-4 bg-stone-200 rounded w-3/4" />
-                  <div className="flex items-center justify-between pt-4 mt-3 border-t border-stone-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-stone-200" />
-                      <div className="space-y-1">
-                        <div className="h-3.5 bg-stone-200 rounded w-20" />
-                        <div className="h-2.5 bg-stone-200 rounded w-14" />
-                      </div>
-                    </div>
-                  </div>
+                  <div className="h-3.5 bg-stone-200 rounded w-full" />
+                  <div className="h-3.5 bg-stone-200 rounded w-3/4" />
                 </div>
               ) : displayReviews.length === 0 ? (
-                <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-7 shadow-xs border border-stone-200/80 my-5 text-center space-y-3">
+                <div className="bg-white rounded-2xl p-4 shadow-xs border border-stone-200/80 text-center space-y-2">
                   <div className="flex justify-center gap-1">
                     {[1, 2, 3, 4, 5].map((n) => (
                       <Star key={n} className="w-4 h-4 fill-amber-400 text-amber-400" />
                     ))}
                   </div>
-                  <p className="text-xs sm:text-sm text-[#2C382A] font-medium">
+                  <p className="text-xs text-[#2C382A] font-medium">
                     Be the first to share your experience with Sakthi Frozen Plant-Based Foods!
                   </p>
-                  <button
-                    onClick={() => setIsReviewModalOpen(true)}
-                    className="px-4 py-2 bg-[#50563D] text-white rounded-xl text-xs font-bold shadow-xs hover:bg-[#3D422E] transition-all"
-                  >
-                    Add Your Review
-                  </button>
                 </div>
               ) : (
-                <>
-                  <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-7 shadow-xs border border-stone-200/80 my-5 relative">
-                    <div className="flex items-center gap-1 mb-3">
-                      {[...Array(displayReviews[activeReviewIndex]?.rating || 5)].map((_, i) => (
-                        <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                      ))}
+                <div className="space-y-2">
+                  <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-xs border border-stone-200/80 relative">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1">
+                        {[...Array(displayReviews[activeReviewIndex]?.rating || 5)].map((_, i) => (
+                          <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        ))}
+                      </div>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#50563D] bg-[#EAF0E5] px-2 py-0.5 rounded-full">
+                        <GoogleGIcon className="w-3 h-3" />
+                        Verified Customer
+                      </span>
                     </div>
 
-                    <p className="text-xs sm:text-sm text-[#2C382A] font-medium leading-relaxed italic">
+                    <p className="text-xs sm:text-[13px] text-[#2C382A] font-medium leading-relaxed italic">
                       &ldquo;{displayReviews[activeReviewIndex]?.comment}&rdquo;
                     </p>
 
-                    <div className="flex items-center justify-between pt-4 mt-3 border-t border-stone-100">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-[#EAF0E5] text-[#656B4F] font-black text-xs flex items-center justify-center border border-[#656B4F]/30 overflow-hidden shadow-2xs shrink-0">
+                    <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-stone-100">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-[#EAF0E5] text-[#656B4F] font-black text-xs flex items-center justify-center border border-[#656B4F]/30 overflow-hidden shadow-2xs shrink-0">
                           {displayReviews[activeReviewIndex]?.authorName?.charAt(0) || 'P'}
                         </div>
                         <div>
-                          <h4 className="font-extrabold text-xs sm:text-sm text-[#50563D] leading-tight">
+                          <h4 className="font-extrabold text-xs text-[#50563D] leading-tight">
                             {displayReviews[activeReviewIndex]?.authorName}
                           </h4>
-                          <p className="text-[11px] text-[#61665D]">
-                            {displayReviews[activeReviewIndex]?.location || 'Verified Customer'}
+                          <p className="text-[10px] text-[#61665D]">
+                            {displayReviews[activeReviewIndex]?.location || 'Verified Buyer'}
                           </p>
                         </div>
                       </div>
@@ -1559,19 +1563,19 @@ export default function StorefrontHomePage() {
                             onClick={() =>
                               setActiveReviewIndex((prev) => (prev > 0 ? prev - 1 : displayReviews.length - 1))
                             }
-                            className="w-7 h-7 rounded-full bg-white border border-stone-200 shadow-2xs flex items-center justify-center text-stone-700 hover:bg-stone-50 hover:text-black transition-colors"
+                            className="w-6 h-6 rounded-full bg-white border border-stone-200 shadow-2xs flex items-center justify-center text-stone-700 hover:bg-stone-50 hover:text-black transition-colors"
                             aria-label="Previous review"
                           >
-                            <ChevronLeft className="w-3.5 h-3.5" />
+                            <ChevronLeft className="w-3 h-3" />
                           </button>
                           <button
                             onClick={() =>
                               setActiveReviewIndex((prev) => (prev + 1) % displayReviews.length)
                             }
-                            className="w-7 h-7 rounded-full bg-white border border-stone-200 shadow-2xs flex items-center justify-center text-stone-700 hover:bg-stone-50 hover:text-black transition-colors"
+                            className="w-6 h-6 rounded-full bg-white border border-stone-200 shadow-2xs flex items-center justify-center text-stone-700 hover:bg-stone-50 hover:text-black transition-colors"
                             aria-label="Next review"
                           >
-                            <ChevronRight className="w-3.5 h-3.5" />
+                            <ChevronRight className="w-3 h-3" />
                           </button>
                         </div>
                       )}
@@ -1579,19 +1583,20 @@ export default function StorefrontHomePage() {
                   </div>
 
                   {displayReviews.length > 1 && (
-                    <div className="flex items-center justify-center gap-1.5 pt-1">
+                    <div className="flex items-center justify-center gap-1.5 pt-0.5">
                       {displayReviews.map((_, dotIdx) => (
                         <button
                           key={dotIdx}
                           onClick={() => setActiveReviewIndex(dotIdx)}
-                          className={`h-1.5 rounded-full transition-all ${activeReviewIndex === dotIdx ? 'w-5 bg-[#50563D]' : 'w-1.5 bg-stone-300'
-                            }`}
+                          className={`h-1.5 rounded-full transition-all ${
+                            activeReviewIndex === dotIdx ? 'w-5 bg-[#50563D]' : 'w-1.5 bg-stone-300'
+                          }`}
                           aria-label={`Go to slide ${dotIdx + 1}`}
                         />
                       ))}
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
 
@@ -1652,6 +1657,11 @@ export default function StorefrontHomePage() {
 
           </div>
         </section>
+
+        {/* ========================================================================= */}
+        {/* 7.5. INDIA'S BEST MOCK MEAT SEO & COIMBATORE DISTRICTS COVERAGE */}
+        {/* ========================================================================= */}
+        <SeoCoverageSection />
 
         {/* ========================================================================= */}
         {/* 8. DIRECT WHATSAPP ASSISTANCE & CLARIFICATION */}
@@ -1721,6 +1731,24 @@ export default function StorefrontHomePage() {
               <button onClick={() => setIsReviewModalOpen(false)} className="p-1 rounded-full hover:bg-white/20">
                 <X className="w-5 h-5" />
               </button>
+            </div>
+
+            <div className="p-4 bg-[#F8FBF6] border-b border-stone-200/80 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <GoogleGIcon className="w-4 h-4 shrink-0" />
+                <span className="text-[11px] font-bold text-stone-700">
+                  Prefer to review on Google Maps?
+                </span>
+              </div>
+              <a
+                href={GOOGLE_MAPS_REVIEW_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1 bg-white hover:bg-stone-50 border border-stone-300 rounded-lg text-[11px] font-extrabold text-[#50563D] shadow-2xs transition-all flex items-center gap-1 shrink-0"
+              >
+                <span>Google Review</span>
+                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+              </a>
             </div>
 
             <form onSubmit={handleAddReviewSubmit} className="p-6 space-y-4 text-xs">

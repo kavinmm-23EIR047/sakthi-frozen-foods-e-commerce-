@@ -222,12 +222,14 @@ export default function SearchOverlay() {
     });
 
     const fallbackList = [
-      'Veg Mutton',
-      'Veg Chicken',
-      'Veg Fish',
-      'Veg Nuggets',
-      'Veg Kebabs',
-      'Combo Packs',
+      'Veg Mutton Chukka',
+      'Plant-Based Chicken',
+      'Mock Fish Fingers',
+      'Vegan Prawns',
+      'Soya Seekh Kebab',
+      'Corn Cheese Balls',
+      'Plant-Based Biryani Meat',
+      'Coimbatore Express Delivery',
     ];
 
     const sourceList = terms.length > 0 ? terms : fallbackList;

@@ -47,6 +47,7 @@ export default function CheckoutPage() {
   const [isRecoveringPayment, setIsRecoveringPayment] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState('');
   const [orderConfirmed, setOrderConfirmed] = useState<any>(null);
+  const isRedirectingToOrders = useRef(false);
 
   // Auto-populate logged-in customer info
   useEffect(() => {
@@ -98,14 +99,16 @@ export default function CheckoutPage() {
         if (statusRes.success) {
           if (statusRes.data?.paymentStatus === 'Paid') {
             clearInterval(intervalId);
+            isRedirectingToOrders.current = true;
+            setOrderConfirmed(true);
             try {
               localStorage.removeItem('sakthi_pending_payment');
               sessionStorage.removeItem('active_checkout_rzp_order_id');
               sessionStorage.removeItem('active_checkout_order_id');
             } catch (e) {}
-            clearCart();
             setIsRecoveringPayment(false);
-            router.replace(`/orders/${statusRes.data.id || pending.orderId}?success=true`);
+            const confirmedId = statusRes.data.id || statusRes.data._id || pending.orderId;
+            router.replace(`/orders/${confirmedId}?success=true`);
             return;
           } else if (statusRes.data?.paymentStatus === 'Failed') {
             clearInterval(intervalId);
@@ -145,12 +148,16 @@ export default function CheckoutPage() {
   }, [router, clearCart]);
 
   useEffect(() => {
+    if (isRedirectingToOrders.current || orderConfirmed) {
+      return;
+    }
+
     let pendingExists = false;
     try {
       pendingExists = !!localStorage.getItem('sakthi_pending_payment') || !!sessionStorage.getItem('active_checkout_rzp_order_id');
     } catch (e) {}
 
-    if (!isCartLoading && !isRecoveringPayment && cart.length === 0 && !pendingExists && !orderConfirmed) {
+    if (!isCartLoading && !isRecoveringPayment && cart.length === 0 && !pendingExists && !orderConfirmed && !isRedirectingToOrders.current) {
       router.push('/cart');
     }
   }, [cart, isCartLoading, isRecoveringPayment, orderConfirmed, router]);
@@ -306,6 +313,8 @@ export default function CheckoutPage() {
             });
 
             if (verifyData.success) {
+              isRedirectingToOrders.current = true;
+              setOrderConfirmed(true);
               if (typeof window !== 'undefined') {
                 try {
                   localStorage.removeItem('sakthi_pending_payment');
@@ -313,7 +322,6 @@ export default function CheckoutPage() {
                   sessionStorage.removeItem('active_checkout_order_id');
                 } catch (e) {}
               }
-              clearCart();
               const confirmedId = verifyData.data?.id || verifyData.data?._id || orderData.data?.id;
               router.replace(`/orders/${confirmedId}?success=true`);
               return;
