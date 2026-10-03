@@ -31,7 +31,8 @@ import {
   Fish,
   Cookie,
   Layers,
-  UtensilsCrossed
+  UtensilsCrossed,
+  Bell,
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -467,6 +468,7 @@ export default function Navbar({
                     )}
                   </Link>
                   <Link href={user ? '/orders' : '/login'} onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"><UserRound className="h-4 w-4" />{user ? 'My account & orders' : 'Sign in / Create account'}</Link>
+                  <Link href="/orders" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"><Bell className="h-4 w-4 text-[#50563D]" />Push Notifications</Link>
                   <a href="#about" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"><Leaf className="h-4 w-4" />About Sakthi Frozen</a>
                   <a href="#contact" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"><HelpCircle className="h-4 w-4" />Help & contact</a>
                 </nav>

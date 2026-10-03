@@ -165,7 +165,7 @@ export default function ProductDetailModal() {
                     <span>Select Pack Size ({weightOptions.length} available):</span>
                   </span>
                   <span className="font-black text-[#50563D] text-[11px] bg-[#E8EEE0] px-2 py-0.5 rounded-full border border-[#4F534C]/20">
-                    Active: {selectedOption?.badge} ({selectedOption?.weight})
+                    Active: {currentOption.badge} ({currentOption.weight})
                   </span>
                 </div>
 

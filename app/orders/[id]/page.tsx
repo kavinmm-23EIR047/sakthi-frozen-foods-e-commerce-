@@ -222,7 +222,7 @@ export default function OrderDetailPage() {
     return Math.max(0, diff);
   };
 
-  const getStatusBadge = (status: string, paymentStatus: string) => {
+  const getStatusBadge = (status?: string, paymentStatus?: string) => {
     if (paymentStatus === 'Paid' || status === 'Confirmed') {
       return (
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-[#EAF0E5] text-[#2D3823] border border-[#656B4F]/30">
