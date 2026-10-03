@@ -368,14 +368,6 @@ export default function StorefrontHomePage() {
   const [loading, setLoading] = useState(true);
   const [activeReviewIndex, setActiveReviewIndex] = useState(0);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [reviewForm, setReviewForm] = useState({
-    authorName: '',
-    location: '',
-    rating: 5,
-    comment: '',
-  });
-  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   const categoryScrollRef = useRef<HTMLDivElement>(null);
   const productScrollRef = useRef<HTMLDivElement>(null);
@@ -532,40 +524,6 @@ export default function StorefrontHomePage() {
   const prevHeroSlide = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     setHeroDishIndex((prev) => (prev > 0 ? prev - 1 : HERO_BANNERS.length - 1));
-  };
-
-  const handleAddReviewSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reviewForm.authorName || !reviewForm.comment) {
-      showToast('Please fill in your Name and Review comment.', 'error');
-      return;
-    }
-
-    setIsSubmittingReview(true);
-    try {
-      const res = await fetchApi('/reviews', {
-        method: 'POST',
-        body: JSON.stringify({
-          ...reviewForm,
-          isGoogleReview: true,
-          dateText: 'Just now',
-        }),
-      });
-
-      if (res.success) {
-        setReviews((prev) => [res.data, ...prev]);
-        showToast('Thank you! Your Review has been posted.', 'success');
-        setIsReviewModalOpen(false);
-        setReviewForm({ authorName: '', location: '', rating: 5, comment: '' });
-      } else {
-        showToast('Failed to post review: ' + res.error, 'error');
-      }
-    } catch (err: any) {
-      console.error(err);
-      showToast('Error posting review', 'error');
-    } finally {
-      setIsSubmittingReview(false);
-    }
   };
 
   const displayReviews = reviews;
@@ -1483,12 +1441,15 @@ export default function StorefrontHomePage() {
                   <h2 className="text-2xl sm:text-3xl font-extrabold text-[#50563D] tracking-tight font-display">
                     Loved by Customers
                   </h2>
-                  <button
-                    onClick={() => setIsReviewModalOpen(true)}
-                    className="px-3 py-1 bg-[#50563D] hover:bg-[#3D422E] text-white rounded-full text-[11px] font-bold transition-all shadow-xs shrink-0"
+                  <a
+                    href={GOOGLE_MAPS_REVIEW_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3.5 py-1.5 bg-[#50563D] hover:bg-[#3D422E] text-white rounded-full text-xs font-bold transition-all shadow-xs shrink-0 flex items-center gap-1.5 hover:scale-105 active:scale-95"
                   >
-                    + Write Review
-                  </button>
+                    <GoogleGIcon className="w-3.5 h-3.5 bg-white rounded-full p-0.5" />
+                    <span>Review on Google</span>
+                  </a>
                 </div>
                 <p className="text-xs sm:text-sm text-[#4E5E4C] font-medium">
                   Join thousands of happy customers choosing a healthier plant-based lifestyle.
@@ -1496,10 +1457,7 @@ export default function StorefrontHomePage() {
               </div>
 
               {/* Official Google Review Summary Card with Overall 4.9 Ranking, Star Breakdown & Direct Link */}
-              <GoogleReviewSummary
-                variant="card"
-                onWriteWebsiteReview={() => setIsReviewModalOpen(true)}
-              />
+              <GoogleReviewSummary variant="card" />
 
               {/* Customer Testimonial Slider */}
               {loading && displayReviews.length === 0 ? (
@@ -1718,117 +1676,6 @@ export default function StorefrontHomePage() {
         </section>
 
       </main>
-
-      {/* Review Modal */}
-      {isReviewModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-stone-200">
-            <div className="bg-[#50563D] px-6 py-4 text-white flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Leaf className="w-5 h-5 text-[#4ADE80]" />
-                <h3 className="font-bold text-sm">Write a Customer Review</h3>
-              </div>
-              <button onClick={() => setIsReviewModalOpen(false)} className="p-1 rounded-full hover:bg-white/20">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-4 bg-[#F8FBF6] border-b border-stone-200/80 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <GoogleGIcon className="w-4 h-4 shrink-0" />
-                <span className="text-[11px] font-bold text-stone-700">
-                  Prefer to review on Google Maps?
-                </span>
-              </div>
-              <a
-                href={GOOGLE_MAPS_REVIEW_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1 bg-white hover:bg-stone-50 border border-stone-300 rounded-lg text-[11px] font-extrabold text-[#50563D] shadow-2xs transition-all flex items-center gap-1 shrink-0"
-              >
-                <span>Google Review</span>
-                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-              </a>
-            </div>
-
-            <form onSubmit={handleAddReviewSubmit} className="p-6 space-y-4 text-xs">
-              <div>
-                <label className="block font-bold text-[#1E201D] mb-1">Your Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Ramesh Kumar"
-                  value={reviewForm.authorName}
-                  onChange={(e) => setReviewForm({ ...reviewForm, authorName: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 border border-stone-200 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#50563D]"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#1E201D] mb-1">City / Location</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Chennai, Tamil Nadu"
-                  value={reviewForm.location}
-                  onChange={(e) => setReviewForm({ ...reviewForm, location: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 border border-stone-200 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#50563D]"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#1E201D] mb-1">Star Rating</label>
-                <div className="flex items-center gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setReviewForm({ ...reviewForm, rating: star })}
-                      className="p-1"
-                    >
-                      <Star
-                        className={`w-5 h-5 ${star <= reviewForm.rating
-                          ? 'fill-amber-500 text-amber-500'
-                          : 'text-stone-300'
-                          }`}
-                      />
-                    </button>
-                  ))}
-                  <span className="font-extrabold text-[#1E201D] text-xs ml-2">{reviewForm.rating} Stars</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-bold text-[#1E201D] mb-1">Your Review *</label>
-                <textarea
-                  required
-                  rows={3}
-                  placeholder="Share your experience cooking Sakthi Frozen Plant-Based Meats..."
-                  value={reviewForm.comment}
-                  onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl bg-stone-50 border border-stone-200 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#50563D]"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-stone-200 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsReviewModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-stone-200 text-[#1E201D] font-bold text-xs"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingReview}
-                  className="px-5 py-2.5 rounded-xl bg-[#50563D] text-white font-bold text-xs hover:bg-[#151F12] transition-colors shadow-md disabled:opacity-50"
-                >
-                  {isSubmittingReview ? 'Submitting...' : 'Post Review'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       <Footer />
     </div>

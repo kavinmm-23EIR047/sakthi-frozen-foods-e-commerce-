@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Star, ExternalLink, MessageSquarePlus, ShieldCheck, Info } from 'lucide-react';
+import { Star, ExternalLink, ShieldCheck, Info } from 'lucide-react';
 
 export const GOOGLE_MAPS_REVIEW_URL =
   'https://www.google.com/maps/place/mock+meat+%26+frozen+foods+supplier/@11.0442489,76.7937082,12z/data=!4m10!1m2!2m1!1smock+meat+%26+frozen+foods!3m6!1s0x3ba8590037fcc29d:0x3a840ef21bcac8d5!8m2!3d11.0442489!4d76.9461435!15sChhtb2NrIG1lYXQgJiBmcm96ZW4gZm9vZHNaGiIYbW9jayBtZWF0ICYgZnJvemVuIGZvb2RzkgERZnJvemVuX2Zvb2Rfc3RvcmXgAQA!16s%2Fg%2F11vxl4fb52?entry=ttu&g_ep=EgoyMDI2MDkzMC4wIKXMDSoASAFQAw%3D%3D';
@@ -34,13 +34,11 @@ export function GoogleGIcon({ className = 'w-4 h-4' }: { className?: string }) {
 
 interface GoogleReviewSummaryProps {
   variant?: 'card' | 'dark' | 'compact' | 'hero-badge';
-  onWriteWebsiteReview?: () => void;
   className?: string;
 }
 
 export default function GoogleReviewSummary({
   variant = 'card',
-  onWriteWebsiteReview,
   className = '',
 }: GoogleReviewSummaryProps) {
   // Hero Pill Badge
@@ -100,7 +98,7 @@ export default function GoogleReviewSummary({
           href={GOOGLE_MAPS_REVIEW_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-1.5 w-full py-1.5 px-3 rounded-xl bg-white hover:bg-stone-100 text-[#1E201D] text-[11px] font-extrabold shadow-xs transition-all hover:scale-[1.02] active:scale-[0.98]"
+          className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 rounded-xl bg-white hover:bg-stone-100 text-[#1E201D] text-xs font-extrabold shadow-xs transition-all hover:scale-[1.02] active:scale-[0.98]"
         >
           <GoogleGIcon className="w-3.5 h-3.5" />
           <span>Read 33 Reviews &amp; Add Yours</span>
@@ -133,7 +131,7 @@ export default function GoogleReviewSummary({
           </div>
           <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#303134] text-[10px] text-[#9AA0A6]">
             <ShieldCheck className="w-3 h-3 text-[#8AB4F8]" />
-            <span>Verified</span>
+            <span>Verified Google</span>
           </div>
         </div>
 
@@ -203,27 +201,17 @@ export default function GoogleReviewSummary({
         </div>
 
         {/* Buttons */}
-        <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+        <div className="pt-1">
           <a
             href={GOOGLE_MAPS_REVIEW_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full sm:flex-1 py-2.5 px-4 rounded-xl bg-[#8AB4F8] hover:bg-[#AECBFA] text-[#202124] font-extrabold text-xs flex items-center justify-center gap-2 transition-all shadow-md hover:scale-[1.02]"
+            className="w-full py-2.5 px-4 rounded-xl bg-[#8AB4F8] hover:bg-[#AECBFA] text-[#202124] font-extrabold text-xs flex items-center justify-center gap-2 transition-all shadow-md hover:scale-[1.02]"
           >
             <GoogleGIcon className="w-4 h-4" />
-            <span>Review Us on Google</span>
+            <span>Add Your Review on Google</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
-
-          {onWriteWebsiteReview && (
-            <button
-              onClick={onWriteWebsiteReview}
-              className="w-full sm:w-auto py-2.5 px-4 rounded-xl bg-[#303134] hover:bg-[#3C4043] text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
-            >
-              <MessageSquarePlus className="w-3.5 h-3.5 text-[#8AB4F8]" />
-              <span>Write Website Review</span>
-            </button>
-          )}
         </div>
       </div>
     );
@@ -313,29 +301,18 @@ export default function GoogleReviewSummary({
         </div>
       </div>
 
-      {/* Action Buttons */}
+      {/* Action Buttons - Purely Direct Google Reviews */}
       <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
         <a
           href={GOOGLE_MAPS_REVIEW_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full sm:flex-1 py-2.5 px-4 rounded-xl bg-[#50563D] hover:bg-[#3D422E] text-white font-black text-xs flex items-center justify-center gap-2 transition-all shadow-md hover:scale-[1.02] active:scale-[0.98]"
+          className="w-full py-2.5 px-4 rounded-xl bg-[#50563D] hover:bg-[#3D422E] text-white font-black text-xs flex items-center justify-center gap-2 transition-all shadow-md hover:scale-[1.02] active:scale-[0.98]"
         >
           <GoogleGIcon className="w-4 h-4 bg-white rounded-full p-0.5" />
           <span>Add Your Review on Google</span>
           <ExternalLink className="w-3.5 h-3.5 text-white/80" />
         </a>
-
-        {onWriteWebsiteReview && (
-          <button
-            type="button"
-            onClick={onWriteWebsiteReview}
-            className="w-full sm:w-auto py-2.5 px-3.5 rounded-xl bg-[#EAF0E5] hover:bg-[#DFEBE0] text-[#50563D] font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
-          >
-            <MessageSquarePlus className="w-3.5 h-3.5" />
-            <span>Write Website Review</span>
-          </button>
-        )}
       </div>
     </div>
   );
