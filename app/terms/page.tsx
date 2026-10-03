@@ -62,13 +62,13 @@ export default function TermsPage() {
                   <RefreshCw className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span>24-Hour Freshness Guarantee</span>
                 </a>
-                <a href="#delivery" className="flex items-center gap-2 text-stone-700 hover:text-[#50563D] font-medium">
+                <a href="#shipping" className="flex items-center gap-2 text-stone-700 hover:text-[#50563D] font-medium">
                   <Truck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span>Express Cold-Chain Logistics</span>
+                  <span>Shipping &amp; Delivery Policy</span>
                 </a>
                 <a href="#privacy" className="flex items-center gap-2 text-stone-700 hover:text-[#50563D] font-medium">
                   <Lock className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                  <span>100% Secure & Encrypted Payments</span>
+                  <span>100% Secure &amp; Encrypted Payments</span>
                 </a>
               </div>
             </div>
@@ -154,11 +154,43 @@ export default function TermsPage() {
               </ul>
             </div>
 
-            {/* 6. Cancellation, Return & Refund Policy */}
-            <div id="cancellation" className="space-y-3">
+            {/* 6. Shipping Policy */}
+            <div id="shipping" className="space-y-3">
               <div className="flex items-center gap-2 text-base sm:text-lg font-black text-gray-900 border-b border-stone-200 pb-2">
                 <span className="w-6 h-6 rounded-full bg-[#50563D] text-white text-xs flex items-center justify-center font-bold">6</span>
-                <h2>Cancellation, Return & Refund Policy</h2>
+                <h2>Shipping &amp; Delivery Policy</h2>
+              </div>
+              <p>
+                All orders from Sakthi Frozen Foods are shipped using temperature-controlled cold-chain logistics to preserve product quality at <strong>-18°C</strong> throughout transit.
+              </p>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
+                <p className="font-bold text-amber-900 text-xs uppercase tracking-wider">Delivery Areas &amp; Timelines</p>
+                <ul className="list-disc pl-5 space-y-2 text-stone-700">
+                  <li><strong>Coimbatore City &amp; Suburbs (within 25 km):</strong> Same-day or next-business-day delivery. Delivery fee calculated at ₹10/km (minimum ₹40).</li>
+                  <li><strong>Tamil Nadu — Key Districts</strong> (Salem, Erode, Tiruppur, Madurai, Chennai, Trichy, etc.): Dispatched via priority express cold-chain courier within <strong>24–48 hours</strong> of order confirmation. Fixed delivery rates apply per destination.</li>
+                  <li><strong>Other States:</strong> Currently not serviceable. We ship exclusively within Tamil Nadu and selected districts.</li>
+                </ul>
+              </div>
+
+              <div className="space-y-2">
+                <p><strong>Order Processing:</strong> Orders placed before 12:00 PM are processed on the same business day. Orders placed after 12:00 PM are processed the next business day (Monday–Saturday).</p>
+                <p><strong>Packaging:</strong> All shipments are packed in insulated thermal boxes with food-grade gel ice packs to maintain sub-zero temperatures during transit.</p>
+                <p><strong>Tracking:</strong> Once dispatched, you will receive an order confirmation and delivery update via SMS/WhatsApp on your registered mobile number.</p>
+                <p><strong>Failed Delivery:</strong> If a delivery attempt fails due to an incorrect address or recipient unavailability, we will attempt re-delivery once. After two failed attempts, the order may be cancelled and a partial refund issued after deducting logistics costs.</p>
+                <p><strong>Shipping Charges:</strong> Displayed transparently at checkout before payment. No hidden charges.</p>
+              </div>
+
+              <p className="text-xs text-stone-500 italic">
+                For delivery queries, contact us on WhatsApp: <a href="https://wa.me/918056389214" className="text-[#50563D] font-bold underline">+91 80563 89214</a>
+              </p>
+            </div>
+
+            {/* 7. Cancellation, Return & Refund Policy */}
+            <div id="cancellation" className="space-y-3">
+              <div className="flex items-center gap-2 text-base sm:text-lg font-black text-gray-900 border-b border-stone-200 pb-2">
+                <span className="w-6 h-6 rounded-full bg-[#50563D] text-white text-xs flex items-center justify-center font-bold">7</span>
+                <h2>Cancellation, Return &amp; Refund Policy</h2>
               </div>
               <p>
                 Due to the perishable and temperature-sensitive nature of frozen food products, standard non-food return policies do not apply.
@@ -170,10 +202,10 @@ export default function TermsPage() {
               </div>
             </div>
 
-            {/* 7. Corporate & Wholesale Linkage */}
+            {/* 8. Corporate & Wholesale Linkage */}
             <div id="corporate" className="space-y-3">
               <div className="flex items-center gap-2 text-base sm:text-lg font-black text-gray-900 border-b border-stone-200 pb-2">
-                <span className="w-6 h-6 rounded-full bg-[#50563D] text-white text-xs flex items-center justify-center font-bold">7</span>
+                <span className="w-6 h-6 rounded-full bg-[#50563D] text-white text-xs flex items-center justify-center font-bold">8</span>
                 <h2>Wholesale & B2B Institutional Supply</h2>
               </div>
               <p>
@@ -181,10 +213,10 @@ export default function TermsPage() {
               </p>
             </div>
 
-            {/* 8. Privacy & Data Protection */}
+            {/* 9. Privacy & Data Protection */}
             <div id="privacy" className="space-y-3">
               <div className="flex items-center gap-2 text-base sm:text-lg font-black text-gray-900 border-b border-stone-200 pb-2">
-                <span className="w-6 h-6 rounded-full bg-[#50563D] text-white text-xs flex items-center justify-center font-bold">8</span>
+                <span className="w-6 h-6 rounded-full bg-[#50563D] text-white text-xs flex items-center justify-center font-bold">9</span>
                 <h2>Privacy & Data Protection</h2>
               </div>
               <p>
@@ -192,11 +224,12 @@ export default function TermsPage() {
               </p>
             </div>
 
-            {/* 9. Grievance & Customer Care Contact */}
+            {/* 10. Grievance & Customer Care Contact */}
             <div id="contact" className="space-y-4 pt-4 border-t border-stone-200">
-              <h3 className="text-base sm:text-lg font-black text-gray-900">
-                Customer Care & Grievance Redressal
-              </h3>
+              <div className="flex items-center gap-2 text-base sm:text-lg font-black text-gray-900 border-b border-stone-200 pb-2">
+                <span className="w-6 h-6 rounded-full bg-[#50563D] text-white text-xs flex items-center justify-center font-bold">10</span>
+                <h2>Customer Care & Grievance Redressal</h2>
+              </div>
               <p>
                 If you have any questions, concerns, or feedback regarding your order or these terms, please contact our support team:
               </p>

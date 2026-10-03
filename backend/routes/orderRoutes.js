@@ -12,6 +12,7 @@ const { queueOrderNotifications } = require('../services/notificationService');
 const { getDeliveryCalculation } = require('../utils/deliveryRates');
 const { buildInvoiceHtml } = require('../services/emailService');
 const { generateInvoicePdf } = require('../services/pdfService');
+const cacheService = require('../services/cacheService');
 
 const router = express.Router();
 const createOrderLimiter = rateLimit({ windowMs: 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
@@ -218,11 +219,19 @@ router.get('/', protect, admin, async (req, res, next) => {
     await autoExpirePendingOrders();
     const page = Math.max(Number.parseInt(req.query.page || '1', 10), 1);
     const limit = Math.min(Math.max(Number.parseInt(req.query.limit || '20', 10), 1), 100);
-    const [orders, total] = await Promise.all([
-      Order.find().sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
-      Order.countDocuments(),
-    ]);
-    res.json({ success: true, count: orders.length, total, page, totalPages: Math.ceil(total / limit), data: orders.map(publicOrder) });
+    const cacheKey = `sakthi:orders:admin:${page}:${limit}`;
+
+    res.set('Cache-Control', 'private, max-age=15');
+
+    const { data: payload } = await cacheService.getOrSet(cacheKey, async () => {
+      const [orders, total] = await Promise.all([
+        Order.find().sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+        Order.countDocuments(),
+      ]);
+      return { count: orders.length, total, page, totalPages: Math.ceil(total / limit), data: orders.map(publicOrder) };
+    }, 30); // 30s cache — admin list stays fresh enough
+
+    res.json({ success: true, ...payload });
   } catch (error) {
     next(error);
   }

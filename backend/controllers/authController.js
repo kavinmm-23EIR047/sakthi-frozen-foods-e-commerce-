@@ -116,22 +116,19 @@ const loginUser = async (req, res) => {
     const isMobile = isValidMobileNumber(cleanedPhone);
     const normalizedEmail = rawInput.toLowerCase();
 
-    // Query user by phone or email
-    let user;
+    // Query user in single fast indexed lookup
+    const searchConditions = [];
     if (isMobile) {
-      user = await User.findOne({
-        $or: [{ phone: cleanedPhone }, { phone: `+91${cleanedPhone}` }, { phone: `91${cleanedPhone}` }],
-      });
-    } else {
-      user = await User.findOne({ email: normalizedEmail });
+      searchConditions.push({ phone: cleanedPhone });
+      searchConditions.push({ phone: `+91${cleanedPhone}` });
+      searchConditions.push({ phone: `91${cleanedPhone}` });
+    }
+    searchConditions.push({ email: normalizedEmail });
+    if (rawInput && rawInput !== cleanedPhone && rawInput !== normalizedEmail) {
+      searchConditions.push({ phone: rawInput });
     }
 
-    // If still not found, try fallback search by exact raw string
-    if (!user) {
-      user = await User.findOne({
-        $or: [{ email: normalizedEmail }, { phone: rawInput }],
-      });
-    }
+    const user = await User.findOne({ $or: searchConditions });
 
     if (user && (await user.matchPassword(password))) {
       // Ensure user has a valid mobile number associated

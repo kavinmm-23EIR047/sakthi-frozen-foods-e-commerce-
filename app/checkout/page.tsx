@@ -291,7 +291,7 @@ export default function CheckoutPage() {
 
       // 3. Initialize Razorpay popup
       const options = {
-        key: orderData.razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_Tb3aRjusts7JYy',
+        key: orderData.razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TjTbwyhmC1lHFF',
         amount: orderData.razorpayAmount,
         currency: 'INR',
         name: 'Sakthi Frozen Foods',

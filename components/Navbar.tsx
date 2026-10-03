@@ -184,7 +184,7 @@ export default function Navbar({
                 </div>
                 <div className="hidden min-[380px]:block">
                   <span className="text-xs sm:text-sm font-extrabold tracking-tight text-[#50563D] block leading-tight">
-                    MOCK MEAT
+                    MOCK MEAT &amp; FROZEN FOODS
                   </span>
                   <span className="text-[8px] sm:text-[9px] font-bold tracking-wider text-[#6B7566] uppercase block">
                     SAKTHI FROZEN FOODS
@@ -500,7 +500,7 @@ export default function Navbar({
               <div className="flex items-center justify-between border-b border-[#e4e9df] px-5 py-4">
                 <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3">
                   <span className="relative h-10 w-10"><Image src={logo} alt="" fill className="object-contain" /></span>
-                  <span><strong className="block text-sm text-[#50563D]">MOCK MEAT</strong><small className="text-[9px] font-semibold tracking-wider text-[#748071]">SAKTHI FROZEN FOODS</small></span>
+                  <span><strong className="block text-sm text-[#50563D]">MOCK MEAT &amp; FROZEN FOODS</strong><small className="text-[9px] font-semibold tracking-wider text-[#748071]">SAKTHI FROZEN FOODS</small></span>
                 </Link>
                 <button onClick={() => setIsMobileMenuOpen(false)} aria-label="Close menu" className="rounded-full p-2 text-gray-600 hover:bg-gray-100"><X className="h-5 w-5" /></button>
               </div>

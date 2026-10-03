@@ -136,7 +136,7 @@ export default function OrderDetailPage() {
       const { razorpayOrderId, razorpayAmount, razorpayKeyId } = retryRes;
 
       const options = {
-        key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_Tb3aRjusts7JYy',
+        key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TjTbwyhmC1lHFF',
         amount: razorpayAmount,
         currency: 'INR',
         name: 'Sakthi Frozen Foods',

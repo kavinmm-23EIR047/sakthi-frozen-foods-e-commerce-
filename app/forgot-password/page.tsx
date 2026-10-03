@@ -224,7 +224,7 @@ export default function ForgotPasswordPage() {
             </div>
             <div className="text-left">
               <span className="text-sm font-black tracking-tight text-[#4E553B] block leading-tight">
-                MOCK MEAT
+                MOCK MEAT &amp; FROZEN FOODS
               </span>
               <span className="text-[9px] font-bold tracking-widest text-stone-500 uppercase block">
                 SAKTHI FROZEN FOODS

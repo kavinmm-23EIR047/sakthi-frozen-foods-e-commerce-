@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Phone, Mail, MapPin, ShieldCheck, FileText, RefreshCw, Lock, MessageCircle, X, ExternalLink, Building2, HelpCircle } from 'lucide-react';
+import { Phone, Mail, MapPin, ShieldCheck, FileText, RefreshCw, Lock, MessageCircle, X, ExternalLink, Building2, HelpCircle, Truck } from 'lucide-react';
 import { fetchApi } from '@/lib/apiConfig';
 import { MAIN_SITE_URL } from '@/lib/config';
 import GoogleReviewSummary from './GoogleReviewSummary';
@@ -45,45 +45,58 @@ export default function Footer() {
         </div>
 
         <div className="relative z-10 mx-auto w-[calc(100%-1.5rem)] max-w-[1500px] sm:w-[calc(100%-3rem)] lg:w-[calc(100%-4rem)]">
-          <div className="grid grid-cols-2 gap-x-4 gap-y-5 border-b border-white/20 pb-5 sm:gap-x-7 sm:gap-y-7 sm:pb-7 lg:grid-cols-4 lg:gap-x-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-x-6 gap-y-7 sm:gap-x-7 sm:gap-y-8 pb-7 border-b border-white/20">
           
-          {/* Column 1: Brand Info */}
-          <div className="col-span-2 space-y-2.5 sm:space-y-3 lg:col-span-1">
+          {/* Column 1: Brand Info & Support CTA */}
+          <div className="space-y-3 sm:space-y-3.5">
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="relative w-14 h-10 sm:w-20 sm:h-14 shrink-0 flex items-center justify-center">
+              <div className="relative w-14 h-10 sm:w-16 sm:h-12 shrink-0 flex items-center justify-center">
                 <Image src={logo} alt="Sakthi Frozen Foods" fill sizes="(max-width: 768px) 100vw, 200px" className="object-contain object-left" />
               </div>
               <div>
-                <span className="text-sm sm:text-lg font-extrabold tracking-tight text-white block leading-tight font-display">
-                  MOCK MEAT
+                <span className="text-xs sm:text-sm font-extrabold tracking-tight text-white block leading-tight font-display">
+                  MOCK MEAT &amp; FROZEN FOODS
                 </span>
-                <span className="text-[8px] sm:text-[10px] font-bold tracking-wider text-white uppercase block mt-0.5">
+                <span className="text-[8px] sm:text-[9px] font-bold tracking-wider text-white/90 uppercase block mt-0.5">
                   SAKTHI FROZEN FOODS
                 </span>
               </div>
             </Link>
 
-            <p className="max-w-sm text-[11px] sm:text-sm leading-relaxed text-white/90">
-              Premium plant-based frozen foods made for everyday cooking and authentic flavour. Express -18°C doorstep delivery.
+            <p className="text-[11px] sm:text-xs leading-relaxed text-white/90">
+              Premium plant-based frozen foods made for everyday cooking and authentic flavour. Express -18°C doorstep delivery across Tamil Nadu.
             </p>
 
-            <div className="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/10 px-2.5 py-1.5 text-[10px] sm:text-xs text-white font-bold">
-              <ShieldCheck className="w-4 h-4 text-[#A9F2B7]" />
+            <div className="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/10 px-2.5 py-1 text-[10px] sm:text-xs text-white font-bold">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#A9F2B7]" />
               <span>FSSAI Certified</span>
+            </div>
+
+            <div>
+              <a
+                href="https://wa.me/918056389214"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Chat with Sakthi Frozen Foods on WhatsApp"
+                className="inline-flex min-h-8 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#25D366] to-[#128C7E] px-3.5 py-2 text-xs font-bold text-white shadow-md transition-all hover:shadow-lg hover:brightness-105"
+              >
+                <MessageCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span>Chat on WhatsApp</span>
+              </a>
             </div>
           </div>
 
           {/* Column 2: Product Categories (Dynamic Backend Only) */}
           <div>
-            <h4 className="text-[10px] sm:text-xs font-black text-white uppercase tracking-[0.1em] mb-2">
+            <h4 className="text-[10px] sm:text-xs font-black text-white uppercase tracking-[0.1em] mb-2.5">
               Product Categories
             </h4>
             <ul className="space-y-1.5 text-[10px] leading-snug sm:space-y-2 sm:text-[13px] text-white font-medium">
               {categories.length > 0 ? (
                 categories.map((cat) => (
                   <li key={cat.id || cat.name}>
-                    <Link href={`/shop?category=${encodeURIComponent(cat.name)}`} className="hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2.5 group">
-                      <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-white/30 group-hover:bg-white transition-colors shrink-0" />
+                    <Link href={`/shop?category=${encodeURIComponent(cat.name)}`} className="hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2 group">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white/40 group-hover:bg-white transition-colors shrink-0" />
                       <span className="leading-snug">{cat.name}</span>
                     </Link>
                   </li>
@@ -98,10 +111,10 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Column 3: Quick Links & Corporate Backlinks */}
+          {/* Column 3: Store & Policies */}
           <div>
-            <h4 className="text-[10px] sm:text-xs font-black text-white uppercase tracking-[0.1em] mb-2">
-              Store & Policies
+            <h4 className="text-[10px] sm:text-xs font-black text-white uppercase tracking-[0.1em] mb-2.5">
+              Store &amp; Policies
             </h4>
             <ul className="space-y-1.5 text-[10px] leading-snug sm:space-y-2 sm:text-[13px] text-white font-medium">
               <li>
@@ -117,141 +130,115 @@ export default function Footer() {
               <li>
                 <Link href="/help" className="hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2 group">
                   <HelpCircle className="w-3.5 h-3.5 text-[#A9F2B7] group-hover:text-white transition-colors" />
-                  <span>Help & Ordering Guide</span>
+                  <span>Help &amp; Guide</span>
                 </Link>
               </li>
               <li>
                 <Link href="/terms" className="hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2 group">
                   <FileText className="w-3.5 h-3.5 text-[#A9F2B7] group-hover:text-white transition-colors" />
-                  <span>Terms & Storage Policy</span>
+                  <span>Terms &amp; Conditions</span>
                 </Link>
               </li>
               <li>
-                <button
-                  onClick={() => setActivePolicyModal('refund')}
-                  className="hover:text-white text-left hover:translate-x-1 transition-all duration-300 flex items-center gap-2 group"
-                >
+                <Link href="/terms#cancellation" className="hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2 group">
                   <RefreshCw className="w-3.5 h-3.5 text-white/60 group-hover:text-white transition-colors" />
-                  <span>Refund & Return Policy</span>
-                </button>
+                  <span>Refund Policy</span>
+                </Link>
               </li>
               <li>
-                <button
-                  onClick={() => setActivePolicyModal('privacy')}
-                  className="hover:text-white text-left hover:translate-x-1 transition-all duration-300 flex items-center gap-2 group"
-                >
+                <Link href="/terms#privacy" className="hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2 group">
                   <Lock className="w-3.5 h-3.5 text-white/60 group-hover:text-white transition-colors" />
                   <span>Privacy Policy</span>
-                </button>
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms#shipping" className="hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center gap-2 group">
+                  <Truck className="w-3.5 h-3.5 text-white/60 group-hover:text-white transition-colors" />
+                  <span>Shipping Policy</span>
+                </Link>
               </li>
             </ul>
+          </div>
 
-            {/* Corporate & Wholesale Portal Section */}
-            <div className="mt-4 pt-3 border-t border-white/15">
-              <h5 className="text-[9px] sm:text-[11px] font-black text-[#A9F2B7] uppercase tracking-[0.1em] mb-1.5 flex items-center gap-1">
-                <Building2 className="w-3 h-3" /> Corporate & B2B
-              </h5>
-              <ul className="space-y-1 text-[10px] sm:text-xs text-white/80 font-medium">
+          {/* Column 4: Corporate B2B & Support Contacts */}
+          <div className="space-y-3">
+            <div>
+              <h4 className="text-[10px] sm:text-xs font-black text-white uppercase tracking-[0.1em] mb-2.5 flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-[#A9F2B7]" /> Corporate &amp; B2B
+              </h4>
+              <ul className="space-y-1.5 text-[10px] leading-snug sm:space-y-2 sm:text-[13px] text-white font-medium">
                 <li>
-                  <a href={`${MAIN_SITE_URL}/about`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition flex items-center gap-1">
+                  <a href={`${MAIN_SITE_URL}/about`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition flex items-center gap-1.5">
                     <span>About Sakthi Foods</span>
                     <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                   </a>
                 </li>
                 <li>
-                  <a href={`${MAIN_SITE_URL}/services`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition flex items-center gap-1">
-                    <span>Manufacturing & Cold Storage</span>
+                  <a href={`${MAIN_SITE_URL}/services`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition flex items-center gap-1.5">
+                    <span>Cold Storage Facilities</span>
                     <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                   </a>
                 </li>
                 <li>
-                  <a href={`${MAIN_SITE_URL}/gallery`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition flex items-center gap-1">
+                  <a href={`${MAIN_SITE_URL}/gallery`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition flex items-center gap-1.5">
                     <span>Photo Gallery</span>
                     <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                   </a>
                 </li>
                 <li>
-                  <a href={`${MAIN_SITE_URL}/contact`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition flex items-center gap-1">
-                    <span>Wholesale Enquiries</span>
+                  <a href={`${MAIN_SITE_URL}/contact`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition flex items-center gap-1.5">
+                    <span>Wholesale (50kg+)</span>
                     <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                   </a>
                 </li>
               </ul>
             </div>
+
+            <div className="pt-2 border-t border-white/15 space-y-1.5 text-[10px] sm:text-xs text-white">
+              <a href="tel:+918056389214" className="flex items-center gap-2 hover:text-white transition">
+                <Phone className="w-3 h-3 text-[#A9F2B7] shrink-0" />
+                <span>+91 80563 89214</span>
+              </a>
+              <a href="mailto:sakthifrozenfoods@gmail.com" className="flex items-center gap-2 hover:text-white transition">
+                <Mail className="w-3 h-3 text-[#A9F2B7] shrink-0" />
+                <span className="truncate">sakthifrozenfoods@gmail.com</span>
+              </a>
+            </div>
           </div>
 
-          {/* Column 4: Contact & Store Location with Google Map */}
-          <div className="col-span-2 space-y-3 lg:col-span-1">
-            <div>
-              <h4 className="text-[10px] sm:text-xs font-black text-white uppercase tracking-[0.1em] mb-2">
-                Store Location & Contact
-              </h4>
-              <ul className="grid grid-cols-1 gap-2 text-[10px] leading-snug sm:text-xs lg:text-[13px] text-white font-medium">
-                <li className="flex items-start gap-2.5">
-                  <div className="p-1.5 bg-white/10 rounded-lg mt-0.5 shrink-0">
-                    <MapPin className="w-3.5 h-3.5 text-[#A9F2B7]" />
-                  </div>
-                  <a
-                    href="https://maps.app.goo.gl/gqVoq24rhxrQEgvs8"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:underline hover:text-white transition-colors leading-relaxed"
-                  >
-                    peons colony, Kalpana Theatre, opposite Edayarpalayam - Koundampalayam Road, Koundampalayam, Coimbatore, Tamil Nadu 641030
-                  </a>
-                </li>
-                <li className="flex flex-col gap-1.5">
-                  <a href="tel:+918056389214" className="inline-flex items-center gap-2.5 transition-colors hover:text-white group">
-                    <div className="p-1.5 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors shrink-0">
-                      <Phone className="w-3.5 h-3.5 text-[#A9F2B7]" />
-                    </div>
-                    <span>+91 80563 89214 (Mobile)</span>
-                  </a>
-                  <a href="tel:+919042539214" className="inline-flex items-center gap-2.5 transition-colors hover:text-white group pl-8">
-                    <span className="text-white/80 hover:text-white text-[11px] sm:text-xs font-semibold">+91 90425 39214 (Office)</span>
-                  </a>
-                </li>
-                <li>
-                  <a href="mailto:sakthifrozenfoods@gmail.com" className="inline-flex items-center gap-2.5 transition-colors hover:text-white group">
-                    <div className="p-1.5 bg-white/10 rounded-lg group-hover:bg-white/20 transition-colors shrink-0">
-                      <Mail className="w-3.5 h-3.5 text-[#A9F2B7]" />
-                    </div>
-                    <span>sakthifrozenfoods@gmail.com</span>
-                  </a>
-                </li>
-              </ul>
-            </div>
+          {/* Column 5: Location & Map & Reviews */}
+          <div className="space-y-2.5">
+            <h4 className="text-[10px] sm:text-xs font-black text-white uppercase tracking-[0.1em] mb-1.5">
+              Store Location &amp; Reviews
+            </h4>
+            
+            <a
+              href="https://maps.app.goo.gl/MC1p5twNCxzqwZ659"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-start gap-1.5 text-[10px] leading-snug sm:text-xs text-white hover:underline transition-colors"
+            >
+              <MapPin className="w-3.5 h-3.5 text-[#A9F2B7] mt-0.5 shrink-0" />
+              <span>Opp. Kalpana Theatre, Koundampalayam, Coimbatore 641030</span>
+            </a>
 
             {/* Embedded Google Map Preview */}
-            <div className="rounded-xl overflow-hidden border border-white/20 shadow-md bg-white/5 h-[120px] w-full relative">
+            <div className="rounded-xl overflow-hidden border border-white/20 shadow-sm bg-white/5 h-[105px] w-full relative">
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d125310.08213131265!2d76.81346682338442!3d11.0431204487083!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ba8590cc15b53eb%3A0x46fec529d6a8bb00!2sSakthi%20Frozen%20Food%20Traders!5e0!3m2!1sen!2sin!4v1790868798009!5m2!1sen!2sin"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1641.1681959126!2d76.9461683149479!3d11.044329384516548!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ba8590037fcc29d%3A0x3a840ef21bcac8d5!2smock%20meat%20%26%20frozen%20foods%20supplier!5e0!3m2!1sen!2sin!4v1791040649820!5m2!1sen!2sin"
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
                 allowFullScreen
                 loading="lazy"
                 referrerPolicy="strict-origin-when-cross-origin"
-                title="Sakthi Frozen Food Traders Location Map"
+                title="Mock Meat &amp; Frozen Foods Supplier Location Map"
                 className="w-full h-full"
               />
             </div>
 
             {/* Google Rating & Review Link Badge */}
             <GoogleReviewSummary variant="compact" />
-
-            <div>
-              <a
-                href="https://wa.me/918056389214"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Chat with Sakthi Frozen Foods on WhatsApp"
-                className="inline-flex min-h-8 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#25D366] to-[#128C7E] px-3.5 py-1.5 text-xs font-bold text-white shadow-md transition-all hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366]"
-              >
-                <MessageCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                <span>Chat on WhatsApp</span>
-              </a>
-            </div>
           </div>
 
         </div>
@@ -266,20 +253,24 @@ export default function Footer() {
 
           <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1">
             <Link href="/help" className="hover:text-white transition-colors">
-              Help & Support
+              Help &amp; Support
             </Link>
             <span className="text-white/55">•</span>
             <Link href="/terms" className="hover:text-white transition-colors">
-              Terms & Conditions
+              Terms &amp; Conditions
             </Link>
             <span className="text-white/55">•</span>
-            <button onClick={() => setActivePolicyModal('refund')} className="hover:text-white transition-colors">
+            <Link href="/terms#cancellation" className="hover:text-white transition-colors">
               Refund Policy
-            </button>
+            </Link>
             <span className="text-white/55">•</span>
-            <button onClick={() => setActivePolicyModal('privacy')} className="hover:text-white transition-colors">
+            <Link href="/terms#privacy" className="hover:text-white transition-colors">
               Privacy Policy
-            </button>
+            </Link>
+            <span className="text-white/55">•</span>
+            <Link href="/terms#shipping" className="hover:text-white transition-colors">
+              Shipping Policy
+            </Link>
           </div>
         </div>
 

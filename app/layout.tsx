@@ -188,7 +188,7 @@ const structuredDataOnlineStore = {
   },
   sameAs: [
     'https://wa.me/918056389214',
-    'https://maps.app.goo.gl/gqVoq24rhxrQEgvs8',
+    'https://maps.app.goo.gl/MC1p5twNCxzqwZ659',
   ],
   areaServed: [
     { '@type': 'City', name: 'Coimbatore' },

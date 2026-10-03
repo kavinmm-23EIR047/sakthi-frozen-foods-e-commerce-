@@ -272,7 +272,7 @@ function RegisterForm() {
                 </div>
                 <div>
                   <span className="text-sm sm:text-base font-black tracking-tight block leading-tight text-white">
-                    MOCK MEAT
+                    MOCK MEAT &amp; FROZEN FOODS
                   </span>
                   <span className="text-[9px] sm:text-[10px] font-bold tracking-widest text-white/70 uppercase block">
                     SAKTHI FROZEN FOODS

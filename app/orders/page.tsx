@@ -149,7 +149,7 @@ export default function OrdersAndAccountPage() {
       const { razorpayOrderId, razorpayAmount, razorpayKeyId } = retryRes;
 
       const options = {
-        key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_Tb3aRjusts7JYy',
+        key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TjTbwyhmC1lHFF',
         amount: razorpayAmount,
         currency: 'INR',
         name: 'Sakthi Frozen Foods',
@@ -496,7 +496,7 @@ export default function OrdersAndAccountPage() {
               </div>
             ) : (
               <div className="space-y-6">
-                {orders.map((order) => {
+                {orders.map((order, orderIdx) => {
                   const isOnline = order.paymentMethod === 'Razorpay (Online)';
                   const isPendingPayment = order.paymentStatus === 'Pending';
                   const remainingSecs = isOnline && isPendingPayment ? getRemainingSeconds(order.createdAt) : 0;
@@ -517,7 +517,7 @@ export default function OrdersAndAccountPage() {
 
                   return (
                     <div
-                      key={order.id}
+                      key={order.id || (order as any)._id || order.orderNumber || `order-${orderIdx}`}
                       className="bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden transition-shadow hover:shadow-md"
                     >
                       {/* Order Card Header */}

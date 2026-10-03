@@ -35,8 +35,11 @@ export async function connectToDatabase() {
   if (!cached?.promise) {
     const opts = {
       bufferCommands: false,
+      maxPoolSize: 10,         // more concurrent auth queries
+      minPoolSize: 2,          // keep warm — avoids cold-start latency
       serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 10000,
+      socketTimeoutMS: 20000,
+      heartbeatFrequencyMS: 10000,
     };
 
     cached!.promise = mongoose.connect(MONGODB_URI, opts).then((mongooseInstance) => {

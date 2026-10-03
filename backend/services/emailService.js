@@ -15,7 +15,7 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.EMAIL_FROM || 'sakthi
 const COMPANY_PHONE = '+91 80563 89214';
 const COMPANY_ADDRESS = 'peons colony, Kalpana Theatre, opposite Edayarpalayam - Koundampalayam Road, Koundampalayam, Coimbatore, Tamil Nadu 641030';
 const FSSAI_LIC_NO = '12421008000456';
-const GOOGLE_MAPS_URL = 'https://maps.app.goo.gl/gqVoq24rhxrQEgvs8';
+const GOOGLE_MAPS_URL = 'https://maps.app.goo.gl/MC1p5twNCxzqwZ659';
 const WHATSAPP_PHONE = '918056389214';
 
 function getInvoiceToken(order) {

@@ -132,6 +132,37 @@ function startServer() {
         runNotificationRetry();
         retryTimer = setInterval(runNotificationRetry, 30 * 1000);
         retryTimer.unref();
+
+        // ⚡ Warm L1 cache immediately after DB connects
+        // This ensures the very first user request is served from memory (<1ms)
+        const Product = require('./models/Product');
+        const Category = require('./models/Category');
+        const Review = require('./models/Review');
+        cacheService.warmUp([
+          {
+            key: 'sakthi:products:all:all:1:50',
+            ttl: 300,
+            fetcherFn: async () => {
+              const products = await Product.find()
+                .select('code name weight mrp price category description stock image isPopular variants')
+                .sort({ code: 1 }).limit(50).lean();
+              return { products, total: products.length, page: 1 };
+            },
+          },
+          {
+            key: 'sakthi:categories:all',
+            ttl: 600,
+            fetcherFn: async () => {
+              const cats = await Category.find().sort({ createdAt: 1 }).lean();
+              return cats.length ? cats.map((c) => ({ id: c._id.toString(), name: c.name, description: c.description || '', image: c.image || '', icon: c.icon || 'List' })) : [];
+            },
+          },
+          {
+            key: 'sakthi:reviews:all',
+            ttl: 600,
+            fetcherFn: async () => Review.find({ approved: true }).sort({ createdAt: -1 }).limit(50).lean(),
+          },
+        ]).catch((e) => console.warn('Cache warmup error:', e.message));
       }
     } catch (error) {
       console.error(`Backend database is not ready; retrying shortly: ${error.message}`);
