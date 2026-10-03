@@ -15,7 +15,7 @@ export default function CheckoutModal() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [shippingAddress, setShippingAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'UPI / Online' | 'Cash on Delivery'>('UPI / Online');
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderConfirmed, setOrderConfirmed] = useState<any>(null);
 
@@ -135,7 +135,7 @@ export default function CheckoutModal() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Rajesh Kumar"
+                  placeholder="Enter your full name"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
@@ -148,7 +148,7 @@ export default function CheckoutModal() {
                   <input
                     type="tel"
                     required
-                    placeholder="+91 98765 43210"
+                    placeholder="Enter your mobile number"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
@@ -159,7 +159,7 @@ export default function CheckoutModal() {
                   <label className="block text-xs font-bold text-[#1E201D] mb-1">Email Address</label>
                   <input
                     type="email"
-                    placeholder="name@example.com"
+                    placeholder="Enter your email address"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-lg bg-[#E8EEE0] border border-[#4F534C]/20 text-xs text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
@@ -185,11 +185,10 @@ export default function CheckoutModal() {
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('UPI / Online')}
-                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                      paymentMethod === 'UPI / Online'
+                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${paymentMethod === 'UPI / Online'
                         ? 'bg-[#656B4F] text-[#FAFAF5] border-[#656B4F] shadow-sm'
                         : 'bg-[#E8EEE0] text-[#61665D] border-[#4F534C]/20 hover:border-[#656B4F]'
-                    }`}
+                      }`}
                   >
                     <CreditCard className="w-4 h-4" />
                     <span>UPI / Online</span>
@@ -198,11 +197,10 @@ export default function CheckoutModal() {
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('Cash on Delivery')}
-                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
-                      paymentMethod === 'Cash on Delivery'
+                    className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${paymentMethod === 'Cash on Delivery'
                         ? 'bg-[#656B4F] text-[#FAFAF5] border-[#656B4F] shadow-sm'
                         : 'bg-[#E8EEE0] text-[#61665D] border-[#4F534C]/20 hover:border-[#656B4F]'
-                    }`}
+                      }`}
                   >
                     <Truck className="w-4 h-4" />
                     <span>Cash on Delivery</span>

@@ -583,7 +583,7 @@ export default function CheckoutPage() {
                       <input
                         type="text"
                         required
-                        placeholder="e.g. Rajesh Kumar"
+                        placeholder="Enter your full name"
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-[#EAF0E5] border border-[#4F534C]/25 text-xs font-bold text-[#1A1E16] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
@@ -598,7 +598,7 @@ export default function CheckoutPage() {
                           type="tel"
                           required
                           maxLength={10}
-                          placeholder="9876543210"
+                          placeholder="Enter your mobile number"
                           value={customerPhone}
                           onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, ''))}
                           className="w-full pl-11 pr-3.5 py-2.5 rounded-xl bg-[#EAF0E5] border border-[#4F534C]/25 text-xs font-bold text-[#1A1E16] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
@@ -610,7 +610,7 @@ export default function CheckoutPage() {
                       <label className="block text-xs font-bold text-[#1A1E16] mb-1">Email Address</label>
                       <input
                         type="email"
-                        placeholder="name@example.com"
+                        placeholder="Enter your email address"
                         value={customerEmail}
                         onChange={(e) => setCustomerEmail(e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-[#EAF0E5] border border-[#4F534C]/25 text-xs font-bold text-[#1A1E16] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
@@ -818,7 +818,7 @@ export default function CheckoutPage() {
                       <input
                         type="text"
                         required
-                        placeholder="e.g. Flat 302, Green Meadows Apartment, No. 12"
+                        placeholder="Enter your house / flat / building name"
                         value={flatHouse}
                         onChange={(e) => setFlatHouse(e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-[#EAF0E5] border border-[#4F534C]/25 text-xs font-bold text-[#1A1E16] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
@@ -832,7 +832,7 @@ export default function CheckoutPage() {
                       <input
                         type="text"
                         required
-                        placeholder="e.g. 4th Cross, Gandhi Nagar, Peelamedu"
+                        placeholder="Enter your street / area / locality"
                         value={streetArea}
                         onChange={(e) => setStreetArea(e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-[#EAF0E5] border border-[#4F534C]/25 text-xs font-bold text-[#1A1E16] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
@@ -845,7 +845,7 @@ export default function CheckoutPage() {
                       </label>
                       <input
                         type="text"
-                        placeholder="e.g. Opposite Sakthi Hospital / Near Water Tank"
+                        placeholder="Enter nearby landmark (e.g. Near hospital / school)"
                         value={landmark}
                         onChange={(e) => setLandmark(e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-[#EAF0E5] border border-[#4F534C]/25 text-xs font-bold text-[#1A1E16] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
@@ -855,11 +855,11 @@ export default function CheckoutPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                       <div>
                         <label className="block text-xs font-bold text-[#1A1E16] mb-1">City / Destination</label>
-                        <input readOnly value={city} placeholder="Choose destination above" className="w-full rounded-xl border border-[#4F534C]/25 bg-gray-50 px-3.5 py-2.5 text-xs font-bold text-[#1A1E16]" />
+                        <input readOnly value={city} placeholder="Selected city" className="w-full rounded-xl border border-[#4F534C]/25 bg-gray-50 px-3.5 py-2.5 text-xs font-bold text-[#1A1E16]" />
                       </div>
                       <div>
                         <label className="block text-xs font-bold text-[#1A1E16] mb-1">District</label>
-                        <input readOnly value={district} placeholder="Choose district above" className="w-full rounded-xl border border-[#4F534C]/25 bg-gray-50 px-3.5 py-2.5 text-xs font-bold text-[#1A1E16]" />
+                        <input readOnly value={district} placeholder="Selected district" className="w-full rounded-xl border border-[#4F534C]/25 bg-gray-50 px-3.5 py-2.5 text-xs font-bold text-[#1A1E16]" />
                       </div>
                       <div>
                         <label className="block text-xs font-bold text-[#1A1E16] mb-1">State</label>
@@ -871,7 +871,7 @@ export default function CheckoutPage() {
                           type="text"
                           required
                           maxLength={6}
-                          placeholder="641004"
+                          placeholder="Enter 6-digit PIN code"
                           value={pincode}
                           onChange={(e) => setPincode(e.target.value.replace(/\D/g, ''))}
                           className="w-full px-3.5 py-2.5 rounded-xl bg-[#EAF0E5] border border-[#4F534C]/25 text-xs font-bold text-[#1A1E16] focus:outline-none focus:ring-2 focus:ring-[#656B4F] font-mono"
