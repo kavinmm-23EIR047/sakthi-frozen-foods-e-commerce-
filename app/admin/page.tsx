@@ -50,7 +50,8 @@ import {
   Sparkles,
   Lock,
   AlertTriangle,
-  Snowflake
+  Snowflake,
+  Loader2
 } from 'lucide-react';
 import { ProductType, OrderType, UserType, CategoryType } from '@/lib/types';
 import { fetchApi, getCachedData, setCachedData, invalidateCache } from '@/lib/apiConfig';
@@ -58,6 +59,7 @@ import { printCommercialBill } from '@/lib/printUtils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import ImageUploader from '@/components/ImageUploader';
 import OptimizedImage from '@/components/OptimizedImage';
+import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 
 function isRetailCategory(category: string) {
   return category.toUpperCase().includes('RETAIL PACK');
@@ -331,26 +333,28 @@ export default function AdminPortalPage() {
       const finalFormData = { ...formData, image: finalImageUrl, weight: formData.weight || '1 KG' };
 
       if (editingProduct) {
-        // PUT edit
+        // Optimistic UI for edit
+        setProducts(prev => prev.map(p => p.id === editingProduct.id ? { ...p, ...finalFormData } as ProductType : p));
+        setEditingProduct(null);
+
         const data = await fetchApi(`/products/${editingProduct.id}`, {
           method: 'PUT',
           body: JSON.stringify(finalFormData),
         });
         if (data.success) {
-          setEditingProduct(null);
-          fetchData();
+          fetchData(true);
         } else {
           alert(data.error);
         }
       } else {
-        // POST add
+        setIsAddModalOpen(false);
+
         const data = await fetchApi('/products', {
           method: 'POST',
           body: JSON.stringify(finalFormData),
         });
         if (data.success) {
-          setIsAddModalOpen(false);
-          fetchData();
+          fetchData(true);
         } else {
           alert(data.error);
         }
@@ -364,10 +368,14 @@ export default function AdminPortalPage() {
 
   const handleDeleteProduct = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+    
+    // Optimistic Delete
+    setProducts(prev => prev.filter(p => p.id !== id));
+    
     try {
       const data = await fetchApi(`/products/${id}`, { method: 'DELETE' });
       if (data.success) {
-        fetchData();
+        fetchData(true);
       }
     } catch (err) {
       console.error(err);
@@ -403,22 +411,25 @@ export default function AdminPortalPage() {
       const finalData = { ...categoryFormData, image: finalImageUrl };
 
       if (editingCategory) {
+        // Optimistic Update
+        setCategories(prev => prev.map(c => c.id === editingCategory.id ? { ...c, ...finalData } as CategoryType : c));
+        setEditingCategory(null);
+        
         const data = await fetchApi(`/categories/${editingCategory.id}`, {
           method: 'PUT',
           body: JSON.stringify(finalData),
         });
         if (data.success) {
-          setEditingCategory(null);
-          fetchData();
+          fetchData(true);
         } else alert(data.error);
       } else {
+        setIsCategoryModalOpen(false);
         const data = await fetchApi('/categories', {
           method: 'POST',
           body: JSON.stringify(finalData),
         });
         if (data.success) {
-          setIsCategoryModalOpen(false);
-          fetchData();
+          fetchData(true);
         } else alert(data.error);
       }
     } catch (err: any) {
@@ -430,10 +441,14 @@ export default function AdminPortalPage() {
 
   const handleDeleteCategory = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete category "${name}"?`)) return;
+    
+    // Optimistic Delete
+    setCategories(prev => prev.filter(c => c.id !== id));
+    
     try {
       const data = await fetchApi(`/categories/${id}`, { method: 'DELETE' });
       if (data.success) {
-        fetchData();
+        fetchData(true);
       }
     } catch (err) {
       console.error(err);
@@ -855,7 +870,7 @@ export default function AdminPortalPage() {
       <div className="mx-auto grid w-full max-w-[1600px] gap-5 px-3 py-5 sm:gap-6 sm:px-6 sm:py-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-7 lg:px-8">
         <aside className="rounded-2xl border border-[#4F534C]/15 bg-white p-3 shadow-sm lg:sticky lg:top-24 lg:h-fit">
           <p className="px-3 pb-2 pt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#61665D]">Workspace</p>
-          <nav className="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:flex lg:flex-col">
+          <nav className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide lg:flex-col lg:overflow-visible lg:pb-0">
             {[
               ['analytics', 'Analytics', BarChart2, null],
               ['products', 'Products', Package, products.length],
@@ -876,10 +891,10 @@ export default function AdminPortalPage() {
                   }`}
                 >
                   <NavIcon className={`h-4 w-4 shrink-0 ${id === 'reviews' && !isActive ? 'fill-amber-500 text-amber-500' : ''}`} />
-                  <span className="truncate">{String(label)}</span>
+                  <span className="whitespace-nowrap">{String(label)}</span>
                   {count !== null && (
                     loading ? (
-                      <span className="ml-auto w-4 h-4 rounded-full bg-[#EAF0E5] animate-pulse" />
+                      <Loader2 className={`ml-auto w-4 h-4 shrink-0 animate-spin ${isActive ? 'text-white' : 'text-[#656B4F]'}`} />
                     ) : (
                       <span className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] ${isActive ? 'bg-white/20' : 'bg-[#EAF0E5] text-[#656B4F]'}`}>{count as number}</span>
                     )
@@ -1030,32 +1045,13 @@ export default function AdminPortalPage() {
 
         {/* TAB 0: ANALYTICS */}
         {activeTab === 'analytics' && (
-          <div className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm sm:p-6">
-            <h3 className="mb-4 text-base font-bold text-[#1E201D] sm:mb-6 sm:text-xl font-poppins">Revenue by Order Status</h3>
-            {loading ? (
-              <div className="h-56 w-full sm:h-80 flex items-end justify-around gap-6 p-6 bg-[#FAFAF5] rounded-2xl animate-pulse">
-                <div className="w-20 bg-[#E8EEE0] rounded-t-xl h-3/5" />
-                <div className="w-20 bg-[#E8EEE0] rounded-t-xl h-4/5" />
-                <div className="w-20 bg-[#E8EEE0] rounded-t-xl h-2/5" />
-              </div>
-            ) : (
-              <div className="h-56 w-full sm:h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={revenueByStatus} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EAF0E5" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#61665D', fontSize: 12 }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#61665D', fontSize: 12 }} tickFormatter={(val) => `₹${val}`} />
-                    <RechartsTooltip 
-                      cursor={{ fill: '#E8EEE0' }}
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                      formatter={(value: any) => [`₹${value}`, 'Revenue']}
-                    />
-                    <Bar dataKey="value" fill="#656B4F" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </div>
+          <AnalyticsDashboard 
+            orders={orders} 
+            products={products} 
+            users={users} 
+            categories={categories} 
+            loading={loading} 
+          />
         )}
 
         {/* TAB 1: PRODUCTS (CRUD) */}
@@ -1649,7 +1645,7 @@ export default function AdminPortalPage() {
                             <div className="font-bold text-sm text-[#1E201D] flex items-center gap-1.5">
                               <span>{ord.customerName}</span>
                             </div>
-                            <div className="text-[11px] text-[#61665D] truncate max-w-[180px]">{ord.customerEmail}</div>
+                            <div className="text-[11px] text-[#61665D] break-words leading-tight">{ord.customerEmail}</div>
                             
                             {/* Contact Action Chips */}
                             <div className="flex items-center gap-1.5 mt-2">
@@ -1725,8 +1721,8 @@ export default function AdminPortalPage() {
                           <td className="py-3.5 px-4 align-top">
                             <div className="space-y-1">
                               {ord.items?.slice(0, 2).map((item, idx) => (
-                                <div key={idx} className="text-[11px] flex items-center justify-between gap-2">
-                                  <span className="font-bold text-[#1E201D] truncate max-w-[130px]">{item.name}</span>
+                                <div key={idx} className="text-[11px] flex items-start justify-between gap-2">
+                                  <span className="font-bold text-[#1E201D] leading-tight flex-1 break-words">{item.name}</span>
                                   <span className="text-[#61665D] font-semibold shrink-0">({item.weight}) ×{item.quantity}</span>
                                 </div>
                               ))}
@@ -1973,8 +1969,8 @@ export default function AdminPortalPage() {
                       </div>
                       <div className="space-y-1">
                         {ord.items?.map((item, idx) => (
-                          <div key={idx} className="flex items-center justify-between text-xs py-0.5">
-                            <span className="text-[#1E201D] font-medium truncate max-w-[200px]">
+                          <div key={idx} className="flex items-start justify-between text-xs py-1 gap-2">
+                            <span className="text-[#1E201D] font-medium break-words leading-tight flex-1">
                               {item.name} ({item.weight})
                             </span>
                             <span className="font-bold text-[#656B4F]">×{item.quantity}</span>
@@ -2271,7 +2267,7 @@ export default function AdminPortalPage() {
                           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 block">Customer Information</span>
                           <div>
                             <p className="font-extrabold text-sm text-[#1E201D]">{ord.customerName}</p>
-                            <p className="text-xs text-gray-600 truncate">{ord.customerEmail}</p>
+                            <p className="text-xs text-gray-600 break-words">{ord.customerEmail}</p>
                             <p className="text-xs font-bold text-gray-800 mt-0.5">Phone: +91 {ord.customerPhone}</p>
                           </div>
 
@@ -2334,8 +2330,8 @@ export default function AdminPortalPage() {
                           </span>
                           <div className="space-y-1.5 max-h-28 overflow-y-auto">
                             {ord.items?.map((item, idx) => (
-                              <div key={idx} className="flex items-center justify-between text-xs">
-                                <span className="text-[#1E201D] font-medium truncate max-w-[160px]">
+                              <div key={idx} className="flex items-start justify-between text-xs gap-3 py-0.5">
+                                <span className="text-[#1E201D] font-medium break-words leading-tight flex-1">
                                   {item.name} ({item.weight})
                                 </span>
                                 <span className="font-bold text-[#656B4F]">×{item.quantity} (₹{item.price * item.quantity})</span>
@@ -2377,9 +2373,13 @@ export default function AdminPortalPage() {
                           <button
                             onClick={() => handleUpdateFollowUp(ord.id, ord.followUpStatus || 'Not Contacted', followUpNotesInput[ord.id] ?? ord.followUpNotes)}
                             disabled={updatingFollowUpId === ord.id}
-                            className="px-3 py-1.5 bg-amber-800 hover:bg-amber-900 text-white rounded-xl font-bold text-xs transition-colors shrink-0 disabled:opacity-50"
+                            className="px-3 py-1.5 bg-amber-800 hover:bg-amber-900 text-white rounded-xl font-bold text-xs transition-colors shrink-0 disabled:opacity-50 flex items-center gap-1.5 justify-center"
                           >
-                            Save Note
+                            {updatingFollowUpId === ord.id ? (
+                              <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving...</>
+                            ) : (
+                              'Save Note'
+                            )}
                           </button>
                         </div>
 
@@ -2573,7 +2573,7 @@ export default function AdminPortalPage() {
               ) : (
                 filteredUsers.map((usr) => (
                   <article key={usr.id} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
-                    <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-sm font-black">{usr.name}</h3><p className="truncate text-xs text-[#61665D]">{usr.email}</p></div><span className="rounded-full bg-[#EAF0E5] px-2 py-1 text-[10px] font-bold text-[#656B4F]">{usr.role}</span></div>
+                    <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="text-sm font-black break-words">{usr.name}</h3><p className="text-xs text-[#61665D] break-words">{usr.email}</p></div><span className="rounded-full bg-[#EAF0E5] px-2 py-1 text-[10px] font-bold text-[#656B4F]">{usr.role}</span></div>
                     <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[#4F534C]/10 pt-3 text-xs"><p><span className="block text-[#61665D]">Phone</span>{usr.phone}</p><p><span className="block text-[#61665D]">Total spent</span><strong className="text-[#656B4F]">₹{usr.totalSpent}</strong></p></div>
                   </article>
                 ))
@@ -2919,9 +2919,13 @@ export default function AdminPortalPage() {
                 </button>
                 <button
                   disabled={uploadingImage}
-                  className="px-5 py-2 rounded-xl bg-[#656B4F] text-white font-bold hover:bg-[#bf3a11] disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-[#656B4F] text-white font-bold hover:bg-[#50563D] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {uploadingImage ? 'Uploading...' : 'Save Product'}
+                  {uploadingImage ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</>
+                  ) : (
+                    'Save Product'
+                  )}
                 </button>
               </div>
             </form>
@@ -2994,9 +2998,13 @@ export default function AdminPortalPage() {
                 </button>
                 <button
                   disabled={uploadingImage}
-                  className="px-5 py-2 rounded-xl bg-[#656B4F] text-white font-bold hover:bg-[#bf3a11] disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-[#656B4F] text-white font-bold hover:bg-[#50563D] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {uploadingImage ? 'Uploading...' : 'Save Category'}
+                  {uploadingImage ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</>
+                  ) : (
+                    'Save Category'
+                  )}
                 </button>
               </div>
             </form>
@@ -3246,7 +3254,7 @@ export default function AdminPortalPage() {
                   {selectedOrderModal.items?.map((item, idx) => (
                     <div key={idx} className="p-3 bg-white flex items-center justify-between gap-3 hover:bg-[#FBFDF2] transition-colors">
                       <div className="min-w-0 flex-1">
-                        <span className="font-extrabold text-sm text-[#1E201D] block truncate">{item.name}</span>
+                        <span className="font-extrabold text-sm text-[#1E201D] block break-words">{item.name}</span>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="px-2 py-0.5 rounded-md bg-[#E8EEE0] text-[#656B4F] font-bold text-[10px]">
                             {item.weight}
@@ -3438,7 +3446,7 @@ export default function AdminPortalPage() {
                     <p className="font-black text-[#1E201D] text-xs">{invoiceOrder.customerName}</p>
                     <p className="text-stone-700">Phone: <strong>+91 {invoiceOrder.customerPhone}</strong></p>
                     {invoiceOrder.customerEmail && (
-                      <p className="text-stone-600 truncate">Email: {invoiceOrder.customerEmail}</p>
+                      <p className="text-stone-600 break-words">Email: {invoiceOrder.customerEmail}</p>
                     )}
                     <p className="text-stone-600 text-[10.5px] line-clamp-2 leading-tight">
                       Address: {invoiceOrder.shippingAddress}

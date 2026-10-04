@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
 import { CheckCircle2, ShoppingBag, CreditCard, Truck, ArrowLeft, ShieldCheck, Lock, UserCheck, LogIn, ArrowRight, Search, ChevronDown, Package, Sparkles, Loader2 } from 'lucide-react';
@@ -18,6 +18,52 @@ import DeliveryLoadingScreen from '@/components/DeliveryLoadingScreen';
 declare global {
   interface Window {
     Razorpay: any;
+  }
+}
+
+type PendingCheckoutPayment = {
+  rzpOrderId: string;
+  orderId: string;
+  orderNumber?: string;
+  paymentId?: string;
+  timestamp?: number;
+  verificationError?: string;
+};
+
+function readPendingCheckoutPayment(): PendingCheckoutPayment | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const saved = localStorage.getItem('sakthi_pending_payment');
+    if (saved) {
+      const pending = JSON.parse(saved);
+      if (pending?.rzpOrderId && pending?.orderId) return pending;
+    }
+    const rzpOrderId = sessionStorage.getItem('active_checkout_rzp_order_id');
+    const orderId = sessionStorage.getItem('active_checkout_order_id');
+    if (rzpOrderId && orderId) return { rzpOrderId, orderId, timestamp: Date.now() };
+  } catch (error) {
+    console.error('Pending payment read failed:', error);
+  }
+  return null;
+}
+
+function persistPendingCheckoutPayment(pending: PendingCheckoutPayment) {
+  try {
+    localStorage.setItem('sakthi_pending_payment', JSON.stringify(pending));
+    sessionStorage.setItem('active_checkout_rzp_order_id', pending.rzpOrderId);
+    sessionStorage.setItem('active_checkout_order_id', pending.orderId);
+  } catch (error) {
+    console.error('Pending payment save failed:', error);
+  }
+}
+
+function clearPendingCheckoutPayment() {
+  try {
+    localStorage.removeItem('sakthi_pending_payment');
+    sessionStorage.removeItem('active_checkout_rzp_order_id');
+    sessionStorage.removeItem('active_checkout_order_id');
+  } catch (error) {
+    console.error('Pending payment cleanup failed:', error);
   }
 }
 
@@ -46,8 +92,46 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
   const [isRecoveringPayment, setIsRecoveringPayment] = useState(false);
+  const [pendingPayment, setPendingPayment] = useState<PendingCheckoutPayment | null>(null);
+  const [paymentPollingActive, setPaymentPollingActive] = useState(false);
+  const [paymentPollRun, setPaymentPollRun] = useState(0);
   const [paymentMessage, setPaymentMessage] = useState('');
-  const isRedirectingToOrders = useRef(false);
+  const [isRedirectingToOrders, setIsRedirectingToOrders] = useState(false);
+
+  const redirectToConfirmedOrder = useCallback((order: any, fallbackOrderId?: string) => {
+    const confirmedId = order?.id || order?._id || fallbackOrderId;
+    if (!confirmedId) return;
+
+    setIsRedirectingToOrders(true);
+    setIsRecoveringPayment(false);
+    setPaymentPollingActive(false);
+    const keys = [confirmedId, order?._id, order?.id, order?.orderNumber, fallbackOrderId].filter(Boolean);
+    keys.forEach((key: string) => {
+      setCachedData('order_detail_' + key, order);
+      try {
+        sessionStorage.setItem('order_cache_' + key, JSON.stringify(order));
+        localStorage.setItem('order_cache_' + key, JSON.stringify(order));
+      } catch (error) {}
+    });
+    try {
+      sessionStorage.setItem('latest_completed_order', JSON.stringify(order));
+      localStorage.setItem('latest_completed_order', JSON.stringify(order));
+    } catch (error) {}
+    invalidateCache('user_orders_cache');
+    router.replace(`/order-success/${confirmedId}`);
+  }, [router]);
+
+  const startPaymentRecovery = (pending: PendingCheckoutPayment, verificationError?: string, showLoader = true) => {
+    const recovery = { ...pending, verificationError };
+    persistPendingCheckoutPayment(recovery);
+    setPendingPayment(recovery);
+    setPaymentMessage(verificationError
+      ? `Payment verification returned: ${verificationError}. Checking the saved order status.`
+      : 'Checking the saved order status. Do not start another payment while it is being confirmed.');
+    setIsRecoveringPayment(showLoader);
+    setPaymentPollingActive(true);
+    setPaymentPollRun((run) => run + 1);
+  };
 
   // Auto-populate logged-in customer info
   useEffect(() => {
@@ -75,104 +159,89 @@ export default function CheckoutPage() {
     }
   }, [isTestMode, flatHouse, streetArea, landmark, pincode, customerName, customerPhone]);
 
-  // Resilient Persistent Session Recovery for page refreshes, UPI app-switching & network reconnects
+  // Resume a pending payment after a refresh or return from an external payment app.
   useEffect(() => {
-    let intervalId: any = null;
-    let pollCount = 0;
-    const MAX_POLLS = 10; // 15 seconds max polling
-
-    const getPendingInfo = () => {
-      try {
-        const local = localStorage.getItem('sakthi_pending_payment');
-        if (local) {
-          const parsed = JSON.parse(local);
-          if (parsed && parsed.rzpOrderId && Date.now() - (parsed.timestamp || 0) < 15 * 60 * 1000) {
-            return parsed;
-          }
-        }
-        const activeRzpId = sessionStorage.getItem('active_checkout_rzp_order_id');
-        const activeOrderId = sessionStorage.getItem('active_checkout_order_id');
-        if (activeRzpId) {
-          return { rzpOrderId: activeRzpId, orderId: activeOrderId, timestamp: Date.now() };
-        }
-      } catch (e) {
-        console.error('Pending payment parse error:', e);
-      }
-      return null;
-    };
-
-    const pending = getPendingInfo();
+    const pending = readPendingCheckoutPayment();
     if (!pending) return;
-
+    setPendingPayment(pending);
     setIsRecoveringPayment(true);
+    setPaymentPollingActive(true);
+    setPaymentPollRun((run) => run + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!pendingPayment || !paymentPollingActive) return;
+
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let pollCount = 0;
+    const MAX_POLLS = 20;
 
     const pollStatus = async () => {
       pollCount += 1;
       try {
-        const statusRes = await fetchApi<any>(`/payment/status/${pending.rzpOrderId}`);
-        if (statusRes.success) {
-          if (statusRes.data?.paymentStatus === 'Paid') {
-            clearInterval(intervalId);
-            isRedirectingToOrders.current = true;
-            setIsRecoveringPayment(false);
-            const confirmedOrder = statusRes.data;
-            const confirmedId = confirmedOrder.id || confirmedOrder._id || pending.orderId;
-            if (confirmedOrder) {
-              const keys = [confirmedId, confirmedOrder._id, confirmedOrder.id, confirmedOrder.orderNumber, pending.orderId].filter(Boolean);
-              keys.forEach((k: string) => {
-                setCachedData('order_detail_' + k, confirmedOrder);
-                try {
-                  sessionStorage.setItem('order_cache_' + k, JSON.stringify(confirmedOrder));
-                  localStorage.setItem('order_cache_' + k, JSON.stringify(confirmedOrder));
-                } catch (e) {}
-              });
-              try {
-                sessionStorage.setItem('latest_completed_order', JSON.stringify(confirmedOrder));
-                localStorage.setItem('latest_completed_order', JSON.stringify(confirmedOrder));
-              } catch (e) {}
-            }
-            invalidateCache('user_orders_cache');
-            router.replace(`/order-success/${confirmedId}`);
-            return;
-          } else if (statusRes.data?.paymentStatus === 'Failed') {
-            clearInterval(intervalId);
-            try {
-              localStorage.removeItem('sakthi_pending_payment');
-              sessionStorage.removeItem('active_checkout_rzp_order_id');
-              sessionStorage.removeItem('active_checkout_order_id');
-            } catch (e) {}
-            setIsRecoveringPayment(false);
-            setPaymentMessage('Your previous payment attempt was not completed or failed. Your cart is preserved; you may retry.');
-            return;
-          }
+        const statusRes = await fetchApi<any>(`/payment/status/${pendingPayment.rzpOrderId}`);
+        if (cancelled) return;
+
+        if (statusRes.success && statusRes.data?.paymentStatus === 'Paid') {
+          redirectToConfirmedOrder(statusRes.data, pendingPayment.orderId);
+          return;
         }
-      } catch (err) {
-        console.error('Session recovery check error:', err);
+
+        if (statusRes.success && statusRes.data?.paymentStatus === 'Failed') {
+          clearPendingCheckoutPayment();
+          setPendingPayment(null);
+          setPaymentPollingActive(false);
+          setIsRecoveringPayment(false);
+          setPaymentMessage('The existing order payment was not completed. You may try checkout again.');
+          return;
+        }
+      } catch (error) {
+        if (process.env.NODE_ENV !== 'production') console.error('Payment status recovery check failed:', error);
       }
 
+      if (cancelled) return;
       if (pollCount >= MAX_POLLS) {
-        clearInterval(intervalId);
+        setPaymentPollingActive(false);
         setIsRecoveringPayment(false);
-        try {
-          localStorage.removeItem('sakthi_pending_payment');
-          sessionStorage.removeItem('active_checkout_rzp_order_id');
-          sessionStorage.removeItem('active_checkout_order_id');
-        } catch (e) {}
-        setPaymentMessage('Payment confirmation is still processing with your bank. If money was debited, check your Orders tab in a few moments.');
+        const errorDetail = pendingPayment.verificationError
+          ? ` Verification error: ${pendingPayment.verificationError}.`
+          : '';
+        setPaymentMessage(`Payment is not confirmed yet.${errorDetail} Your existing order is saved. Check Orders before attempting another payment.`);
+        return;
       }
+
+      timeoutId = setTimeout(pollStatus, 1500);
     };
 
-    // Immediate first check
-    pollStatus();
-    intervalId = setInterval(pollStatus, 1500);
-
+    void pollStatus();
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [router, clearCart]);
+  }, [pendingPayment, paymentPollingActive, paymentPollRun, redirectToConfirmedOrder]);
 
   useEffect(() => {
-    if (isRedirectingToOrders.current) {
+    const resumePendingPayment = () => {
+      if (document.visibilityState !== 'visible' || paymentPollingActive) return;
+      const pending = readPendingCheckoutPayment();
+      if (!pending) return;
+      setPendingPayment(pending);
+      setIsRecoveringPayment(true);
+      setPaymentPollingActive(true);
+      setPaymentPollRun((run) => run + 1);
+    };
+
+    window.addEventListener('focus', resumePendingPayment);
+    document.addEventListener('visibilitychange', resumePendingPayment);
+    return () => {
+      window.removeEventListener('focus', resumePendingPayment);
+      document.removeEventListener('visibilitychange', resumePendingPayment);
+    };
+  }, [paymentPollingActive]);
+
+  useEffect(() => {
+    if (isRedirectingToOrders) {
       return;
     }
 
@@ -181,10 +250,10 @@ export default function CheckoutPage() {
       pendingExists = !!localStorage.getItem('sakthi_pending_payment') || !!sessionStorage.getItem('active_checkout_rzp_order_id');
     } catch (e) {}
 
-    if (!isCartLoading && !isRecoveringPayment && cart.length === 0 && !pendingExists && !isRedirectingToOrders.current) {
+    if (!isCartLoading && !isRecoveringPayment && cart.length === 0 && !pendingExists && !pendingPayment && !isRedirectingToOrders) {
       router.push('/cart');
     }
-  }, [cart, isCartLoading, isRecoveringPayment, router]);
+  }, [cart, isCartLoading, isRecoveringPayment, isRedirectingToOrders, pendingPayment, router]);
 
   const selectedDestination = DELIVERY_ZONES.find((zone) => zone.id === destinationZoneId) || null;
   const city = selectedDestination
@@ -239,6 +308,11 @@ export default function CheckoutPage() {
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (pendingPayment) {
+      setPaymentMessage('An existing order is still awaiting payment confirmation. Check its status before starting another payment.');
+      return;
+    }
 
     if (!user) {
       alert('Please sign in to complete your checkout.');
@@ -303,21 +377,14 @@ export default function CheckoutPage() {
         return;
       }
 
-      // 2. Save active checkout session to localStorage and sessionStorage for instant recovery on refresh
-      if (typeof window !== 'undefined') {
-        try {
-          const pendingInfo = {
-            rzpOrderId: orderData.razorpayOrderId,
-            orderId: orderData.data.id,
-            orderNumber: orderData.data.orderNumber,
-            totalAmount: grandTotal,
-            timestamp: Date.now(),
-          };
-          localStorage.setItem('sakthi_pending_payment', JSON.stringify(pendingInfo));
-          sessionStorage.setItem('active_checkout_rzp_order_id', orderData.razorpayOrderId);
-          sessionStorage.setItem('active_checkout_order_id', orderData.data.id);
-        } catch (e) {}
-      }
+      // 2. Persist the existing order and begin silent status checks as checkout opens.
+      const pendingInfo: PendingCheckoutPayment = {
+        rzpOrderId: orderData.razorpayOrderId,
+        orderId: orderData.data.id || orderData.data._id,
+        orderNumber: orderData.data.orderNumber,
+        timestamp: Date.now(),
+      };
+      startPaymentRecovery(pendingInfo, undefined, false);
 
       // 3. Initialize Razorpay popup
       const options = {
@@ -343,57 +410,31 @@ export default function CheckoutPage() {
             });
 
             if (verifyData.success) {
-              isRedirectingToOrders.current = true;
               const confirmedOrder = verifyData.data || orderData.data;
-              const confirmedId = confirmedOrder?.id || confirmedOrder?._id || orderData.data?.id;
-
-              if (confirmedOrder) {
-                const keys = [
-                  confirmedId,
-                  confirmedOrder._id,
-                  confirmedOrder.id,
-                  confirmedOrder.orderNumber,
-                  orderData.data?.id,
-                  orderData.data?._id,
-                  orderData.data?.orderNumber,
-                ].filter(Boolean);
-
-                keys.forEach((k: string) => {
-                  setCachedData('order_detail_' + k, confirmedOrder);
-                  try {
-                    sessionStorage.setItem('order_cache_' + k, JSON.stringify(confirmedOrder));
-                    localStorage.setItem('order_cache_' + k, JSON.stringify(confirmedOrder));
-                  } catch (e) {}
-                });
-
-                try {
-                  sessionStorage.setItem('latest_completed_order', JSON.stringify(confirmedOrder));
-                  localStorage.setItem('latest_completed_order', JSON.stringify(confirmedOrder));
-                } catch (e) {}
-              }
-
-              invalidateCache('user_orders_cache');
-              router.replace(`/order-success/${confirmedId}`);
+              redirectToConfirmedOrder(confirmedOrder, pendingInfo.orderId);
               return;
             } else {
-              setPaymentMessage('Payment could not be verified yet. Your cart is saved; please check your Orders before trying again.');
+              const verificationError = verifyData.error || 'The payment server did not confirm the transaction.';
+              if (process.env.NODE_ENV !== 'production') console.error('Payment verification failed:', verifyData);
+              startPaymentRecovery(
+                { ...pendingInfo, paymentId: response.razorpay_payment_id },
+                verificationError
+              );
             }
           } catch (err) {
-            console.error('Verification Error:', err);
-            setPaymentMessage('We could not confirm the payment response. Your cart is saved; please check your Orders or contact support before paying again.');
+            const verificationError = err instanceof Error ? err.message : 'The verification response was unavailable.';
+            if (process.env.NODE_ENV !== 'production') console.error('Payment verification request failed:', err);
+            startPaymentRecovery(
+              { ...pendingInfo, paymentId: response?.razorpay_payment_id },
+              verificationError
+            );
           } finally {
             setIsVerifyingPayment(false);
           }
         },
         modal: {
           ondismiss: function () {
-            if (typeof window !== 'undefined') {
-              try {
-                localStorage.removeItem('sakthi_pending_payment');
-                sessionStorage.removeItem('active_checkout_rzp_order_id');
-                sessionStorage.removeItem('active_checkout_order_id');
-              } catch (e) {}
-            }
+            startPaymentRecovery(pendingInfo, 'The payment window closed before confirmation was received.');
           },
         },
         prefill: {
@@ -407,15 +448,12 @@ export default function CheckoutPage() {
       };
 
       const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function () {
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.removeItem('sakthi_pending_payment');
-            sessionStorage.removeItem('active_checkout_rzp_order_id');
-            sessionStorage.removeItem('active_checkout_order_id');
-          } catch (e) {}
-        }
-        setPaymentMessage('Payment was not confirmed. Your cart is still saved; you can try again.');
+      rzp.on('payment.failed', function (response: any) {
+        const failureMessage = response?.error?.description || 'Razorpay reported that this payment attempt failed.';
+        startPaymentRecovery(
+          { ...pendingInfo, paymentId: response?.error?.metadata?.payment_id },
+          failureMessage
+        );
       });
       rzp.open();
     } catch (err: any) {
@@ -426,14 +464,14 @@ export default function CheckoutPage() {
     }
   };
 
-  if (isCartLoading || isSubmitting || isVerifyingPayment || isRecoveringPayment || isRedirectingToOrders.current) {
+  if (isCartLoading || isSubmitting || isVerifyingPayment || isRecoveringPayment || isRedirectingToOrders) {
     return (
       <DeliveryLoadingScreen
         message={
-          isRedirectingToOrders.current
+          isRedirectingToOrders
             ? 'Payment verified! Opening your order confirmation...'
             : isRecoveringPayment
-            ? 'Checking payment status with bank... Please do not refresh'
+            ? paymentMessage || 'Checking payment status with bank... Please do not refresh'
             : isVerifyingPayment
             ? 'Confirming your payment securely'
             : isSubmitting
