@@ -308,46 +308,52 @@ export default function SearchOverlay() {
     const q = debouncedQuery.toLowerCase().trim();
     const baseRecipes = [
       {
-        title: 'Sakthi Frozen Veg Mutton Pepper Chukka',
+        title: 'Mock Mutton Pepper Chukka',
         time: '20 mins',
-        tag: 'South Indian Spicy',
+        tag: 'Mock Mutton · Pan-fry with pepper, onion and curry leaves',
         icon: Beef,
         keyword: 'mutton',
+        image: '/assets/0e18a4d9-5d57-4c36-8768-8e7d790a4b5d.jpg',
       },
       {
-        title: 'Crispy Plant-Based Nuggets Platter',
-        time: '12 mins',
-        tag: 'Quick Snack / Starter',
+        title: 'Corn Cheese Ball Bites',
+        time: '10 mins',
+        tag: 'Corn Cheese Balls · Cook until golden and serve with dip',
         icon: Cookie,
-        keyword: 'nugget',
+        keyword: 'cheese',
+        image: '/assets/813a46d7-0030-47c9-af6a-3db11c6edbc7.jpg',
       },
       {
-        title: 'Plant Chicken Chettinad Gravy',
-        time: '25 mins',
-        tag: 'Rich Curry',
+        title: 'Veg Chicken Cutlet Chaat',
+        time: '15 mins',
+        tag: 'Veg Chicken Cutlet · Top crisp cutlets with chutney and chaat masala',
         icon: Drumstick,
         keyword: 'chicken',
+        image: '/assets/928db126-f62c-4d88-a874-f3d8c08d68bd.jpg',
       },
       {
-        title: 'Coastal Crispy Veg Fish Fry',
+        title: 'Crispy French Fries & Dip',
         time: '15 mins',
-        tag: 'Tawa Roasted',
+        tag: 'French Fries · Air-fry or deep-fry until crisp',
         icon: Fish,
-        keyword: 'fish',
+        keyword: 'fries',
+        image: '/assets/a677a7a9-c56a-4885-a823-51be3e0177b3.jpg',
       },
       {
-        title: 'Soya Chaap Tikka Masala Bowl',
-        time: '20 mins',
-        tag: 'Tandoori Style',
+        title: 'Sweet Corn Masala Bowl',
+        time: '12 mins',
+        tag: 'Sweet Corn · Toss with butter, chilli and lime',
         icon: UtensilsCrossed,
-        keyword: 'chaap',
+        keyword: 'corn',
+        image: '/assets/c0410062-941f-4ab6-bcc8-b9b2ffd98cc1.jpg',
       },
       {
-        title: 'Plant-Based Mixed Biryani Feast',
+        title: 'Mock Mutton Dum Biryani',
         time: '35 mins',
-        tag: 'Royal Dum Biryani',
+        tag: 'Mock Mutton · Brown with masala, layer with rice and steam',
         icon: Layers,
         keyword: 'mutton',
+        image: '/assets/plant-mutton-dum-biryani.png',
       },
     ];
 
@@ -355,14 +361,13 @@ export default function SearchOverlay() {
       .map((rec) => {
         const matchingProduct =
           allProducts.find((p) => (p.name || '').toLowerCase().includes(rec.keyword)) ||
-          allProducts[0] ||
           null;
         return {
           ...rec,
           product: matchingProduct,
         };
       })
-      .filter((rec) => !q || rec.title.toLowerCase().includes(q) || rec.keyword.includes(q));
+      .filter((rec) => (!q || rec.title.toLowerCase().includes(q) || rec.keyword.includes(q)) && rec.product);
   }, [allProducts, debouncedQuery]);
 
   // Featured promo product from backend
@@ -769,18 +774,12 @@ export default function SearchOverlay() {
                 {recipesList.map((rec, i) => {
                   const IconComp = rec.icon;
                   return (
-                    <div
+                      <article
                       key={i}
-                      onClick={() => {
-                        if (rec.product) {
-                          handleProductSelect(rec.product.id, rec.product.name);
-                        } else {
-                          handleSearchSubmit(undefined, rec.keyword);
-                        }
-                      }}
-                      className="p-4 rounded-2xl bg-[#FAFAF5] hover:bg-[#F3FBEE] border border-[#4F534C]/10 hover:border-[#656B4F]/30 cursor-pointer transition-all group flex flex-col justify-between"
+                      className="p-4 rounded-2xl bg-[#FAFAF5] border border-[#4F534C]/10 transition-all group flex flex-col justify-between"
                     >
                       <div>
+                        <img src={rec.image} alt={rec.title} className="mb-3 h-28 w-full rounded-xl object-cover" />
                         <div className="flex items-center justify-between mb-2">
                           <div className="w-8 h-8 rounded-xl bg-[#EAF0E5] text-[#50563D] flex items-center justify-center">
                             <IconComp className="w-4 h-4" />
@@ -797,11 +796,10 @@ export default function SearchOverlay() {
                         </span>
                       </div>
 
-                      <div className="mt-3 pt-2.5 border-t border-stone-200/60 flex items-center justify-between text-[11px] font-bold text-[#50563D]">
-                        <span>Cook with Sakthi Frozen Plant Meat</span>
-                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                      <div className="mt-3 pt-2.5 border-t border-stone-200/60 text-[11px] font-bold text-[#50563D]">
+                        Recipe idea uses our {rec.keyword === 'mutton' ? 'Mock Mutton' : rec.keyword === 'chicken' ? 'Veg Chicken Cutlet' : rec.keyword === 'cheese' ? 'Corn Cheese Balls' : rec.keyword === 'fries' ? 'French Fries' : 'Sweet Corn'} product.
                       </div>
-                    </div>
+                    </article>
                   );
                 })}
               </div>
@@ -1012,17 +1010,8 @@ export default function SearchOverlay() {
                   {recipesList.map((rec, i) => {
                     const IconComp = rec.icon;
                     return (
-                      <div
-                        key={i}
-                        onClick={() => {
-                          if (rec.product) {
-                            handleProductSelect(rec.product.id, rec.product.name);
-                          } else {
-                            handleSearchSubmit(undefined, rec.keyword);
-                          }
-                        }}
-                        className="p-3 bg-[#FAFAF5] border border-[#4F534C]/10 rounded-2xl active:bg-[#EAF0E5]"
-                      >
+                      <article key={i} className="p-3 bg-[#FAFAF5] border border-[#4F534C]/10 rounded-2xl">
+                        <img src={rec.image} alt={rec.title} className="mb-2 h-28 w-full rounded-xl object-cover" />
                         <div className="flex items-center justify-between">
                           <div className="w-7 h-7 rounded-lg bg-[#EAF0E5] text-[#50563D] flex items-center justify-center">
                             <IconComp className="w-3.5 h-3.5" />
@@ -1033,7 +1022,7 @@ export default function SearchOverlay() {
                         </div>
                         <h4 className="font-bold text-xs text-[#1E201D] mt-1">{rec.title}</h4>
                         <p className="text-[10px] text-[#818B7D] mt-0.5">{rec.tag}</p>
-                      </div>
+                      </article>
                     );
                   })}
                 </div>

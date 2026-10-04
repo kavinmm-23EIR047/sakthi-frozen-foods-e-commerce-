@@ -217,32 +217,40 @@ const FAQS = [
 // Recipes Data
 const RECIPES = [
   {
-    title: 'Mock Mutton Curry',
-    time: '40 Mins',
+    title: 'Mock Mutton Pepper Chukka',
+    time: '20 Mins',
     difficulty: 'Easy',
-    image: '/assets/mock-mutton.jpg',
-    category: 'Curries & Gravies',
+    image: '/assets/0e18a4d9-5d57-4c36-8768-8e7d790a4b5d.jpg',
+    category: 'Mock Mutton',
+    product: 'Mock Mutton',
+    tip: 'Pan-fry with curry leaves, sliced onion, crushed pepper and a squeeze of lemon. Add the product near the end so it stays juicy.',
   },
   {
-    title: 'Plant Keema Biryani',
-    time: '45 Mins',
+    title: 'Plant Mutton Dum Biryani',
+    time: '35 Mins',
     difficulty: 'Medium',
-    image: '/assets/dish-mock-meat-curry.jpg',
-    category: 'Special Rice',
+    image: '/assets/plant-mutton-dum-biryani.png',
+    category: '',
+    product: 'Mock Mutton',
+    tip: 'Brown the mock meat with biryani masala first, layer with ¾-cooked basmati rice, then steam covered on low heat until fragrant.',
   },
   {
-    title: 'Cutlet Platter',
-    time: '20 Mins',
+    title: 'Veg Chicken Cutlet Chaat',
+    time: '15 Mins',
     difficulty: 'Easy',
-    image: '/assets/dish-crispy-cutlets.jpg',
-    category: 'Starters',
+    image: '/assets/928db126-f62c-4d88-a874-f3d8c08d68bd.jpg',
+    category: 'Veg Chicken Cutlet',
+    product: 'Veg Chicken Cutlet',
+    tip: 'Cook cutlets until crisp on both sides. Top with chopped onion, coriander, a little yogurt chutney and chaat masala.',
   },
   {
-    title: 'Sausage Stir Fry',
-    time: '20 Mins',
+    title: 'Crispy Corn Cheese Ball Bites',
+    time: '10 Mins',
     difficulty: 'Easy',
-    image: '/assets/corn-cheese-balls.jpg',
-    category: 'Quick Bites',
+    image: '/assets/813a46d7-0030-47c9-af6a-3db11c6edbc7.jpg',
+    category: 'Corn Cheese Balls',
+    product: 'Corn Cheese Balls',
+    tip: 'Cook from frozen in hot oil or an air fryer until golden and crisp. Rest briefly, then serve with mint chutney or tomato dip.',
   },
 ];
 
@@ -1456,7 +1464,7 @@ export default function StorefrontHomePage() {
                 href="/shop"
                 className="text-xs sm:text-sm font-black text-[#50563D] hover:text-[#3E442F] flex items-center gap-1 transition-colors px-3.5 py-1.5 rounded-full bg-[#EAF0E5] hover:bg-[#DDE8D6] border border-[#656B4F]/20 shadow-2xs whitespace-nowrap"
               >
-                <span>View All Recipes</span>
+                <span>Shop Recipe Products</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
               <div className="flex items-center gap-1.5 shrink-0">
@@ -1483,9 +1491,9 @@ export default function StorefrontHomePage() {
             className="flex sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-x-auto pb-4 sm:pb-0 snap-x snap-mandatory scrollbar-none scrollbar-hide no-scrollbar"
           >
             {RECIPES.map((recipe, idx) => (
-              <div
+              <article
                 key={idx}
-                className="bg-white rounded-2xl border border-stone-200/80 shadow-2xs hover:shadow-md transition-all p-3 flex flex-col group cursor-pointer w-[220px] xs:w-[240px] sm:w-auto shrink-0 snap-start"
+                className="bg-white rounded-2xl border border-stone-200/80 shadow-2xs hover:shadow-md transition-all p-3 flex flex-col group w-[260px] xs:w-[280px] sm:w-auto shrink-0 snap-start"
               >
                 <div className="relative w-full aspect-[4/3] max-h-[190px] rounded-xl overflow-hidden bg-stone-50 mb-2.5">
                   <img
@@ -1502,6 +1510,8 @@ export default function StorefrontHomePage() {
                   {recipe.title}
                 </h3>
 
+                <p className="mb-3 text-xs leading-relaxed text-[#61665D]">{recipe.tip}</p>
+
                 <div className="flex items-center gap-3 text-xs text-[#61665D] font-semibold">
                   <span className="flex items-center gap-1">
                     <Clock className="w-3.5 h-3.5 text-[#656B4F]" />
@@ -1513,7 +1523,7 @@ export default function StorefrontHomePage() {
                     {recipe.difficulty}
                   </span>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         </section>
