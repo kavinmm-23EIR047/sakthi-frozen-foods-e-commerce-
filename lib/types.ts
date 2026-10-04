@@ -33,6 +33,7 @@ export interface OrderItemType {
 
 export interface OrderType {
   id: string;
+  _id?: string;
   orderNumber: string;
   customerName: string;
   customerEmail: string;

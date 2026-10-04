@@ -143,7 +143,7 @@ export default function OrderDetailPage() {
         order?.orderNumber,
       ].filter(Boolean) as string[];
 
-      const uniqueKeys = [...new Set(keys)];
+      const uniqueKeys = keys.filter((val, idx, arr) => arr.indexOf(val) === idx);
 
       try {
         uniqueKeys.forEach((key) => {

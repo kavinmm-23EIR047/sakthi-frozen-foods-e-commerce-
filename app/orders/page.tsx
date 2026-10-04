@@ -276,9 +276,47 @@ export default function OrdersAndAccountPage() {
     return (
       <div className="min-h-screen bg-[#FBFDF8] flex flex-col font-sans">
         <Navbar />
-        <main className="flex-1 max-w-5xl mx-auto w-full p-4 sm:p-8 space-y-6">
-          <div className="h-32 bg-stone-200/70 rounded-3xl animate-pulse" />
-          <div className="h-64 bg-stone-200/70 rounded-3xl animate-pulse" />
+        <main className="mx-auto w-full max-w-[1180px] px-3 py-5 sm:px-6 sm:py-8 flex-1 space-y-6">
+          {/* Skeleton Profile Hero */}
+          <section className="bg-white rounded-3xl border border-stone-200/90 shadow-sm overflow-hidden">
+            <div className="bg-gradient-to-r from-[#50563D] via-[#656B4F] to-[#7B8563] p-5 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/15 backdrop-blur-xs border border-white/25 flex items-center justify-center shrink-0">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/20 animate-pulse" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-6 w-32 sm:w-48 bg-white/20 rounded-md animate-pulse" />
+                  <div className="h-3 w-40 sm:w-56 bg-white/20 rounded-md animate-pulse" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-stone-100 text-xs">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="bg-white p-4 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-stone-100 animate-pulse shrink-0" />
+                  <div className="space-y-1.5 flex-1">
+                    <div className="h-2 w-16 bg-stone-200 rounded animate-pulse" />
+                    <div className="h-3 w-28 sm:w-36 bg-stone-200 rounded animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Skeleton Tabs */}
+          <div className="flex items-center gap-2 border-b border-stone-200 pb-2 overflow-x-auto">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-10 w-28 sm:w-36 bg-stone-100 rounded-xl animate-pulse shrink-0 border border-stone-200" />
+            ))}
+          </div>
+
+          {/* Skeleton Content */}
+          <div className="space-y-4">
+            {[1, 2].map((n) => (
+              <div key={n} className="bg-white rounded-3xl h-44 animate-pulse border border-stone-200 shadow-xs" />
+            ))}
+          </div>
         </main>
         <Footer />
       </div>
@@ -427,10 +465,14 @@ export default function OrdersAndAccountPage() {
           >
             <Package className="w-4 h-4" />
             <span>My Orders</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+            <span className={`flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-[10px] font-bold ${
               activeTab === 'orders' ? 'bg-white/25 text-white' : 'bg-stone-200 text-stone-800'
             }`}>
-              {orders.length}
+              {loading ? (
+                <span className="w-1.5 h-1.5 rounded-full bg-current opacity-50 animate-pulse" />
+              ) : (
+                orders.length
+              )}
             </span>
           </button>
 
