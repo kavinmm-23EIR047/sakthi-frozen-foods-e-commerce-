@@ -61,6 +61,20 @@ export default function CheckoutPage() {
     }
   }, [user, flatHouse, streetArea]);
 
+  // Test Mode Logic (To be deleted after testing)
+  const isTestMode = cart.some((item: any) => item.name && (item.name.toLowerCase().includes('dummy') || item.name.toLowerCase().includes('test')));
+  
+  useEffect(() => {
+    if (isTestMode) {
+      if (!flatHouse) setFlatHouse('123 Demo Villa');
+      if (!streetArea) setStreetArea('Test Street, Demo Area');
+      if (!landmark) setLandmark('Near Demo Station');
+      if (!pincode) setPincode('641001');
+      if (!customerName) setCustomerName('Test User');
+      if (!customerPhone) setCustomerPhone('9999999999');
+    }
+  }, [isTestMode, flatHouse, streetArea, landmark, pincode, customerName, customerPhone]);
+
   // Resilient Persistent Session Recovery for page refreshes, UPI app-switching & network reconnects
   useEffect(() => {
     let intervalId: any = null;
@@ -190,7 +204,7 @@ export default function CheckoutPage() {
 
   // Pricing Calculations: Subtotal, Distance/District-based Delivery Fee, Convenience Fee (2.5%)
   const subtotal = totalPrice;
-  const deliveryCalc = useMemo(() => {
+  const rawDeliveryCalc = useMemo(() => {
     return getDeliveryCalculation({
       subtotal,
       coordinates,
@@ -199,9 +213,13 @@ export default function CheckoutPage() {
     });
   }, [subtotal, coordinates, city, state]);
 
+  const deliveryCalc = isTestMode
+    ? { ...rawDeliveryCalc, fee: 0, isServiceable: true }
+    : rawDeliveryCalc;
+
   const deliveryFee = deliveryCalc.fee;
-  const convenienceFee = Number((subtotal * 0.025).toFixed(2));
-  const grandTotal = Number((subtotal + deliveryFee + convenienceFee).toFixed(2));
+  const convenienceFee = isTestMode ? 0 : Number((subtotal * 0.025).toFixed(2));
+  const grandTotal = isTestMode ? 1 : Number((subtotal + deliveryFee + convenienceFee).toFixed(2));
 
   // Address search fills the street, coordinates, and PIN for Coimbatore pricing.
   const handleLocationSelect = (loc: LocationData) => {
