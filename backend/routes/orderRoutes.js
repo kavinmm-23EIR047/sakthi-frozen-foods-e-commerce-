@@ -66,10 +66,18 @@ async function checkAndAutoHealRazorpayPayment(order) {
 }
 
 function publicOrder(order) {
-  const createdAtDate = order.createdAt ? new Date(order.createdAt) : new Date();
-  const paymentExpiresAt = order.paymentExpiresAt
-    ? new Date(order.paymentExpiresAt).toISOString()
-    : new Date(createdAtDate.getTime() + 30 * 60 * 1000).toISOString();
+  let createdAtDate = new Date();
+  if (order.createdAt && !isNaN(new Date(order.createdAt).getTime())) {
+    createdAtDate = new Date(order.createdAt);
+  }
+  
+  let paymentExpiresAt;
+  if (order.paymentExpiresAt && !isNaN(new Date(order.paymentExpiresAt).getTime())) {
+    paymentExpiresAt = new Date(order.paymentExpiresAt).toISOString();
+  } else {
+    paymentExpiresAt = new Date(createdAtDate.getTime() + 30 * 60 * 1000).toISOString();
+  }
+
   const isOnline = order.paymentMethod === 'Razorpay (Online)';
   const isExpired = isOnline && order.paymentStatus === 'Pending' && Date.now() > new Date(paymentExpiresAt).getTime();
   

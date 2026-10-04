@@ -136,6 +136,7 @@ export default function OrderSuccessPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const orderItems = Array.isArray(order?.items) ? order.items : [];
   const isPaid = order?.paymentStatus === 'Paid' || order?.status === 'Confirmed';
 
   if ((!mounted || (loading && !order)) && !error) {
@@ -297,11 +298,11 @@ export default function OrderSuccessPage() {
                 <div className="space-y-3">
                   <h2 className="text-xs font-black text-[#1E201D] uppercase tracking-wider flex items-center gap-2">
                     <Package className="w-4 h-4 text-[#656B4F]" />
-                    <span>Items in this Order ({order.items.length})</span>
+                    <span>Items in this Order ({orderItems.length})</span>
                   </h2>
 
                   <div className="rounded-2xl border border-[#4F534C]/15 overflow-hidden divide-y divide-stone-100 bg-[#FAFAF5]/50">
-                    {order.items.map((item, idx) => (
+                    {orderItems.length > 0 ? orderItems.map((item, idx) => (
                       <div
                         key={`${item.productId}-${item.weight}-${idx}`}
                         className="p-3.5 sm:p-4 flex items-center justify-between gap-3 sm:gap-4 hover:bg-white transition-colors"
@@ -343,7 +344,9 @@ export default function OrderSuccessPage() {
                           </div>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <p className="p-4 text-xs font-medium text-[#61665D]">Order item details are currently unavailable.</p>
+                    )}
                   </div>
                 </div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import io from 'socket.io-client';
 import {
@@ -118,6 +118,10 @@ export default function AdminPortalPage() {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [newOrderAlert, setNewOrderAlert] = useState<string | null>(null);
   const previousOrderCountRef = useRef<number | null>(null);
+  const fetchSequenceRef = useRef(0);
+  const cacheHydratedRef = useRef(false);
+  const [activeAdminAction, setActiveAdminAction] = useState<string | null>(null);
+  const activeAdminActionRef = useRef(false);
 
   // Orders Filter & UI States
   const [orderSearch, setOrderSearch] = useState('');
@@ -173,17 +177,19 @@ export default function AdminPortalPage() {
     icon: 'List',
   });
 
-  const fetchData = async (silent = false) => {
+  const fetchData = useCallback(async (silent = false) => {
+    const fetchSequence = ++fetchSequenceRef.current;
     if (!silent) setLoading(true);
     setIsRefreshing(true);
     try {
       const [prodData, ordData, usrData, catData, revData] = await Promise.all([
-        fetchApi('/products'),
-        fetchApi('/orders'),
-        fetchApi('/users'),
-        fetchApi('/categories'),
-        fetchApi('/reviews'),
+        fetchApi('/products', { cache: 'no-store' }),
+        fetchApi('/orders', { cache: 'no-store' }),
+        fetchApi('/users', { cache: 'no-store' }),
+        fetchApi('/categories', { cache: 'no-store' }),
+        fetchApi('/reviews', { cache: 'no-store' }),
       ]);
+      if (fetchSequence !== fetchSequenceRef.current) return;
 
       if (prodData.success && Array.isArray(prodData.data)) {
         setProducts(prodData.data);
@@ -214,14 +220,69 @@ export default function AdminPortalPage() {
       }
       setLastSyncedTime(new Date());
     } catch (error) {
-      console.error('Error loading admin dashboard data');
+      if (fetchSequence === fetchSequenceRef.current) console.error('Error loading admin dashboard data:', error);
     } finally {
-      if (!silent) setLoading(false);
-      setIsRefreshing(false);
+      if (fetchSequence === fetchSequenceRef.current) {
+        if (!silent) setLoading(false);
+        setIsRefreshing(false);
+      }
+    }
+  }, [soundEnabled]);
+
+  const beginAdminAction = (action: string) => {
+    if (activeAdminActionRef.current) return false;
+    activeAdminActionRef.current = true;
+    setActiveAdminAction(action);
+    fetchSequenceRef.current += 1;
+    return true;
+  };
+
+  const finishAdminAction = () => {
+    activeAdminActionRef.current = false;
+    setActiveAdminAction(null);
+  };
+
+  const updateProductCache = (id: string, updates: Partial<ProductType>) => {
+    const nextProducts = products.map((product) => product.id === id ? { ...product, ...updates } : product);
+    setProducts(nextProducts);
+    setCachedData('admin_products', nextProducts);
+  };
+
+  const updateCategoryCache = (id: string, updates: Partial<CategoryType>) => {
+    const nextCategories = categories.map((category) => category.id === id ? { ...category, ...updates } : category);
+    setCategories(nextCategories);
+    setCachedData('admin_categories', nextCategories);
+  };
+
+  const handleUpdateProductFields = async (id: string, updates: Partial<ProductType>, label: string) => {
+    if (!beginAdminAction(`product-update:${id}`)) return;
+    try {
+      const response = await fetchApi(`/products/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      });
+      if (!response.success) {
+        alert(response.error || `${label} was not updated.`);
+        await fetchData(true);
+        return;
+      }
+      updateProductCache(id, updates);
+    } catch (error) {
+      console.error(`Failed to update product ${label.toLowerCase()}:`, error);
+      alert(`${label} could not be updated. Please try again.`);
+      await fetchData(true);
+    } finally {
+      finishAdminAction();
     }
   };
 
   useEffect(() => {
+    if (cacheHydratedRef.current) {
+      fetchData(true);
+      return;
+    }
+    cacheHydratedRef.current = true;
+
     // 1. Instant Cache Hydration for 0ms load
     const cachedProds = getCachedData<ProductType[]>('admin_products');
     const cachedOrds = getCachedData<OrderType[]>('admin_orders');
@@ -258,7 +319,7 @@ export default function AdminPortalPage() {
     } else {
       fetchData(false); // first time cold loading with skeleton
     }
-  }, []);
+  }, [fetchData]);
 
   // Live Auto-Refresh Polling Hook (fallback for standard sync)
   useEffect(() => {
@@ -267,7 +328,7 @@ export default function AdminPortalPage() {
       fetchData(true);
     }, refreshInterval * 1000);
     return () => clearInterval(timer);
-  }, [refreshInterval, soundEnabled]);
+  }, [refreshInterval, fetchData]);
 
   // Real-time Socket.io Hook
   useEffect(() => {
@@ -302,11 +363,12 @@ export default function AdminPortalPage() {
     return () => {
       socket.disconnect();
     };
-  }, [soundEnabled]);
+  }, [soundEnabled, fetchData]);
 
   // CRUD Handlers for Products
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!beginAdminAction('product-save')) return;
     try {
       let finalImageUrl = formData.image;
       
@@ -320,8 +382,6 @@ export default function AdminPortalPage() {
           body: uploadData,
         });
         
-        setUploadingImage(false);
-        
         if (uploadRes.success) {
           finalImageUrl = uploadRes.data;
         } else {
@@ -333,58 +393,64 @@ export default function AdminPortalPage() {
       const finalFormData = { ...formData, image: finalImageUrl, weight: formData.weight || '1 KG' };
 
       if (editingProduct) {
-        // Optimistic UI for edit
-        setProducts(prev => prev.map(p => p.id === editingProduct.id ? { ...p, ...finalFormData } as ProductType : p));
-        setEditingProduct(null);
-
         const data = await fetchApi(`/products/${editingProduct.id}`, {
           method: 'PUT',
           body: JSON.stringify(finalFormData),
         });
         if (data.success) {
-          fetchData(true);
+          updateProductCache(editingProduct.id, finalFormData);
+          setEditingProduct(null);
+          await fetchData(true);
         } else {
-          alert(data.error);
+          alert(data.error || 'Product was not saved.');
         }
       } else {
-        setIsAddModalOpen(false);
-
         const data = await fetchApi('/products', {
           method: 'POST',
           body: JSON.stringify(finalFormData),
         });
         if (data.success) {
-          fetchData(true);
+          setIsAddModalOpen(false);
+          await fetchData(true);
         } else {
-          alert(data.error);
+          alert(data.error || 'Product was not saved.');
         }
       }
     } catch (err: any) {
       console.error(err);
       alert('Failed to save product');
+    } finally {
       setUploadingImage(false);
+      finishAdminAction();
     }
   };
 
   const handleDeleteProduct = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
-    
-    // Optimistic Delete
-    setProducts(prev => prev.filter(p => p.id !== id));
-    
+    if (!beginAdminAction(`product-delete:${id}`)) return;
     try {
       const data = await fetchApi(`/products/${id}`, { method: 'DELETE' });
       if (data.success) {
-        fetchData(true);
+        const nextProducts = products.filter((product) => product.id !== id);
+        setProducts(nextProducts);
+        setCachedData('admin_products', nextProducts);
+        await fetchData(true);
+      } else {
+        alert(data.error || 'Product was not deleted.');
       }
     } catch (err) {
       console.error(err);
+      alert('Product could not be deleted. Please try again.');
+      await fetchData(true);
+    } finally {
+      finishAdminAction();
     }
   };
 
   // CRUD Handlers for Categories
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!beginAdminAction('category-save')) return;
     try {
       let finalImageUrl = categoryFormData.image;
       
@@ -398,8 +464,6 @@ export default function AdminPortalPage() {
           body: uploadData,
         });
         
-        setUploadingImage(false);
-        
         if (uploadRes.success) {
           finalImageUrl = uploadRes.data;
         } else {
@@ -411,78 +475,98 @@ export default function AdminPortalPage() {
       const finalData = { ...categoryFormData, image: finalImageUrl };
 
       if (editingCategory) {
-        // Optimistic Update
-        setCategories(prev => prev.map(c => c.id === editingCategory.id ? { ...c, ...finalData } as CategoryType : c));
-        setEditingCategory(null);
-        
         const data = await fetchApi(`/categories/${editingCategory.id}`, {
           method: 'PUT',
           body: JSON.stringify(finalData),
         });
         if (data.success) {
-          fetchData(true);
-        } else alert(data.error);
+          updateCategoryCache(editingCategory.id, finalData);
+          setEditingCategory(null);
+          await fetchData(true);
+        } else alert(data.error || 'Category was not saved.');
       } else {
-        setIsCategoryModalOpen(false);
         const data = await fetchApi('/categories', {
           method: 'POST',
           body: JSON.stringify(finalData),
         });
         if (data.success) {
-          fetchData(true);
-        } else alert(data.error);
+          setIsCategoryModalOpen(false);
+          await fetchData(true);
+        } else alert(data.error || 'Category was not saved.');
       }
     } catch (err: any) {
       console.error(err);
       alert('Failed to save category');
+    } finally {
       setUploadingImage(false);
+      finishAdminAction();
     }
   };
 
   const handleDeleteCategory = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete category "${name}"?`)) return;
-    
-    // Optimistic Delete
-    setCategories(prev => prev.filter(c => c.id !== id));
-    
+    if (!beginAdminAction(`category-delete:${id}`)) return;
     try {
       const data = await fetchApi(`/categories/${id}`, { method: 'DELETE' });
       if (data.success) {
-        fetchData(true);
+        const nextCategories = categories.filter((category) => category.id !== id);
+        setCategories(nextCategories);
+        setCachedData('admin_categories', nextCategories);
+        await fetchData(true);
+      } else {
+        alert(data.error || 'Category was not deleted.');
       }
     } catch (err) {
       console.error(err);
+      alert('Category could not be deleted. Please try again.');
+      await fetchData(true);
+    } finally {
+      finishAdminAction();
     }
   };
 
 
-  const handleUpdateOrderStatus = async (orderId: string, status: string) => {
-    // Optimistic Update
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
-    if (selectedOrderModal && selectedOrderModal.id === orderId) {
-      setSelectedOrderModal(prev => prev ? { ...prev, status: status as any } : prev);
-    }
-    
+  const handleUpdateOrderStatus = async (orderId: string, status: OrderType['status']) => {
+    if (!beginAdminAction(`order-status:${orderId}`)) return;
     try {
       const data = await fetchApi(`/orders/${orderId}`, {
         method: 'PUT',
         body: JSON.stringify({ status }),
       });
       if (data.success) {
-        fetchData(true);
+        const updatedOrders = orders.map((order) => order.id === orderId ? { ...order, status } : order);
+        setOrders(updatedOrders);
+        setCachedData('admin_orders', updatedOrders);
+        if (selectedOrderModal?.id === orderId) {
+          setSelectedOrderModal((current) => current ? { ...current, status } : current);
+        }
+        await fetchData(true);
       } else {
-        fetchData(true); // Revert
+        alert(data.error || 'Order status was not updated.');
+        await fetchData(true);
       }
     } catch (err) {
       console.error(err);
+      alert('Order status could not be updated. Please try again.');
+      await fetchData(true);
+    } finally {
+      finishAdminAction();
     }
   };
 
   const handleRefundOrder = async (orderId: string) => {
     if (!confirm('Issue a full refund for this Razorpay order?')) return;
-    const data = await fetchApi(`/orders/${orderId}/refund`, { method: 'POST' });
-    if (data.success) fetchData();
-    else alert(data.error || 'Refund failed');
+    if (!beginAdminAction(`order-refund:${orderId}`)) return;
+    try {
+      const data = await fetchApi(`/orders/${orderId}/refund`, { method: 'POST' });
+      if (data.success) await fetchData(true);
+      else alert(data.error || 'Refund failed');
+    } catch (error) {
+      console.error('Refund request failed:', error);
+      alert('Refund could not be completed. Please verify the order before retrying.');
+    } finally {
+      finishAdminAction();
+    }
   };
 
   const openEditModal = (prod: ProductType) => {
@@ -1807,7 +1891,7 @@ export default function AdminPortalPage() {
                                 </div>
                                 <select
                                   value={ord.status === 'Cancelled' ? 'Cancelled' : 'Confirmed'}
-                                  onChange={(e) => handleUpdateOrderStatus(ord.id, e.target.value)}
+                                  onChange={(e) => handleUpdateOrderStatus(ord.id, e.target.value as OrderType['status'])}
                                   className="w-full px-2 py-1 rounded-lg border border-[#4F534C]/20 bg-white font-bold text-[10px] text-[#50563D] outline-none cursor-pointer focus:ring-1 focus:ring-[#656B4F]"
                                 >
                                   <option value="Confirmed">Status: Confirmed</option>
@@ -2055,7 +2139,7 @@ export default function AdminPortalPage() {
                           <div className="flex items-center gap-2">
                             <select
                               value={ord.status === 'Cancelled' ? 'Cancelled' : 'Confirmed'}
-                              onChange={(e) => handleUpdateOrderStatus(ord.id, e.target.value)}
+                              onChange={(e) => handleUpdateOrderStatus(ord.id, e.target.value as OrderType['status'])}
                               className="flex-1 min-h-11 rounded-xl px-3 text-xs font-bold border border-[#4F534C]/20 bg-white text-[#1E201D] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"
                             >
                               <option value="Confirmed">Confirmed</option>
@@ -2822,7 +2906,7 @@ export default function AdminPortalPage() {
                     />
                     <label htmlFor="broadcastStock" className="text-xs font-bold text-[#656B4F] flex items-center gap-1 cursor-pointer">
                       <Bell className="w-3.5 h-3.5" />
-                      Send "Back in Stock" push notification
+                      Send &quot;Back in Stock&quot; push notification
                     </label>
                   </div>
                 )}
@@ -3310,7 +3394,7 @@ export default function AdminPortalPage() {
                     <select
                       value={selectedOrderModal.status === 'Cancelled' ? 'Cancelled' : 'Confirmed'}
                       onChange={(e) => {
-                        handleUpdateOrderStatus(selectedOrderModal.id, e.target.value);
+                        handleUpdateOrderStatus(selectedOrderModal.id, e.target.value as OrderType['status']);
                         setSelectedOrderModal({ ...selectedOrderModal, status: e.target.value as any });
                       }}
                       className="px-3 py-1.5 rounded-xl border border-[#4F534C]/20 bg-white font-bold text-xs text-[#1E201D] outline-none focus:ring-2 focus:ring-[#656B4F]"
