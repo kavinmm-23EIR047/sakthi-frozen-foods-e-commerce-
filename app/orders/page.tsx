@@ -89,7 +89,7 @@ export default function OrdersAndAccountPage() {
 
     socket.on('orderUpdated', (updatedOrder) => {
       // If the updated order belongs to the current user, refresh the list
-      if (updatedOrder && updatedOrder.user === user.id) {
+      if (updatedOrder && updatedOrder.user === user._id) {
         // fetch orders silently and bypass cache to get the latest status
         fetchOrders(true, true);
       }
