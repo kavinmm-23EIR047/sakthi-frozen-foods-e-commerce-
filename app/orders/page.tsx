@@ -6,7 +6,8 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import { fetchApi, fetchCachedApi, getCachedData } from '@/lib/apiConfig';
+import { fetchApi, fetchCachedApi, getCachedData, invalidateCache } from '@/lib/apiConfig';
+import { useRouter } from 'next/navigation';
 import { OrderType } from '@/lib/types';
 import {
   Package,
@@ -149,7 +150,7 @@ export default function OrdersAndAccountPage() {
       const { razorpayOrderId, razorpayAmount, razorpayKeyId } = retryRes;
 
       const options = {
-        key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TjTbwyhmC1lHFF',
+        key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
         amount: razorpayAmount,
         currency: 'INR',
         name: 'Sakthi Frozen Foods',
@@ -505,7 +506,7 @@ export default function OrdersAndAccountPage() {
                     (isOnline && isPendingPayment && remainingSecs === 0) ||
                     order.paymentStatus === 'Failed' ||
                     (order.status === 'Cancelled' && isPendingPayment);
-                  const isPaid = order.paymentStatus === 'Paid';
+                  const isPaid = order.paymentStatus === 'Paid' || order.status === 'Confirmed';
                   const isCOD = order.paymentMethod === 'Cash on Delivery';
 
                   const mins = Math.floor(remainingSecs / 60);

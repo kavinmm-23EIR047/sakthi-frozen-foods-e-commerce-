@@ -89,20 +89,12 @@ export default function OrderDetailPage() {
     fetchOrderDetail();
   }, [fetchOrderDetail]);
 
-  const clearedSuccessRef = React.useRef(false);
-
+  // Forward any success=true queries to the single canonical Order Success page
   useEffect(() => {
-    if (isSuccess && !clearedSuccessRef.current && typeof window !== 'undefined') {
-      clearedSuccessRef.current = true;
-      try {
-        localStorage.removeItem('sakthi_pending_payment');
-        localStorage.setItem('sakthi_cart', JSON.stringify([]));
-        sessionStorage.removeItem('active_checkout_rzp_order_id');
-        sessionStorage.removeItem('active_checkout_order_id');
-      } catch (e) {}
-      clearCart();
+    if (isSuccess && orderId) {
+      router.replace(`/order-success/${orderId}`);
     }
-  }, [isSuccess, clearCart]);
+  }, [isSuccess, orderId, router]);
 
   const handleRetryPayment = async () => {
     if (!order) return;
@@ -136,7 +128,7 @@ export default function OrderDetailPage() {
       const { razorpayOrderId, razorpayAmount, razorpayKeyId } = retryRes;
 
       const options = {
-        key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TjTbwyhmC1lHFF',
+        key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
         amount: razorpayAmount,
         currency: 'INR',
         name: 'Sakthi Frozen Foods',
@@ -255,7 +247,6 @@ export default function OrderDetailPage() {
   const isWithinGracePeriod = remainingSecs > 0 && !order?.isLocked && order?.paymentStatus !== 'Failed';
   const isExpiredFailed = (isOnline && isPendingPayment && remainingSecs === 0) || order?.paymentStatus === 'Failed' || order?.status === 'Cancelled' || order?.status === 'Payment Failed';
   const isPaid = order?.paymentStatus === 'Paid' || order?.status === 'Confirmed';
-  const isCOD = order?.paymentMethod === 'Cash on Delivery';
 
   return (
     <div className="min-h-screen bg-[#F7F8F4] text-[#1E201D] flex flex-col font-sans">

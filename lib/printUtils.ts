@@ -30,14 +30,9 @@ export interface OrderPrintData {
 
 export function generatePrintSlipHtml(order: OrderPrintData): string {
   const isPaid = order.paymentStatus === 'Paid' || order.status === 'Confirmed';
-  const isCOD =
-    String(order.paymentMethod || '').toLowerCase().includes('cash') ||
-    String(order.paymentMethod || '').toLowerCase().includes('cod');
   const payBadge = isPaid
-    ? '<span class="status-badge status-paid">PAID (Verified)</span>'
-    : isCOD
-    ? '<span class="status-badge status-cod">CASH ON DELIVERY</span>'
-    : '<span class="status-badge status-pending">PAYMENT PENDING</span>';
+    ? '<span class="status-badge status-paid">PAID (Online Gateway)</span>'
+    : '<span class="status-badge status-pending">PAYMENT PENDING (Online)</span>';
 
   const orderDate = order.createdAt
     ? new Date(order.createdAt).toLocaleDateString('en-IN', {

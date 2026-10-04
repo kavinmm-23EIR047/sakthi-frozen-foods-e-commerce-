@@ -80,7 +80,7 @@ function publicOrder(order) {
     status = 'Payment Failed';
   } else if (order.status === 'Cancelled' || paymentStatus === 'Refunded') {
     status = 'Cancelled';
-  } else if (paymentStatus === 'Paid' || order.paymentMethod === 'Cash on Delivery') {
+  } else if (paymentStatus === 'Paid') {
     status = 'Confirmed';
   } else if (paymentStatus === 'Pending') {
     status = 'Awaiting Payment';
@@ -385,7 +385,7 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
     const deliveryFee = calc.fee;
     const convenienceFee = Math.round(subtotal * 0.025 * 100) / 100;
     const totalAmount = Math.round((subtotal + deliveryFee + convenienceFee) * 100) / 100;
-    const paymentMethod = body.paymentMethod === 'Cash on Delivery' ? 'Cash on Delivery' : 'Razorpay (Online)';
+    const paymentMethod = 'Razorpay (Online)';
     created = await Order.create({
       orderNumber: `SKT-${crypto.randomBytes(5).toString('hex').toUpperCase()}`,
       user: req.user ? req.user._id : undefined,
@@ -408,18 +408,34 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
       items,
       totalAmount,
       paymentMethod,
-      status: paymentMethod === 'Cash on Delivery' ? 'Confirmed' : 'Awaiting Payment',
-      paymentStatus: paymentMethod === 'Cash on Delivery' ? 'Paid' : 'Pending',
+      status: 'Awaiting Payment',
+      paymentStatus: 'Pending',
     });
 
     let razorpayOrder;
-    if (paymentMethod === 'Razorpay (Online)') {
-      razorpayOrder = await getRazorpay().orders.create({ amount: Math.round(totalAmount * 100), currency: 'INR', receipt: created._id.toString() });
+    try {
+      razorpayOrder = await getRazorpay().orders.create({
+        amount: Math.round(totalAmount * 100),
+        currency: 'INR',
+        receipt: created._id.toString(),
+      });
       created.razorpayOrderId = razorpayOrder.id;
       created.razorpayAmount = razorpayOrder.amount;
       await created.save();
-    } else {
-      created = await commitCashOnDeliveryStock(created);
+    } catch (rzpErr) {
+      console.error('Razorpay order creation failed:', rzpErr?.message || rzpErr);
+      if (created?._id) {
+        await Order.findByIdAndDelete(created._id).catch(() => {});
+      }
+      const rzpMessage =
+        rzpErr?.error?.description ||
+        rzpErr?.description ||
+        rzpErr?.message ||
+        'Razorpay order creation failed';
+      return res.status(400).json({
+        success: false,
+        error: `Razorpay Payment Gateway Error: ${rzpMessage}. Please verify RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in environment settings.`,
+      });
     }
 
     // Clear user's active cart in MongoDB upon placing order
@@ -431,7 +447,9 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
     res.status(201).json({
       success: true,
       data: publicOrder(created),
-      ...(razorpayOrder ? { razorpayOrderId: razorpayOrder.id, razorpayAmount: razorpayOrder.amount, razorpayKeyId: process.env.RAZORPAY_KEY_ID } : {}),
+      razorpayOrderId: razorpayOrder.id,
+      razorpayAmount: razorpayOrder.amount,
+      razorpayKeyId: process.env.RAZORPAY_KEY_ID,
     });
   } catch (error) {
     if (created?._id && !created.razorpayOrderId) await Order.findByIdAndDelete(created._id).catch(() => {});
@@ -447,8 +465,8 @@ router.post('/:id/cancel', protect, async (req, res, next) => {
       const order = await Order.findById(req.params.id).session(session);
       if (!order) throw Object.assign(new Error('Order not found'), { statusCode: 404 });
       if (req.user.role !== 'Admin' && order.customerEmail !== req.user.email) throw Object.assign(new Error('Not authorized to cancel this order'), { statusCode: 403 });
-      if (order.status === 'Cancelled' || order.status === 'Payment Failed' || (order.paymentStatus === 'Paid' && order.paymentMethod !== 'Cash on Delivery')) {
-        throw Object.assign(new Error('This order can no longer be cancelled directly'), { statusCode: 409 });
+      if (order.status === 'Cancelled' || order.status === 'Payment Failed' || order.paymentStatus === 'Paid') {
+        throw Object.assign(new Error('This order has already been paid/confirmed and can only be cancelled by contacting support'), { statusCode: 409 });
       }
       if (order.stockCommitted) {
         for (const item of order.items) {

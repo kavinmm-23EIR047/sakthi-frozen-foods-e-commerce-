@@ -9,7 +9,7 @@ import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useToast } from '@/context/ToastContext';
 import { ProductType, CategoryType } from '@/lib/types';
-import { fetchApi, fetchCachedApi, getCachedData } from '@/lib/apiConfig';
+import { fetchApi, fetchCachedApi, getCachedData, setCachedData } from '@/lib/apiConfig';
 import {
   Search,
   Filter,
@@ -39,7 +39,8 @@ import {
   Sprout,
   UtensilsCrossed,
   Check,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react';
 import OptimizedImage from '@/components/OptimizedImage';
 import { getBackendPackOptions, PackOption, formatCleanWeight } from '@/lib/productPacks';
@@ -135,10 +136,22 @@ function ProductCard({
     );
   };
 
+  const [isNavigating, setIsNavigating] = useState(false);
+
   const handleCardClick = () => {
     const targetId = product.id || (product as any)._id || product.code;
     if (targetId) {
+      setCachedData(`product_detail_${targetId}`, product);
+      setIsNavigating(true);
       router.push(`/product/${targetId}`);
+    }
+  };
+
+  const handlePrefetch = () => {
+    const targetId = product.id || (product as any)._id || product.code;
+    if (targetId) {
+      setCachedData(`product_detail_${targetId}`, product);
+      router.prefetch(`/product/${targetId}`);
     }
   };
 
@@ -146,8 +159,18 @@ function ProductCard({
     return (
       <div
         onClick={handleCardClick}
-        className="group relative flex flex-col sm:flex-row items-stretch gap-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-[#4F534C]/15 hover:border-[#656B4F]/40 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer"
+        onMouseEnter={handlePrefetch}
+        onTouchStart={handlePrefetch}
+        className="group relative flex flex-col sm:flex-row items-stretch gap-4 p-3.5 sm:p-4 rounded-2xl bg-white border border-[#4F534C]/15 hover:border-[#656B4F]/40 shadow-xs hover:shadow-md active:scale-[0.99] transition-all duration-200 cursor-pointer overflow-hidden"
       >
+        {isNavigating && (
+          <div className="absolute inset-0 bg-white/75 backdrop-blur-[2px] flex items-center justify-center z-30 animate-in fade-in duration-150">
+            <div className="flex items-center gap-2 bg-[#50563D] text-white text-xs font-black px-3.5 py-2 rounded-full shadow-lg">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#A9F2B7]" />
+              <span>Opening...</span>
+            </div>
+          </div>
+        )}
         <div className="relative w-full sm:w-48 aspect-[4/3] sm:aspect-square rounded-xl overflow-hidden bg-[#EAF0E5] shrink-0 border border-stone-200/60">
           <OptimizedImage
             src={product.image}
@@ -341,8 +364,18 @@ function ProductCard({
   return (
     <div
       onClick={handleCardClick}
-      className="group relative flex flex-col justify-between rounded-2xl bg-white border border-[#4F534C]/15 hover:border-[#656B4F]/40 shadow-xs hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer"
+      onMouseEnter={handlePrefetch}
+      onTouchStart={handlePrefetch}
+      className="group relative flex flex-col justify-between rounded-2xl bg-white border border-[#4F534C]/15 hover:border-[#656B4F]/40 shadow-xs hover:shadow-lg active:scale-[0.98] transition-all duration-300 overflow-hidden cursor-pointer"
     >
+      {isNavigating && (
+        <div className="absolute inset-0 bg-white/75 backdrop-blur-[2px] flex items-center justify-center z-30 animate-in fade-in duration-150">
+          <div className="flex items-center gap-2 bg-[#50563D] text-white text-xs font-black px-3.5 py-2 rounded-full shadow-lg">
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-[#A9F2B7]" />
+            <span>Opening...</span>
+          </div>
+        </div>
+      )}
       <div className="relative aspect-[4/3] bg-[#EAF0E5] overflow-hidden">
         <OptimizedImage
           src={product.image}

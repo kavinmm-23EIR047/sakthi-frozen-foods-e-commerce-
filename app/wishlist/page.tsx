@@ -22,6 +22,7 @@ import OptimizedImage from '@/components/OptimizedImage';
 import { useWishlist } from '@/context/WishlistContext';
 import { useCart } from '@/context/CartContext';
 import { ProductType } from '@/lib/types';
+import { setCachedData } from '@/lib/apiConfig';
 
 function formatCleanWeight(w: string): string {
   if (!w) return '1kg';
@@ -39,6 +40,20 @@ export default function WishlistPage() {
   const router = useRouter();
   const { wishlist, removeFromWishlist, clearWishlist, loading } = useWishlist();
   const { addToCart, setIsCartOpen } = useCart();
+
+  const handleProductNavigate = (product: ProductType) => {
+    const prodId = product.id || (product as any)._id;
+    if (!prodId) return;
+    setCachedData(`product_detail_${prodId}`, product);
+    router.push(`/product/${prodId}`);
+  };
+
+  const handleProductPrefetch = (product: ProductType) => {
+    const prodId = product.id || (product as any)._id;
+    if (!prodId) return;
+    setCachedData(`product_detail_${prodId}`, product);
+    router.prefetch(`/product/${prodId}`);
+  };
 
   const handleAddSingleToCart = (product: ProductType) => {
     addToCart(product, 1);
@@ -168,7 +183,10 @@ export default function WishlistPage() {
               return (
                 <article
                   key={product.id}
-                  className="group flex flex-col justify-between overflow-hidden rounded-2xl sm:rounded-3xl border border-[#4F534C]/12 bg-white shadow-2xs hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-[#50563D]/30"
+                  onClick={() => handleProductNavigate(product)}
+                  onMouseEnter={() => handleProductPrefetch(product)}
+                  onTouchStart={() => handleProductPrefetch(product)}
+                  className="group flex flex-col justify-between overflow-hidden rounded-2xl sm:rounded-3xl border border-[#4F534C]/12 bg-white shadow-2xs hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-[#50563D]/30 cursor-pointer active:scale-[0.98]"
                 >
                   {/* Image Container */}
                   <div className="relative aspect-[4/3] bg-[#EAF0E5] overflow-hidden">
@@ -192,8 +210,12 @@ export default function WishlistPage() {
 
                     {/* Remove from Wishlist Button */}
                     <button
-                      onClick={() => removeFromWishlist(product.id)}
-                      className="absolute top-2.5 right-2.5 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 backdrop-blur-xs flex items-center justify-center text-rose-600 hover:bg-rose-50 hover:scale-110 transition-all shadow-sm"
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFromWishlist(product.id);
+                      }}
+                      className="absolute top-2.5 right-2.5 z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/95 backdrop-blur-xs flex items-center justify-center text-rose-600 hover:bg-rose-50 hover:scale-110 transition-all shadow-sm cursor-pointer"
                       title="Remove from wishlist"
                       aria-label={`Remove ${product.name} from wishlist`}
                     >
@@ -201,14 +223,13 @@ export default function WishlistPage() {
                     </button>
 
                     {/* Quick View Link */}
-                    <Link
-                      href={`/product/${product.id}`}
+                    <div
                       className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold text-xs gap-1.5"
                     >
                       <span className="bg-[#50563D] px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-md">
                         <Eye className="w-3.5 h-3.5" /> View
                       </span>
-                    </Link>
+                    </div>
                   </div>
 
                   {/* Content */}
@@ -217,11 +238,9 @@ export default function WishlistPage() {
                       <div className="truncate text-[10px] font-black uppercase tracking-wider text-[#656B4F]">
                         {product.category?.replace(' Alternatives', '').replace(' Retail Pack', '')}
                       </div>
-                      <Link href={`/product/${product.id}`}>
-                        <h3 className="line-clamp-1 text-xs sm:text-sm md:text-base font-black leading-snug text-[#1E201D] hover:text-[#50563D] transition-colors">
-                          {product.name}
-                        </h3>
-                      </Link>
+                      <h3 className="line-clamp-1 text-xs sm:text-sm md:text-base font-black leading-snug text-[#1E201D] group-hover:text-[#50563D] transition-colors">
+                        {product.name}
+                      </h3>
                       <p className="line-clamp-1 text-[11px] text-[#61665D] leading-relaxed">
                         {product.description || '100% plant-based frozen delicacy.'}
                       </p>
@@ -249,8 +268,12 @@ export default function WishlistPage() {
                       </div>
 
                       <button
-                        onClick={() => handleAddSingleToCart(product)}
-                        className="w-full py-2 sm:py-2.5 px-3 rounded-xl bg-[#50563D] hover:bg-[#1E201D] text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all active:scale-95"
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddSingleToCart(product);
+                        }}
+                        className="w-full py-2 sm:py-2.5 px-3 rounded-xl bg-[#50563D] hover:bg-[#1E201D] text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all active:scale-95 cursor-pointer"
                       >
                         <ShoppingBag className="w-3.5 h-3.5" />
                         <span>Add to Cart</span>

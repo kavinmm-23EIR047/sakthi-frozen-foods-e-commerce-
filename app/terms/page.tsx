@@ -132,8 +132,9 @@ export default function TermsPage() {
                 All prices displayed on the website are in Indian Rupees (INR) and are inclusive of all applicable GST taxes.
               </p>
               <ul className="list-disc pl-5 space-y-1.5 text-stone-600">
-                <li>We accept online payments via UPI (Google Pay, PhonePe, Paytm), Net Banking, and major Debit & Credit Cards.</li>
-                <li>Online transactions are processed through 256-bit SSL encrypted and PCI-DSS compliant payment gateways. We never store your payment card numbers or UPI PINs on our servers.</li>
+                <li><strong>Strictly 100% Pre-Paid Online Orders Only:</strong> We accept online payments via UPI (Google Pay, PhonePe, Paytm, BHIM), Net Banking, and all major Debit & Credit Cards.</li>
+                <li><strong>No Cash on Delivery (COD):</strong> Due to the temperature-sensitive nature of frozen food requiring custom insulated cold-chain packaging and rapid logistics dispatch, Cash on Delivery (COD) is strictly NOT accepted.</li>
+                <li>Online transactions are processed through 256-bit SSL encrypted and PCI-DSS compliant payment gateways (Razorpay). We never store your payment card numbers or UPI PINs on our servers.</li>
                 <li>Promotional discount coupon codes are subject to specific cart value criteria and validity periods.</li>
               </ul>
             </div>

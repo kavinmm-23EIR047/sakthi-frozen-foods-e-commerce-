@@ -186,22 +186,18 @@ async function retryDueNotifications(batchSize = 20) {
  * Main Order Notification Queuer
  * 
  * Rules (Simplified Direct Flow):
- * 1. Customer receives EXACTLY ONE confirmation + PDF invoice email per successful order:
- *    - COD orders: sent once on 'order.created'
- *    - Online orders: sent once ONLY after payment succeeds ('payment.success' / 'payment.verified')
- * 2. Admin receives ONE Email & Telegram notification when the new order is placed / paid.
+ * 1. Customer receives EXACTLY ONE confirmation + PDF invoice email per successful order ONLY after online payment succeeds ('payment.success' / 'payment.verified').
+ * 2. Admin receives ONE Email & Telegram notification when the new order is paid online.
  * 3. No intermediate status change emails (Shipped/Delivered), customer contacts directly via WhatsApp/Phone if needed.
  */
 async function queueOrderNotifications(order, eventType) {
   const jobs = [];
 
-  const isCOD = order.paymentMethod === 'Cash on Delivery';
   const isOnlinePaid = order.paymentStatus === 'Paid';
 
   // ── 1. Customer Confirmation & Tax Invoice Email (EXACTLY ONE PER ORDER) ──
   const shouldSendCustomerInvoice =
-    (eventType === 'order.created' && isCOD) ||
-    (eventType === 'payment.success' || eventType === 'payment.verified');
+    eventType === 'payment.success' || eventType === 'payment.verified';
 
   if (shouldSendCustomerInvoice) {
     const customerHtml = buildUserOrderEmail(order);
@@ -216,7 +212,7 @@ async function queueOrderNotifications(order, eventType) {
     jobs.push(
       dispatchNotification({
         notificationKey: `${order._id}:confirmed-invoice:customer-email`,
-        eventType: isCOD ? 'order.confirmed.cod' : 'payment.verified.online',
+        eventType: 'payment.verified.online',
         channel: 'customer-email',
         recipient: order.customerEmail,
         subject: `✅ Order Confirmed & Invoice #${order.orderNumber} - Sakthi Frozen Foods`,
@@ -233,7 +229,6 @@ async function queueOrderNotifications(order, eventType) {
 
   // ── 2. Admin Email & Telegram Alerts (Single New Order Notification) ──
   const shouldSendAdminAlert =
-    (eventType === 'order.created' && isCOD) ||
     (eventType === 'payment.success' || eventType === 'payment.verified') ||
     eventType === 'order.cancelled';
 

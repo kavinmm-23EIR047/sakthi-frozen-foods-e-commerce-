@@ -148,7 +148,7 @@ export default function Navbar({
 
   return (
     <>
-      <header className="relative z-40 bg-white border-b border-gray-200 shadow-xs">
+      <header className="relative z-50 bg-white border-b border-gray-200 shadow-xs">
 
         {/* TOP SLIDING / MOVING ANNOUNCEMENT STRIP */}
         <div className="bg-[#656B4F] text-[#E8F0E5] overflow-hidden py-2 text-xs font-semibold border-b border-[#50563D]">
@@ -194,7 +194,7 @@ export default function Navbar({
             </div>
 
             {/* Search Bar - Desktop */}
-            <div className="hidden lg:flex flex-1 max-w-lg xl:max-w-xl mx-2 lg:mx-4">
+            <div className="hidden lg:flex flex-1 max-w-lg xl:max-w-xl mx-2 lg:mx-4 relative z-50">
               <SearchOverlay />
             </div>
 
@@ -373,6 +373,7 @@ export default function Navbar({
 
               {/* Clean Cart Button */}
               <button
+                suppressHydrationWarning
                 onClick={() => router.push('/cart')}
                 className="relative p-2.5 rounded-full bg-[#656B4F] text-white hover:bg-[#50563D] transition-all flex items-center justify-center hover:scale-105 active:scale-95 shadow-xs cursor-pointer group"
                 title={`Shopping Cart (${totalItems} items)`}
@@ -389,7 +390,7 @@ export default function Navbar({
           </div>
 
           {/* Mobile & Tablet Search Bar with Quick Chips */}
-          <div className="lg:hidden pb-3 pt-1 space-y-2">
+          <div className="lg:hidden pb-3 pt-1 space-y-2 relative z-50">
             <SearchOverlay />
 
             {/* Quick Category Chips Bar (Mobile / Tablet) with Vector SVG Icons */}

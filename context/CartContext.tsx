@@ -149,8 +149,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       showToast(`${product.name} is currently out of stock`, 'error');
       return;
     }
+    const prodId = String(product.id || (product as any)._id || '');
     setCart((prev) => {
-      const existingIndex = prev.findIndex((item) => item.productId === product.id && item.weight === product.weight);
+      const existingIndex = prev.findIndex((item) => item.productId === prodId && item.weight === product.weight);
       if (existingIndex > -1) {
         const updated = [...prev];
         updated[existingIndex].quantity += quantity;
@@ -159,7 +160,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return [
           ...prev,
           {
-            productId: product.id,
+            productId: prodId,
             name: product.name,
             image: product.image,
             weight: product.weight,

@@ -169,7 +169,7 @@ async function notifyPaymentSuccessful(userId, order) {
   return sendPushNotification(userId, {
     title: '💳 Payment Successful 🎉',
     body: `Payment of ₹${order.totalAmount} was verified for Order #${order.orderNumber}.`,
-    url: `/orders/${order._id || order.id}?success=true`,
+    url: `/order-success/${order._id || order.id}`,
     tag: `payment-${order._id || order.id}`,
   }, 'paymentUpdates');
 }

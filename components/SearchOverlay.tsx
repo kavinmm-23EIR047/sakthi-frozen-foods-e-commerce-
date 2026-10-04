@@ -24,7 +24,7 @@ import {
   Sprout,
   UtensilsCrossed
 } from 'lucide-react';
-import { fetchApi } from '@/lib/apiConfig';
+import { fetchApi, setCachedData } from '@/lib/apiConfig';
 import { ProductType, CategoryType } from '@/lib/types';
 import OptimizedImage from '@/components/OptimizedImage';
 
@@ -64,8 +64,30 @@ export default function SearchOverlay() {
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
+  const [dropdownTop, setDropdownTop] = useState<number>(84);
+
+  // Measure navbar/input bottom dynamically to position megamenu dropdown perfectly
+  const updateDropdownPosition = () => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setDropdownTop(Math.max(64, Math.round(rect.bottom + 8)));
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      updateDropdownPosition();
+      window.addEventListener('resize', updateDropdownPosition);
+      window.addEventListener('scroll', updateDropdownPosition, { passive: true });
+      return () => {
+        window.removeEventListener('resize', updateDropdownPosition);
+        window.removeEventListener('scroll', updateDropdownPosition);
+      };
+    }
+  }, [isOpen]);
 
   // Load recent searches from localStorage
   useEffect(() => {
@@ -120,7 +142,10 @@ export default function SearchOverlay() {
   // Click outside listener for desktop dropdown
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const clickedInsideInput = containerRef.current?.contains(target);
+      const clickedInsideDropdown = dropdownRef.current?.contains(target);
+      if (!clickedInsideInput && !clickedInsideDropdown) {
         setIsOpen(false);
       }
     }
@@ -160,11 +185,24 @@ export default function SearchOverlay() {
     }
   };
 
-  const handleProductSelect = (productId: string, productName: string) => {
+  const handleProductSelect = (productId: string, productName: string, productObj?: ProductType) => {
     saveRecentSearch(productName);
+    const targetProd = productObj || allProducts.find((p) => p.id === productId || (p as any)._id === productId);
+    if (targetProd) {
+      setCachedData(`product_detail_${productId}`, targetProd);
+    }
+    router.prefetch(`/product/${productId}`);
     setIsOpen(false);
     router.push(`/product/${productId}`);
     setQuery('');
+  };
+
+  const handleProductPrefetch = (productId: string, productObj?: ProductType) => {
+    const targetProd = productObj || allProducts.find((p) => p.id === productId || (p as any)._id === productId);
+    if (targetProd) {
+      setCachedData(`product_detail_${productId}`, targetProd);
+    }
+    router.prefetch(`/product/${productId}`);
   };
 
   const handleCategorySelect = (categoryName: string) => {
@@ -352,6 +390,8 @@ export default function SearchOverlay() {
             <input
               ref={inputRef}
               type="text"
+              autoComplete="off"
+              suppressHydrationWarning
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onFocus={() => setIsOpen(true)}
@@ -368,6 +408,7 @@ export default function SearchOverlay() {
             {query && (
               <button
                 type="button"
+                suppressHydrationWarning
                 onClick={() => {
                   setQuery('');
                   inputRef.current?.focus();
@@ -385,6 +426,7 @@ export default function SearchOverlay() {
 
             <button
               type="submit"
+              suppressHydrationWarning
               className="hidden sm:inline-flex items-center justify-center px-4 py-1.5 sm:py-2 rounded-full bg-[#50563D] hover:bg-[#3E442F] text-white text-xs font-bold transition-all shadow-xs shrink-0 active:scale-95 ml-1"
             >
               Search
@@ -393,9 +435,21 @@ export default function SearchOverlay() {
         </div>
       </div>
 
+      {/* Backdrop for Desktop/Tablet Search Dropdown */}
+      {isOpen && (
+        <div
+          className="hidden sm:block fixed inset-0 bg-black/25 backdrop-blur-xs z-40 transition-opacity animate-in fade-in duration-150"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
       {/* 2. DESKTOP & TABLET SEARCH DROPDOWN OVERLAY (MEGAMENU) */}
       {isOpen && (
-        <div className="hidden sm:block absolute top-[calc(100%+8px)] left-1/2 -translate-x-1/2 w-[min(94vw,980px)] lg:w-[min(92vw,1080px)] xl:w-[1120px] bg-white rounded-3xl shadow-2xl border border-[#4F534C]/15 z-50 overflow-hidden animate-in fade-in-50 zoom-in-95 duration-200">
+        <div
+          ref={dropdownRef}
+          style={{ top: `${dropdownTop}px` }}
+          className="hidden sm:block fixed left-1/2 -translate-x-1/2 w-[min(94vw,980px)] lg:w-[min(92vw,1080px)] xl:w-[1120px] max-h-[calc(100vh-100px)] bg-white rounded-3xl shadow-2xl border border-[#4F534C]/15 z-50 overflow-hidden animate-in fade-in-50 zoom-in-95 duration-200"
+        >
           {/* Filter Tabs on Dropdown Header */}
           <div className="flex items-center gap-2 px-6 pt-4 pb-2 border-b border-[#4F534C]/10 bg-[#FAFAF5]">
             {(['all', 'products', 'categories', 'recipes'] as const).map((tab) => (
@@ -416,7 +470,7 @@ export default function SearchOverlay() {
 
           {/* TAB 1: ALL (4-Column Mega Layout) */}
           {activeTab === 'all' && (
-            <div className="p-5 sm:p-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-12 gap-5 lg:gap-6 max-h-[75vh] overflow-y-auto">
+            <div className="p-5 sm:p-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-12 gap-5 lg:gap-6 max-h-[calc(100vh-200px)] overflow-y-auto">
               
               {/* COLUMN 1: Search Queries */}
               <div className="lg:col-span-3 space-y-3">
@@ -491,7 +545,9 @@ export default function SearchOverlay() {
                       return (
                         <div
                           key={product.id}
-                          onClick={() => handleProductSelect(product.id, product.name)}
+                          onClick={() => handleProductSelect(product.id, product.name, product)}
+                          onMouseEnter={() => handleProductPrefetch(product.id, product)}
+                          onTouchStart={() => handleProductPrefetch(product.id, product)}
                           className="flex items-center gap-3 p-2 rounded-xl hover:bg-[#F3FBEE] border border-transparent hover:border-[#656B4F]/20 cursor-pointer transition-all group"
                         >
                           <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-[#EAF0E5] shrink-0 border border-stone-200/60">
@@ -629,7 +685,7 @@ export default function SearchOverlay() {
 
           {/* TAB 2: PRODUCTS EXPANDED VIEW */}
           {activeTab === 'products' && (
-            <div className="p-5 sm:p-6 max-h-[75vh] overflow-y-auto">
+            <div className="p-5 sm:p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {filteredProducts.map((product) => {
                   const mrp = product.mrp ?? product.price;
@@ -637,7 +693,9 @@ export default function SearchOverlay() {
                   return (
                     <div
                       key={product.id}
-                      onClick={() => handleProductSelect(product.id, product.name)}
+                      onClick={() => handleProductSelect(product.id, product.name, product)}
+                      onMouseEnter={() => handleProductPrefetch(product.id, product)}
+                      onTouchStart={() => handleProductPrefetch(product.id, product)}
                       className="p-3 rounded-2xl bg-[#FAFAF5] hover:bg-[#F3FBEE] border border-[#4F534C]/10 hover:border-[#656B4F]/30 cursor-pointer transition-all flex flex-col justify-between group"
                     >
                       <div>
@@ -677,7 +735,7 @@ export default function SearchOverlay() {
 
           {/* TAB 3: CATEGORIES EXPANDED VIEW */}
           {activeTab === 'categories' && (
-            <div className="p-5 sm:p-6 max-h-[75vh] overflow-y-auto">
+            <div className="p-5 sm:p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {categoriesWithCounts.map((cat: any, i) => (
                   <button
@@ -706,7 +764,7 @@ export default function SearchOverlay() {
 
           {/* TAB 4: RECIPES & INSPIRATION */}
           {activeTab === 'recipes' && (
-            <div className="p-5 sm:p-6 max-h-[75vh] overflow-y-auto">
+            <div className="p-5 sm:p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {recipesList.map((rec, i) => {
                   const IconComp = rec.icon;
@@ -777,6 +835,8 @@ export default function SearchOverlay() {
                 ref={mobileInputRef}
                 autoFocus
                 type="text"
+                autoComplete="off"
+                suppressHydrationWarning
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search veg mutton, chicken, fish..."
@@ -792,6 +852,7 @@ export default function SearchOverlay() {
               {query && (
                 <button
                   type="button"
+                  suppressHydrationWarning
                   onClick={() => setQuery('')}
                   className="p-1 text-stone-400 hover:text-stone-700 shrink-0"
                 >
@@ -870,8 +931,10 @@ export default function SearchOverlay() {
                     return (
                       <div
                         key={product.id}
-                        onClick={() => handleProductSelect(product.id, product.name)}
-                        className="flex items-center justify-between p-2.5 bg-[#FAFAF5] hover:bg-[#F3FBEE] border border-[#4F534C]/10 rounded-2xl active:scale-[0.99] transition-all"
+                        onClick={() => handleProductSelect(product.id, product.name, product)}
+                        onMouseEnter={() => handleProductPrefetch(product.id, product)}
+                        onTouchStart={() => handleProductPrefetch(product.id, product)}
+                        className="flex items-center justify-between p-2.5 bg-[#FAFAF5] hover:bg-[#F3FBEE] border border-[#4F534C]/10 rounded-2xl active:scale-[0.99] transition-all cursor-pointer"
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-[#EAF0E5] shrink-0 border border-stone-200/60">

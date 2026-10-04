@@ -331,8 +331,8 @@ export default function Footer() {
                   <h4 className="font-bold text-[#1E201D] text-xs uppercase tracking-wider pt-2 border-t border-[#4F534C]/15">1. Product Quality & Storage Instructions</h4>
                   <p>All products sold by Sakthi Frozen Foods are 100% plant-based, vegetarian, and cruelty-free. Customers must store products in a freezer at <strong>-18°C</strong> immediately upon receipt.</p>
 
-                  <h4 className="font-bold text-[#1E201D] text-xs uppercase tracking-wider pt-2 border-t border-[#4F534C]/15">2. Orders & Delivery</h4>
-                  <p>Confirmed orders are packed under strict temperature control (-18°C) and scheduled for direct customer delivery.</p>
+                  <h4 className="font-bold text-[#1E201D] text-xs uppercase tracking-wider pt-2 border-t border-[#4F534C]/15">2. Orders, Online Payments &amp; Delivery</h4>
+                  <p>All retail orders require 100% pre-paid online payment (UPI, Cards, Netbanking). Cash on Delivery is strictly not accepted due to frozen cold-chain dispatch requirements. Confirmed orders are packed under strict temperature control (-18°C) and scheduled for direct customer delivery.</p>
 
                   <h4 className="font-bold text-[#1E201D] text-xs uppercase tracking-wider pt-2 border-t border-[#4F534C]/15">3. Pricing & FSSAI Compliance</h4>
                   <p>All prices listed on the website are inclusive of applicable taxes. Sakthi Frozen Foods complies strictly with FSSAI hygiene and food safety standards.</p>

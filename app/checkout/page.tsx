@@ -41,12 +41,12 @@ export default function CheckoutPage() {
   const [destinationOpen, setDestinationOpen] = useState(false);
   const [pincode, setPincode] = useState('');
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+  const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
   const [isRecoveringPayment, setIsRecoveringPayment] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState('');
-  const [orderConfirmed, setOrderConfirmed] = useState<any>(null);
   const isRedirectingToOrders = useRef(false);
 
   // Auto-populate logged-in customer info
@@ -100,15 +100,16 @@ export default function CheckoutPage() {
           if (statusRes.data?.paymentStatus === 'Paid') {
             clearInterval(intervalId);
             isRedirectingToOrders.current = true;
-            setOrderConfirmed(true);
             try {
               localStorage.removeItem('sakthi_pending_payment');
+              localStorage.setItem('sakthi_cart', JSON.stringify([]));
               sessionStorage.removeItem('active_checkout_rzp_order_id');
               sessionStorage.removeItem('active_checkout_order_id');
             } catch (e) {}
+            clearCart();
             setIsRecoveringPayment(false);
             const confirmedId = statusRes.data.id || statusRes.data._id || pending.orderId;
-            router.replace(`/orders/${confirmedId}?success=true`);
+            router.replace(`/order-success/${confirmedId}`);
             return;
           } else if (statusRes.data?.paymentStatus === 'Failed') {
             clearInterval(intervalId);
@@ -148,7 +149,7 @@ export default function CheckoutPage() {
   }, [router, clearCart]);
 
   useEffect(() => {
-    if (isRedirectingToOrders.current || orderConfirmed) {
+    if (isRedirectingToOrders.current) {
       return;
     }
 
@@ -157,10 +158,10 @@ export default function CheckoutPage() {
       pendingExists = !!localStorage.getItem('sakthi_pending_payment') || !!sessionStorage.getItem('active_checkout_rzp_order_id');
     } catch (e) {}
 
-    if (!isCartLoading && !isRecoveringPayment && cart.length === 0 && !pendingExists && !orderConfirmed && !isRedirectingToOrders.current) {
+    if (!isCartLoading && !isRecoveringPayment && cart.length === 0 && !pendingExists && !isRedirectingToOrders.current) {
       router.push('/cart');
     }
-  }, [cart, isCartLoading, isRecoveringPayment, orderConfirmed, router]);
+  }, [cart, isCartLoading, isRecoveringPayment, router]);
 
   const selectedDestination = DELIVERY_ZONES.find((zone) => zone.id === destinationZoneId) || null;
   const city = selectedDestination
@@ -268,7 +269,9 @@ export default function CheckoutPage() {
       });
 
       if (!orderData.success) {
-        alert('Failed to initialize payment: ' + (orderData.error || 'Server error'));
+        const errorMsg = orderData.error || 'Unable to connect to payment server. Please verify your internet or try again.';
+        setPaymentMessage(errorMsg);
+        alert('Failed to initialize payment: ' + errorMsg);
         setIsSubmitting(false);
         return;
       }
@@ -291,7 +294,7 @@ export default function CheckoutPage() {
 
       // 3. Initialize Razorpay popup
       const options = {
-        key: orderData.razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_TjTbwyhmC1lHFF',
+        key: orderData.razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
         amount: orderData.razorpayAmount,
         currency: 'INR',
         name: 'Sakthi Frozen Foods',
@@ -314,16 +317,17 @@ export default function CheckoutPage() {
 
             if (verifyData.success) {
               isRedirectingToOrders.current = true;
-              setOrderConfirmed(true);
               if (typeof window !== 'undefined') {
                 try {
                   localStorage.removeItem('sakthi_pending_payment');
+                  localStorage.setItem('sakthi_cart', JSON.stringify([]));
                   sessionStorage.removeItem('active_checkout_rzp_order_id');
                   sessionStorage.removeItem('active_checkout_order_id');
                 } catch (e) {}
               }
+              clearCart();
               const confirmedId = verifyData.data?.id || verifyData.data?._id || orderData.data?.id;
-              router.replace(`/orders/${confirmedId}?success=true`);
+              router.replace(`/order-success/${confirmedId}`);
               return;
             } else {
               setPaymentMessage('Payment could not be verified yet. Your cart is saved; please check your Orders before trying again.');
@@ -376,11 +380,13 @@ export default function CheckoutPage() {
     }
   };
 
-  if (isCartLoading || isSubmitting || isVerifyingPayment || isRecoveringPayment) {
+  if (isCartLoading || isSubmitting || isVerifyingPayment || isRecoveringPayment || isRedirectingToOrders.current) {
     return (
       <DeliveryLoadingScreen
         message={
-          isRecoveringPayment
+          isRedirectingToOrders.current
+            ? 'Payment verified! Opening your order confirmation...'
+            : isRecoveringPayment
             ? 'Checking payment status with bank... Please do not refresh'
             : isVerifyingPayment
             ? 'Confirming your payment securely'
@@ -397,8 +403,8 @@ export default function CheckoutPage() {
     return <DeliveryLoadingScreen message="Preparing secure checkout" />;
   }
 
-  // Auth Guard: If not logged in and order is not confirmed, show dedicated auth prompt
-  if (!user && !orderConfirmed) {
+  // Auth Guard: If not logged in, show dedicated auth prompt
+  if (!user) {
     return (
       <div className="min-h-screen bg-[#F3FBEE] text-[#1E201D] flex flex-col font-sans">
         <Navbar />
@@ -455,14 +461,12 @@ export default function CheckoutPage() {
       <Navbar />
 
       <main className="mx-auto w-full max-w-[1180px] px-3 py-5 sm:px-4 sm:py-8 md:py-10 flex-1">
-        {!orderConfirmed && (
-          <button
-            onClick={() => router.push('/cart')}
-            className="flex items-center gap-2 text-[#3D4533] hover:text-[#1A1E16] font-bold text-sm mb-6 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Cart
-          </button>
-        )}
+        <button
+          onClick={() => router.push('/cart')}
+          className="flex items-center gap-2 text-[#3D4533] hover:text-[#1A1E16] font-bold text-sm mb-6 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Cart
+        </button>
 
         <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#4F534C]/15">
           {/* Header */}
@@ -470,10 +474,10 @@ export default function CheckoutPage() {
             <div className="flex items-center gap-3">
               <ShoppingBag className="w-6 h-6" />
               <h1 className="font-black text-xl sm:text-2xl font-poppins">
-                {orderConfirmed ? 'Order Confirmed!' : 'Secure Checkout'}
+                Secure Checkout
               </h1>
             </div>
-            {user && !orderConfirmed && (
+            {user && (
               <div className="hidden sm:flex items-center gap-2 text-xs font-bold bg-white/15 px-3 py-1.5 rounded-xl border border-white/20">
                 <UserCheck className="w-4 h-4 text-[#E8F0E5]" />
                 <span>Account: {user.name}</span>
@@ -481,77 +485,68 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          {orderConfirmed ? (
-            /* Confirmation View */
-            <div className="p-6 sm:p-10 text-center space-y-6">
-              <div className="w-20 h-20 bg-[#EAF0E5] text-[#656B4F] rounded-full flex items-center justify-center mx-auto border border-[#656B4F]/20 shadow-md">
-                <CheckCircle2 className="w-12 h-12" />
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-[#1A1E16]">Thank You for Your Order!</h2>
-              <p className="text-base text-[#3C4136] font-medium">
-                Your order <span className="font-mono font-black text-[#50563D]">{orderConfirmed.orderNumber}</span> has been placed successfully.
-              </p>
-
-              <div className="bg-[#EAF0E5] p-5 sm:p-6 rounded-2xl text-left border border-[#4F534C]/20 space-y-3 text-sm max-w-lg mx-auto shadow-xs">
-                <div className="flex justify-between">
-                  <span className="text-[#3E4536] font-bold">Customer:</span>
-                  <span className="font-extrabold text-[#1A1E16]">{orderConfirmed.customerName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#3E4536] font-bold">Phone:</span>
-                  <span className="font-extrabold text-[#1A1E16]">{orderConfirmed.customerPhone}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#3E4536] font-bold">Delivery Address:</span>
-                  <span className="font-bold text-[#1A1E16] text-right max-w-[65%]">{orderConfirmed.shippingAddress}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#3E4536] font-bold">Payment Method:</span>
-                  <span className="font-extrabold text-[#50563D]">{orderConfirmed.paymentMethod}</span>
-                </div>
-                
-                <div className="border-t border-[#4F534C]/20 pt-3 space-y-1.5 text-xs font-bold text-[#3E4536]">
-                  <div className="flex justify-between">
-                    <span>Subtotal</span>
-                    <span className="text-[#1A1E16]">₹{orderConfirmed.subtotal ?? subtotal}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Convenience Fee (2.5%)</span>
-                    <span className="text-[#1A1E16]">₹{orderConfirmed.convenienceFee ?? convenienceFee}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Delivery</span>
-                    <span className="text-[#1A1E16]">{(orderConfirmed.deliveryFee ?? deliveryFee) === 0 ? 'FREE' : `₹${orderConfirmed.deliveryFee ?? deliveryFee}`}</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between border-t border-[#4F534C]/20 pt-3 font-black text-base">
-                  <span className="text-[#1A1E16]">Total Amount Paid:</span>
-                  <span className="text-[#50563D] text-xl font-black">₹{orderConfirmed.totalAmount}</span>
-                </div>
-              </div>
-
-              <p className="text-xs sm:text-sm text-[#3E4536] font-medium max-w-lg mx-auto pb-4">
-                Our dispatch team at Sakthi Frozen Foods will pack your items under strict temperature control (-18°C).
-              </p>
-
-              <button
-                onClick={() => router.push('/orders')}
-                className="py-3.5 px-8 bg-[#656B4F] text-white font-extrabold rounded-xl hover:bg-[#50563D] transition-all shadow-md text-base"
-              >
-                View My Orders
-              </button>
-            </div>
-          ) : (
-            /* Checkout Form */
-            <div className="p-4 sm:p-6 md:p-8 flex flex-col md:flex-row gap-6 lg:gap-8">
-              <form onSubmit={handleSubmitOrder} className="flex-1 space-y-6">
+          {/* Checkout Form */}
+          <div className="p-4 sm:p-6 md:p-8 flex flex-col md:flex-row gap-6 lg:gap-8">
+            <form id="checkout-form" onSubmit={handleSubmitOrder} className="flex-1 space-y-6">
                 {paymentMessage && (
                   <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold leading-relaxed text-amber-950">
                     {paymentMessage}{' '}
                     <button type="button" onClick={() => router.push('/orders')} className="underline underline-offset-2">Check order status</button>
                   </div>
                 )}
+
+                {/* Mobile Top Collapsible Order Summary Bar (Visible only on mobile) */}
+                <div className="md:hidden bg-[#EAF0E5] rounded-2xl border border-[#4F534C]/20 overflow-hidden shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => setMobileSummaryOpen(!mobileSummaryOpen)}
+                    className="w-full p-3.5 flex items-center justify-between text-left cursor-pointer transition-colors hover:bg-[#DDE8D6]"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ShoppingBag className="w-4 h-4 text-[#50563D]" />
+                      <span className="text-xs font-black text-[#1A1E16]">
+                        {mobileSummaryOpen ? 'Hide Order Summary' : `Order Summary (${cart.reduce((s, i) => s + i.quantity, 0)} items)`}
+                      </span>
+                      <ChevronDown className={`w-3.5 h-3.5 text-[#50563D] transition-transform duration-200 ${mobileSummaryOpen ? 'rotate-180' : ''}`} />
+                    </div>
+                    <span className="text-sm font-black text-[#50563D]">₹{grandTotal}</span>
+                  </button>
+
+                  {mobileSummaryOpen && (
+                    <div className="px-4 pb-4 border-t border-[#4F534C]/15 pt-3 space-y-3 animate-in fade-in duration-200">
+                      <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
+                        {cart.map((item) => (
+                          <div key={`${item.productId}-${item.weight}`} className="flex justify-between text-xs items-start gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-extrabold text-[#1A1E16] truncate">{item.name}</div>
+                              <div className="text-[10px] font-bold text-[#3E4536]">{item.weight} × {item.quantity}</div>
+                            </div>
+                            <div className="font-black text-[#50563D] shrink-0">₹{item.price * item.quantity}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="pt-2 border-t border-[#4F534C]/15 space-y-1.5 text-[11px] font-bold text-[#3E4536]">
+                        <div className="flex justify-between">
+                          <span>Subtotal</span>
+                          <span className="font-black text-[#1A1E16]">₹{subtotal}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Convenience Fee (2.5%)</span>
+                          <span className="font-black text-[#1A1E16]">₹{convenienceFee}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Delivery</span>
+                          <span className="font-black text-[#1A1E16]">{deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}</span>
+                        </div>
+                        <div className="flex justify-between pt-1 border-t border-[#4F534C]/15 font-black text-xs text-[#1A1E16]">
+                          <span>Total Amount</span>
+                          <span className="text-sm text-[#50563D]">₹{grandTotal}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 
                 {/* 1. Contact Info */}
                 <div className="space-y-4">
@@ -901,34 +896,33 @@ export default function CheckoutPage() {
                     <h3 className="text-base font-black text-[#1A1E16]">Payment Method</h3>
                   </div>
 
-                  <div className="p-4 rounded-xl border-2 border-[#656B4F] bg-[#EAF0E5]/70 flex items-center gap-3">
-                    <ShieldCheck className="w-7 h-7 text-[#656B4F] shrink-0" />
+                  <div className="p-4 rounded-xl border-2 border-[#656B4F] bg-[#EAF0E5]/70 flex items-start gap-3">
+                    <ShieldCheck className="w-7 h-7 text-[#656B4F] shrink-0 mt-0.5" />
                     <div>
-                      <h4 className="font-black text-sm text-[#1A1E16]">Secure Online Payment (Razorpay)</h4>
-                      <p className="text-xs text-[#50563D] font-semibold mt-0.5">Pay safely via UPI (GPay, PhonePe, Paytm), Cards, or Netbanking.</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-black text-sm text-[#1A1E16]">100% Secure Online Payment (Razorpay)</h4>
+                        <span className="text-[10px] font-black text-[#50563D] bg-white border border-[#656B4F]/20 px-2 py-0.5 rounded">Pre-paid Only</span>
+                      </div>
+                      <p className="text-xs text-[#3E4536] font-semibold mt-1">
+                        Pay safely via UPI (Google Pay, PhonePe, Paytm, BHIM), Debit / Credit Cards, or Netbanking.
+                      </p>
+                      <p className="text-[11px] text-[#656B4F] font-bold mt-1.5 flex items-center gap-1">
+                        <span>❄️</span>
+                        <span>Pre-paid online payment is mandatory for cold-chain preservation. Cash on Delivery (COD) is strictly not accepted.</span>
+                      </p>
                     </div>
                   </div>
                 </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !deliveryCalc.isServiceable}
-                  className="w-full py-4 px-6 mt-4 bg-[#656B4F] text-white font-black rounded-xl hover:bg-[#50563D] transition-all shadow-md text-base disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin text-white" />
-                      <span>Initializing Payment...</span>
-                    </>
-                  ) : (
-                    <span>Proceed &amp; Pay ₹{grandTotal}</span>
-                  )}
-                </button>
               </form>
 
-              {/* Order Summary Sidebar */}
-              <div className="w-full md:w-80 lg:w-96 bg-[#EAF0E5] rounded-2xl p-5 sm:p-6 border border-[#4F534C]/20 h-fit shadow-xs space-y-5">
-                <h3 className="text-base font-black text-[#1A1E16] border-b border-[#4F534C]/20 pb-2">Order Summary</h3>
+              {/* Order Summary Card (Desktop sticky sidebar & Mobile full card) */}
+              <div className="w-full md:w-80 lg:w-96 bg-[#EAF0E5] rounded-2xl p-5 sm:p-6 border border-[#4F534C]/20 h-fit shadow-xs space-y-5 md:sticky md:top-24">
+                <div className="flex items-center justify-between border-b border-[#4F534C]/20 pb-2">
+                  <h3 className="text-base font-black text-[#1A1E16]">Order Summary</h3>
+                  <span className="text-[11px] font-black text-[#656B4F] bg-white border border-[#656B4F]/20 px-2 py-0.5 rounded-md">
+                    {cart.reduce((s, i) => s + i.quantity, 0)} items
+                  </span>
+                </div>
                 
                 {/* Items List */}
                 <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
@@ -962,14 +956,14 @@ export default function CheckoutPage() {
                     <div>
                       <span>Delivery Charges</span>
                       <span className="block text-[10px] text-[#5A6355] font-normal">
-                        {!deliveryCalc.isServiceable ? 'Choose destination' : deliveryCalc.mode === 'BIKE' ? 'Bike (Coimbatore)' : deliveryCalc.mode === 'BUS' ? `Bus (${deliveryCalc.zoneName})` : `Travels (${deliveryCalc.zoneName})`}
+                        {!deliveryCalc.isServiceable ? 'Choose destination' : deliveryCalc.mode === 'BIKE' ? 'Local Bike (Coimbatore)' : deliveryCalc.mode === 'BUS' ? `Bus Parcel (${deliveryCalc.zoneName})` : `Travels Parcel (${deliveryCalc.zoneName})`}
                       </span>
                     </div>
                     <span className="font-black text-[#1A1E16]">
                       {!deliveryCalc.isServiceable ? (
-                        <span className="text-amber-800">{selectedDestination?.id === 'coimbatore' ? 'Search address' : 'Select city'}</span>
+                        <span className="text-amber-800 text-[11px]">{selectedDestination?.id === 'coimbatore' ? 'Search address' : 'Select city'}</span>
                       ) : deliveryFee === 0 ? (
-                        <span className="text-[#50563D] bg-[#EAF0E5] border border-[#656B4F]/20 px-2 py-0.5 rounded text-[11px] font-black">FREE</span>
+                        <span className="text-[#50563D] bg-white border border-[#656B4F]/20 px-2 py-0.5 rounded text-[11px] font-black">FREE</span>
                       ) : (
                         `₹${deliveryFee}`
                       )}
@@ -985,9 +979,37 @@ export default function CheckoutPage() {
                   </div>
                   <span className="text-2xl font-black text-[#50563D]">₹{grandTotal}</span>
                 </div>
+
+                {/* PROCEED TO PAY CTA BUTTON (Placed directly after Order Summary Grand Total) */}
+                <button
+                  type="submit"
+                  form="checkout-form"
+                  disabled={isSubmitting || !deliveryCalc.isServiceable}
+                  className="w-full py-4 px-6 bg-[#656B4F] text-white font-black rounded-xl hover:bg-[#50563D] transition-all shadow-md hover:shadow-lg text-base disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer active:scale-[0.99]"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin text-white" />
+                      <span>Initializing Payment...</span>
+                    </>
+                  ) : (
+                    <span>Proceed &amp; Pay ₹{grandTotal}</span>
+                  )}
+                </button>
+
+                {/* Trust & Guarantee Badges */}
+                <div className="pt-3 border-t border-[#4F534C]/15 space-y-1.5 text-[11px] text-[#4F5547] font-medium">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#656B4F] shrink-0" />
+                    <span>100% Encrypted &amp; Secure Payment</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5 text-[#656B4F] shrink-0" />
+                    <span>-18°C Cold Chain Packaging Assured</span>
+                  </div>
+                </div>
               </div>
             </div>
-          )}
         </div>
       </main>
 

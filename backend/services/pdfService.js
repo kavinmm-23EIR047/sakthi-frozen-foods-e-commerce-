@@ -154,10 +154,9 @@ function generateInvoicePdf(order) {
         .text(`Invoice Date: ${formattedDate}`, metaBoxX, margin + 41, { width: metaBoxW, align: 'right' });
 
       const isPaid = order.paymentStatus === 'Paid';
-      const isCOD = String(order.paymentMethod || '').toLowerCase().includes('cash') || String(order.paymentMethod || '').toLowerCase().includes('cod');
-      const payStatusText = isPaid ? 'PAID (Online Gateway)' : isCOD ? 'CASH ON DELIVERY' : 'PAYMENT PENDING';
+      const payStatusText = isPaid ? 'PAID (Online Gateway)' : 'PAYMENT PENDING (Online)';
 
-      doc.fillColor(isPaid ? '#15803D' : isCOD ? '#B45309' : '#DC2626')
+      doc.fillColor(isPaid ? '#15803D' : '#DC2626')
         .fontSize(8).font('Helvetica-Bold')
         .text(`Status: ${payStatusText}`, metaBoxX, margin + 55, { width: metaBoxW, align: 'right' });
 

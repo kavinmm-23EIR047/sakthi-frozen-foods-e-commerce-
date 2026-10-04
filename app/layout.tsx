@@ -224,7 +224,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="scroll-smooth">
+    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32" />
@@ -242,6 +242,7 @@ export default function RootLayout({
         />
       </head>
       <body
+        suppressHydrationWarning
         className={`${jakarta.variable} ${manrope.variable} ${bricolage.variable} font-sans antialiased min-h-screen bg-[#FBFDF2] text-[#1E201D]`}
       >
         <ToastProvider>

@@ -30,7 +30,7 @@ import {
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useToast } from '@/context/ToastContext';
-import { fetchApi, fetchCachedApi, getCachedData } from '@/lib/apiConfig';
+import { fetchApi, fetchCachedApi, getCachedData, setCachedData } from '@/lib/apiConfig';
 import { ProductType } from '@/lib/types';
 import { getBackendPackOptions, PackOption } from '@/lib/productPacks';
 import Navbar from '@/components/Navbar';
@@ -44,9 +44,17 @@ export default function ProductDetailPage() {
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { showToast } = useToast();
 
-  const [product, setProduct] = useState<ProductType | null>(null);
-  const [allProducts, setAllProducts] = useState<ProductType[]>([]);
-  const [loading, setLoading] = useState(true);
+  const prodId = (params?.id as string) || '';
+
+  const [product, setProduct] = useState<ProductType | null>(() => {
+    if (typeof window === 'undefined' || !prodId) return null;
+    return getCachedData<ProductType>(`product_detail_${prodId}`);
+  });
+  const [allProducts, setAllProducts] = useState<ProductType[]>(() => {
+    if (typeof window === 'undefined') return [];
+    return getCachedData<ProductType[]>('shop_products_cache') || [];
+  });
+  const [loading, setLoading] = useState(() => !product);
   const [quantity, setQuantity] = useState(1);
   const [selectedPackIdx, setSelectedPackIdx] = useState(0);
   const [activeTab, setActiveTab] = useState<'cooking' | 'nutrition' | 'ingredients' | 'storage'>('cooking');
@@ -55,22 +63,21 @@ export default function ProductDetailPage() {
   // Fetch product and catalog from backend with cache hydration
   useEffect(() => {
     let isMounted = true;
-    const prodId = params.id as string;
     if (!prodId) return;
 
-    // Instant cache hydration
+    // Instant cache hydration check
     const cachedProduct = getCachedData<ProductType>(`product_detail_${prodId}`);
-    if (cachedProduct && cachedProduct.id) {
+    if (cachedProduct && cachedProduct.id && !product) {
       setProduct(cachedProduct);
       setLoading(false);
     }
     const cachedAll = getCachedData<ProductType[]>('shop_products_cache');
-    if (cachedAll && Array.isArray(cachedAll) && cachedAll.length > 0) {
+    if (cachedAll && Array.isArray(cachedAll) && cachedAll.length > 0 && allProducts.length === 0) {
       setAllProducts(cachedAll);
     }
 
     const loadProductData = async () => {
-      if (!cachedProduct) setLoading(true);
+      if (!cachedProduct && !product) setLoading(true);
       try {
         const [prodRes, listRes] = await Promise.all([
           fetchCachedApi<ProductType>(`/products/${prodId}`, { cacheKey: `product_detail_${prodId}`, ttlMs: 120000 }),
@@ -705,11 +712,21 @@ export default function ProductDetailPage() {
               {relatedProducts.map((rel) => {
                 const mrp = rel.mrp ?? Math.round(rel.price * 1.25);
                 const disc = mrp > rel.price ? Math.round(((mrp - rel.price) / mrp) * 100) : 0;
+                const handleRelClick = () => {
+                  setCachedData(`product_detail_${rel.id}`, rel);
+                  router.push(`/product/${rel.id}`);
+                };
+                const handleRelPrefetch = () => {
+                  setCachedData(`product_detail_${rel.id}`, rel);
+                  router.prefetch(`/product/${rel.id}`);
+                };
                 return (
                   <div
                     key={rel.id}
-                    onClick={() => router.push(`/product/${rel.id}`)}
-                    className="p-3 rounded-2xl bg-white border border-[#D4DBC9] hover:border-[#656B4F]/50 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group"
+                    onClick={handleRelClick}
+                    onMouseEnter={handleRelPrefetch}
+                    onTouchStart={handleRelPrefetch}
+                    className="p-3 rounded-2xl bg-white border border-[#D4DBC9] hover:border-[#656B4F]/50 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group active:scale-[0.98]"
                   >
                     <div>
                       <div className="relative aspect-square rounded-xl overflow-hidden bg-[#EAF0E5] mb-2.5">

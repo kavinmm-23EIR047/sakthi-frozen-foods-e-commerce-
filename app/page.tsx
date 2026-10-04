@@ -12,7 +12,7 @@ import { useCart } from '@/context/CartContext';
 import { useToast } from '@/context/ToastContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { ProductType } from '@/lib/types';
-import { fetchApi, fetchCachedApi, getCachedData } from '@/lib/apiConfig';
+import { fetchApi, fetchCachedApi, getCachedData, setCachedData } from '@/lib/apiConfig';
 import {
   LayoutGrid,
   ShieldCheck,
@@ -39,7 +39,8 @@ import {
   Truck,
   Award,
   Minus,
-  Plus
+  Plus,
+  Loader2
 } from 'lucide-react';
 
 interface ReviewType {
@@ -547,6 +548,22 @@ export default function StorefrontHomePage() {
   }, []);
 
   const [addedProductId, setAddedProductId] = useState<string | null>(null);
+  const [navigatingProductId, setNavigatingProductId] = useState<string | null>(null);
+
+  const handleProductNavigate = (product: UnifiedProduct) => {
+    const prodId = product.id || (product as any)._id;
+    if (!prodId) return;
+    setNavigatingProductId(prodId);
+    setCachedData(`product_detail_${prodId}`, product);
+    router.push(`/product/${prodId}`);
+  };
+
+  const handleProductPrefetch = (product: UnifiedProduct) => {
+    const prodId = product.id || (product as any)._id;
+    if (!prodId) return;
+    setCachedData(`product_detail_${prodId}`, product);
+    router.prefetch(`/product/${prodId}`);
+  };
 
   const toggleSaveProduct = (e: React.MouseEvent, product: UnifiedProduct) => {
     e.preventDefault();
@@ -1130,14 +1147,34 @@ export default function StorefrontHomePage() {
             ) : (
               topProducts.slice(0, 4).map((p, idx) => {
                 const prodId = p.id || (p as any)._id || '';
+                const isNavigating = navigatingProductId === prodId;
                 return (
                   <div
                     key={prodId || idx}
-                    onClick={() => prodId && router.push(`/product/${prodId}`)}
-                    className="bg-white rounded-2xl border border-stone-200/80 shadow-2xs hover:shadow-md transition-all p-3.5 flex flex-col justify-between group relative w-[220px] xs:w-[240px] sm:w-auto shrink-0 snap-start cursor-pointer"
+                    onClick={() => prodId && handleProductNavigate(p)}
+                    onMouseEnter={() => prodId && handleProductPrefetch(p)}
+                    onTouchStart={() => prodId && handleProductPrefetch(p)}
+                    className="bg-white rounded-2xl border border-stone-200/80 shadow-2xs hover:shadow-md transition-all p-3.5 flex flex-col justify-between group relative w-[220px] xs:w-[240px] sm:w-auto shrink-0 snap-start cursor-pointer active:scale-[0.98]"
                   >
+                    {/* Instant Loading Feedback Badge */}
+                    {isNavigating && (
+                      <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px] z-20 rounded-2xl flex flex-col items-center justify-center gap-2 animate-in fade-in duration-150">
+                        <div className="bg-[#50563D] text-white px-3.5 py-1.5 rounded-full text-xs font-black flex items-center gap-2 shadow-lg shadow-[#50563D]/20 animate-pulse">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-[#A9F2B7]" />
+                          <span>Opening...</span>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="relative w-full aspect-square max-h-[240px] rounded-xl overflow-hidden bg-stone-50 mb-3 border border-stone-100 flex items-center justify-center">
-                      <Link href={`/product/${prodId}`} className="w-full h-full block">
+                      <Link
+                        href={`/product/${prodId}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleProductNavigate(p);
+                        }}
+                        className="w-full h-full block"
+                      >
                         {p.image ? (
                           <img
                             src={p.image}
@@ -1166,7 +1203,13 @@ export default function StorefrontHomePage() {
                     </div>
 
                     <div className="space-y-1 mb-3">
-                      <Link href={`/product/${prodId}`}>
+                      <Link
+                        href={`/product/${prodId}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleProductNavigate(p);
+                        }}
+                      >
                         <h3 className="font-extrabold text-sm sm:text-base text-[#1E201D] group-hover:text-[#50563D] transition-colors line-clamp-2 min-h-[44px] leading-snug">
                           {p.name}
                         </h3>

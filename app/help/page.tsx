@@ -38,6 +38,11 @@ interface FAQItem {
 const FAQ_DATA: FAQItem[] = [
   {
     category: 'ordering',
+    question: 'What payment methods are accepted? Is Cash on Delivery (COD) available?',
+    answer: 'We accept 100% pre-paid online payments only via UPI (Google Pay, PhonePe, Paytm, BHIM), Debit & Credit Cards, and Net Banking through our secure 256-bit encrypted Razorpay gateway. Cash on Delivery (COD) is strictly NOT accepted because every frozen food order requires custom cold-chain thermal packaging and immediate logistics reservation.'
+  },
+  {
+    category: 'ordering',
     question: 'How do I place an online order on Sakthi Frozen Foods?',
     answer: 'Simply browse our product catalog at /shop, select your desired plant-based mock meat or starter packs (e.g. Mock Mutton Chukka, Veg Chicken, Soya Chaap, Spring Rolls), choose the pack weight, add to cart, and proceed to checkout. You can pay securely online via UPI, Cards, or Net Banking.'
   },
