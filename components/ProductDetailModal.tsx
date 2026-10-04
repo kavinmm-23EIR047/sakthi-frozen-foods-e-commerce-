@@ -105,7 +105,7 @@ export default function ProductDetailModal() {
               alt={product.name}
               className="w-full h-full object-cover rounded-xl shadow-sm border border-[#4F534C]/15"
             />
-            {product.stock !== undefined && product.stock <= 0 ? (
+            {(product.isAvailable === false || (product.isAvailable === undefined && product.stock <= 0)) ? (
               <span className="absolute top-4 left-4 bg-red-600 text-white text-xs font-black px-3 py-1 rounded-full shadow flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-white" />
                 Out of Stock
@@ -255,7 +255,7 @@ export default function ProductDetailModal() {
                 </div>
               </div>
 
-              {product.stock !== undefined && product.stock <= 0 ? (
+              {(product.isAvailable === false || (product.isAvailable === undefined && product.stock <= 0)) ? (
                 <button
                   type="button"
                   disabled

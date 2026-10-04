@@ -19,7 +19,12 @@ export interface IOrder extends Document {
   city?: string;
   district?: string;
   state?: string;
-  coordinates?: { lat: number; lng: number };
+  coordinates?: {
+    lat: number;
+    lng: number;
+    precision?: 'area' | 'map-search' | 'gps';
+    accuracyMeters?: number;
+  };
   deliveryZoneId?: string;
   deliveryMode?: 'BIKE' | 'BUS' | 'TRAVELS';
   distanceKm?: number;
@@ -47,6 +52,8 @@ const OrderSchema: Schema = new Schema(
     coordinates: {
       lat: { type: Number },
       lng: { type: Number },
+      precision: { type: String, enum: ['area', 'map-search', 'gps'] },
+      accuracyMeters: { type: Number, min: 0 },
     },
     deliveryZoneId: { type: String },
     deliveryMode: { type: String },

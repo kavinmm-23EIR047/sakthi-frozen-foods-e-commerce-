@@ -12,6 +12,7 @@ export interface IProduct extends Document {
   image: string;
   rating: number;
   isPopular?: boolean;
+  isAvailable: boolean;
 }
 
 const ProductSchema: Schema = new Schema(
@@ -24,8 +25,10 @@ const ProductSchema: Schema = new Schema(
     category: { type: String, required: true },
     description: { type: String, default: '' },
     stock: { type: Number, default: 50 },
+    isAvailable: { type: Boolean, default: true },
     image: { type: String, default: '' },
     rating: { type: Number, default: 4.8 },
+    isPopular: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

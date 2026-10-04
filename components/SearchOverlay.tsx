@@ -568,7 +568,7 @@ export default function SearchOverlay() {
                             </p>
                             <div className="flex items-center gap-1.5 mt-0.5">
                               <span className="font-black text-xs text-[#1E201D]">₹{product.price}</span>
-                              {product.stock !== undefined && product.stock <= 0 ? (
+                              {(product.isAvailable === false || (product.isAvailable === undefined && product.stock <= 0)) ? (
                                 <span className="text-[9px] font-extrabold text-red-600 bg-red-50 border border-red-200 px-1 py-0.5 rounded">
                                   Out of Stock
                                 </span>

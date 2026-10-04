@@ -419,6 +419,7 @@ export default function StorefrontHomePage() {
   const [heroDishIndex, setHeroDishIndex] = useState(0);
   const [isHeroHovered, setIsHeroHovered] = useState(false);
   const [topProducts, setTopProducts] = useState<UnifiedProduct[]>([]);
+  const featuredProducts = topProducts.filter((product) => product.isPopular);
   const [categoriesList, setCategoriesList] = useState<CategoryItem[]>(DEFAULT_HOMEPAGE_CATEGORIES);
   const [reviews, setReviews] = useState<ReviewType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1144,8 +1145,12 @@ export default function StorefrontHomePage() {
                   <div className="h-9 bg-stone-200 rounded-xl w-full" />
                 </div>
               ))
+            ) : featuredProducts.length === 0 ? (
+              <div className="w-full rounded-xl border border-stone-200 bg-white px-5 py-8 text-center text-sm font-semibold text-[#61665D] sm:col-span-full">
+                No best sellers are featured right now.
+              </div>
             ) : (
-              topProducts.slice(0, 4).map((p, idx) => {
+              featuredProducts.filter((p) => p.isAvailable !== false).slice(0, 4).map((p, idx) => {
                 const prodId = p.id || (p as any)._id || '';
                 const isNavigating = navigatingProductId === prodId;
                 return (
@@ -1226,7 +1231,7 @@ export default function StorefrontHomePage() {
                         )}
                       </div>
 
-                      {p.stock !== undefined && p.stock <= 0 ? (
+                      {(p.isAvailable === false || (p.isAvailable === undefined && p.stock <= 0)) ? (
                         <span className="text-[9px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">
                           Out of Stock
                         </span>
@@ -1239,7 +1244,7 @@ export default function StorefrontHomePage() {
                   </div>
 
                   {(() => {
-                    const isOutOfStock = p.stock !== undefined && p.stock <= 0;
+                    const isOutOfStock = p.isAvailable === false || (p.isAvailable === undefined && p.stock <= 0);
                     if (isOutOfStock) {
                       return (
                         <button

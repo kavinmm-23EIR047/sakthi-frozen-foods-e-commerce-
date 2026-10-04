@@ -155,6 +155,59 @@ test('legacy plaintext passwords are upgraded to bcrypt after a successful login
   assert.equal(await refreshedUser.matchPassword(password), true);
 });
 
+test('Coimbatore checkout rejects approximate area-centre coordinates', async () => {
+  const item = await product({ stock: 1 });
+  const response = await request(app).post('/api/orders').send({
+    customerName: 'Buyer',
+    customerEmail: 'buyer@example.com',
+    customerPhone: '9999999999',
+    shippingAddress: '12 Avinashi Road, Peelamedu',
+    city: 'Coimbatore',
+    state: 'Tamil Nadu',
+    coordinates: { lat: 11.0264, lng: 76.9419, precision: 'area' },
+    items: [{ productId: item.id, weight: item.weight, quantity: 1 }],
+  });
+
+  assert.equal(response.status, 400);
+  assert.match(response.body.error, /area-centre pins are not accurate enough/i);
+});
+
+test('admin can partially update product stock and best-seller status', async () => {
+  const item = await product({ stock: 7, isAvailable: true, isPopular: false });
+  const adminUser = await register('product-toggle-admin@example.com', 'password123', 'Admin');
+
+  const stockResponse = await request(app)
+    .put(`/api/products/${item.id}`)
+    .set('Authorization', `Bearer ${adminUser.token}`)
+    .send({ isAvailable: false });
+  assert.equal(stockResponse.status, 200);
+  assert.equal(stockResponse.body.data.isAvailable, false);
+  assert.equal(stockResponse.body.data.stock, 7);
+  assert.equal((await Product.findById(item.id)).stock, 7);
+  assert.equal((await Product.findById(item.id)).isAvailable, false);
+
+  const featuredResponse = await request(app)
+    .put(`/api/products/${item.id}`)
+    .set('Authorization', `Bearer ${adminUser.token}`)
+    .send({ isPopular: true });
+  assert.equal(featuredResponse.status, 200);
+  assert.equal(featuredResponse.body.data.isPopular, true);
+  assert.equal((await Product.findById(item.id)).isPopular, true);
+
+  const enabledResponse = await request(app)
+    .put(`/api/products/${item.id}`)
+    .set('Authorization', `Bearer ${adminUser.token}`)
+    .send({ isAvailable: true });
+  assert.equal(enabledResponse.status, 200);
+  assert.equal(enabledResponse.body.data.stock, 7);
+  assert.equal((await Product.findById(item.id)).isAvailable, true);
+
+  const refreshedList = await request(app).get('/api/products');
+  assert.equal(refreshedList.headers['cache-control'], 'no-store');
+  assert.equal(refreshedList.body.data.find((productItem) => productItem.id === item.id).isPopular, true);
+  assert.equal(refreshedList.body.data.find((productItem) => productItem.id === item.id).isAvailable, true);
+});
+
 test('authentication, admin authorization, and password reset revoke old sessions', async () => {
   const { user, token } = await register();
   const protectedResponse = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);

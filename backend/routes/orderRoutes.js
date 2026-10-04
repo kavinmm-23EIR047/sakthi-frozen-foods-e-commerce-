@@ -199,7 +199,7 @@ async function commitCashOnDeliveryStock(order) {
   try {
     for (const item of order.items) {
       const product = await Product.findOneAndUpdate(
-        { _id: item.productId, stock: { $gte: item.quantity } },
+        { _id: item.productId, isAvailable: { $ne: false }, stock: { $gte: item.quantity } },
         { $inc: { stock: -item.quantity } },
         { new: true }
       );
@@ -333,7 +333,7 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
     }
 
     const productIds = [...new Set(requestedItems.map((item) => item.productId))];
-    const products = await Product.find({ _id: { $in: productIds } }).select('_id name weight price variants stock').lean();
+    const products = await Product.find({ _id: { $in: productIds } }).select('_id name weight price variants stock isAvailable').lean();
     const productMap = new Map(products.map((product) => [product._id.toString(), product]));
     const quantitiesByProduct = new Map();
     let subtotal = 0;
@@ -352,7 +352,7 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
           const companion = await Product.findOne({
             _id: { $ne: product._id },
             name: new RegExp('^' + escapeRegex(baseName), 'i'),
-          }).select('_id name weight price variants stock').lean();
+          }).select('_id name weight price variants stock isAvailable').lean();
 
           if (companion) {
             const compVariant = companion.variants?.find((candidate) => normalizeWeight(candidate.weight) === normalizeWeight(requested.weight));
@@ -378,13 +378,23 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
     }));
 
     for (const [productId] of quantitiesByProduct) {
-      const product = productMap.get(productId) || (await Product.findById(productId).select('name stock').lean());
-      if ((product?.stock ?? 0) <= 0) return res.status(409).json({ success: false, error: `${product?.name || 'Product'} is currently out of stock` });
+      const product = productMap.get(productId) || (await Product.findById(productId).select('name stock isAvailable').lean());
+      if (!product || product.isAvailable === false || (product.stock ?? 0) <= 0) return res.status(409).json({ success: false, error: `${product?.name || 'Product'} is currently out of stock` });
+    }
+
+    const coordinates = body.coordinates ? {
+      lat: Number(body.coordinates.lat),
+      lng: Number(body.coordinates.lng),
+      precision: ['area', 'map-search', 'gps'].includes(body.coordinates.precision) ? body.coordinates.precision : 'area',
+      accuracyMeters: Number.isFinite(Number(body.coordinates.accuracyMeters)) ? Number(body.coordinates.accuracyMeters) : undefined,
+    } : undefined;
+    if (String(body.city || '').toLowerCase() === 'coimbatore' && coordinates?.precision === 'area') {
+      return res.status(400).json({ success: false, error: 'Choose a street/building map match or use live GPS. Area-centre pins are not accurate enough for Coimbatore delivery.' });
     }
 
     const calc = getDeliveryCalculation({
       subtotal,
-      coordinates: body.coordinates ? { lat: Number(body.coordinates.lat), lng: Number(body.coordinates.lng) } : undefined,
+      coordinates,
       cityOrDistrictText: body.city,
       state: body.state,
     });
@@ -407,7 +417,7 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
       city: body.city ? String(body.city).trim() : undefined,
       district: body.district ? String(body.district).trim() : undefined,
       state: body.state ? String(body.state).trim() : undefined,
-      coordinates: body.coordinates ? { lat: Number(body.coordinates.lat), lng: Number(body.coordinates.lng) } : undefined,
+      coordinates,
       deliveryZoneId: calc.zoneId,
       deliveryMode: calc.mode,
       distanceKm: calc.distanceKm,

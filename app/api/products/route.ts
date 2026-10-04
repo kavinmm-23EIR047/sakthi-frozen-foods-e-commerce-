@@ -100,6 +100,7 @@ export async function GET(request: Request) {
       category: p.category,
       description: p.description,
       stock: p.stock,
+      isAvailable: p.isAvailable ?? p.stock > 0,
       image: p.image === 'none' ? '' : (p.image?.includes('via.placeholder.com') ? p.image.replace('via.placeholder.com', 'placehold.co').replace('?text=', '/png?text=') : p.image),
       rating: p.rating,
       isPopular: p.isPopular,
@@ -116,7 +117,7 @@ export async function GET(request: Request) {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 's-maxage=60, stale-while-revalidate=120'
+        'Cache-Control': 'no-store'
       }
     });
   } catch (error: any) {
@@ -147,9 +148,10 @@ export async function POST(request: Request) {
       category: body.category || 'Mutton Alternatives',
       description: body.description || '',
       stock: Number(body.stock) || 50,
+      isAvailable: typeof body.isAvailable === 'boolean' ? body.isAvailable : true,
       image: body.image || '',
       rating: body.rating || 4.8,
-      isPopular: body.isPopular || false,
+      isPopular: typeof body.isPopular === 'boolean' ? body.isPopular : false,
     });
 
     return NextResponse.json({ success: true, data: newProd }, { status: 201 });

@@ -217,7 +217,7 @@ function ProductCard({
               <span className="text-[11px] font-bold text-[#50563D] bg-[#EAF0E5] px-2 py-0.5 rounded">
                 {product.category || 'Plant Meat'}
               </span>
-              {product.stock !== undefined && product.stock <= 0 ? (
+              {(product.isAvailable === false || (product.isAvailable === undefined && product.stock <= 0)) ? (
                 <span className="text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full ml-auto">
                   Out of Stock
                 </span>
@@ -304,7 +304,7 @@ function ProductCard({
             ) : null}
 
             <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-              {product.stock !== undefined && product.stock <= 0 ? (
+              {(product.isAvailable === false || (product.isAvailable === undefined && product.stock <= 0)) ? (
                 <button
                   type="button"
                   disabled
@@ -359,7 +359,7 @@ function ProductCard({
     );
   }
 
-  const isOutOfStock = product.stock !== undefined && product.stock <= 0;
+  const isOutOfStock = product.isAvailable === false || (product.isAvailable === undefined && product.stock <= 0);
 
   return (
     <div
@@ -809,7 +809,7 @@ function ShopContent() {
 
   // In-Stock items count
   const inStockCount = useMemo(() => {
-    return products.filter((p) => p.stock === undefined || p.stock > 0).length;
+    return products.filter((p) => p.isAvailable ?? (p.stock === undefined || p.stock > 0)).length;
   }, [products]);
 
   // 4. Filter Logic strictly applied with exact mapping
@@ -872,7 +872,7 @@ function ShopContent() {
       }
 
       // 6. In-Stock Filter
-      if (inStockOnly && p.stock !== undefined && p.stock <= 0) {
+      if (inStockOnly && (p.isAvailable === false || (p.isAvailable === undefined && p.stock !== undefined && p.stock <= 0))) {
         return false;
       }
 

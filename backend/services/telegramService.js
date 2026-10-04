@@ -156,7 +156,13 @@ function formatAdminOrderMessage(order, eventType = 'order.created') {
   ];
 
   if (order.coordinates && order.coordinates.lat && order.coordinates.lng) {
-    lines.push(`• <b>Location:</b> <a href="https://www.google.com/maps?q=${order.coordinates.lat},${order.coordinates.lng}">Open in Google Maps</a>`);
+    const source = order.coordinates.precision;
+    const locationLabel = source === 'gps'
+      ? `Customer GPS pin (reported accuracy ±${Math.round(Number(order.coordinates.accuracyMeters) || 0)} m)`
+      : source === 'area'
+        ? 'Approximate area-centre pin; confirm exact house location'
+        : 'Address-search map pin; confirm exact house location';
+    lines.push(`• <b>Location:</b> ${locationLabel} · <a href="https://www.google.com/maps?q=${order.coordinates.lat},${order.coordinates.lng}">Open in Google Maps</a>`);
   }
 
   lines.push('');
@@ -197,8 +203,9 @@ async function sendAdminOrderTelegram(order, eventType = 'order.created') {
   ];
 
   if (order.coordinates && order.coordinates.lat && order.coordinates.lng) {
+    const locationButton = order.coordinates.precision === 'gps' ? '📍 Customer GPS pin' : order.coordinates.precision === 'area' ? '📍 Approximate area pin' : '📍 Address map pin';
     inlineKeyboard[0].push({
-      text: '📍 Google Maps',
+      text: locationButton,
       url: `https://www.google.com/maps?q=${order.coordinates.lat},${order.coordinates.lng}`,
     });
   }

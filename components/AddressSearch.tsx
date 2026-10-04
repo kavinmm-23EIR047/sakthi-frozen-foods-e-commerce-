@@ -16,6 +16,8 @@ export interface LocationData {
   lat: number;
   lng: number;
   displayName: string;
+  precision: 'area' | 'map-search' | 'gps';
+  accuracyMeters?: number;
   road?: string;
   suburb?: string;
   neighbourhood?: string;
@@ -53,6 +55,8 @@ export default function AddressSearch({
   const [loading, setLoading] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState('');
+  const [selectedPrecision, setSelectedPrecision] = useState<LocationData['precision'] | null>(null);
+  const [selectedAccuracy, setSelectedAccuracy] = useState<number | null>(null);
   const [hasSelectedAddress, setHasSelectedAddress] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -164,6 +168,7 @@ export default function AddressSearch({
       lat: result.lat,
       lng: result.lng,
       displayName: result.displayName,
+      precision: 'area',
       road: result.subArea || '',
       suburb: result.areaName,
       neighbourhood: result.subArea || result.areaName,
@@ -172,6 +177,8 @@ export default function AddressSearch({
       pincode: result.pincode,
     };
     setHasSelectedAddress(true);
+    setSelectedPrecision('area');
+    setSelectedAccuracy(null);
     setQuery(result.title + ', Coimbatore');
     setLocalResults([]);
     setOsmResults([]);
@@ -182,7 +189,14 @@ export default function AddressSearch({
   const resolveLiveLocation = async (position: GeolocationPosition) => {
     const lat = position.coords.latitude;
     const lng = position.coords.longitude;
+    const accuracyMeters = position.coords.accuracy;
     const distance = calculateDistanceKm(SHOP_COORDINATES.lat, SHOP_COORDINATES.lng, lat, lng);
+
+    if (!Number.isFinite(accuracyMeters) || accuracyMeters > 150) {
+      setLocationError(`Your device reports GPS accuracy of ±${Math.round(accuracyMeters)} m. Move outdoors and retry, or choose a street/building map result.`);
+      setIsLocating(false);
+      return;
+    }
 
     if (!Number.isFinite(distance) || distance > LOCAL_RADIUS_KM) {
       setLocationError('Live location is outside the Coimbatore delivery area. Search for a supported destination instead.');
@@ -216,6 +230,8 @@ export default function AddressSearch({
         lat,
         lng,
         displayName: result.display_name || 'Current Coimbatore location',
+        precision: 'gps',
+        accuracyMeters: Math.round(accuracyMeters),
         road: address.road || address.street || address.pedestrian || '',
         suburb: address.suburb || address.neighbourhood || address.residential || '',
         neighbourhood: address.neighbourhood || address.suburb || '',
@@ -225,6 +241,8 @@ export default function AddressSearch({
         pincode: address.postcode || '',
       };
       setHasSelectedAddress(true);
+      setSelectedPrecision('gps');
+      setSelectedAccuracy(Math.round(accuracyMeters));
       setQuery(location.displayName);
       setLocalResults([]);
       setOsmResults([]);
@@ -259,10 +277,13 @@ export default function AddressSearch({
 
   const selectOsmAddress = (result: any) => {
     const address = result.address || {};
+    const resultType = String(result.addresstype || result.type || '').toLowerCase();
+    const isAreaResult = ['borough', 'city', 'city_district', 'county', 'district', 'municipality', 'neighbourhood', 'quarter', 'postcode', 'state', 'suburb', 'town', 'village'].includes(resultType);
     const location: LocationData = {
       lat: Number(result.lat),
       lng: Number(result.lon),
       displayName: result.display_name,
+      precision: isAreaResult ? 'area' : 'map-search',
       road: address.road || address.street || address.pedestrian || '',
       suburb: address.suburb || address.neighbourhood || address.residential || '',
       landmark: address.amenity || address.building || '',
@@ -271,6 +292,8 @@ export default function AddressSearch({
       pincode: address.postcode || '',
     };
     setHasSelectedAddress(true);
+    setSelectedPrecision(location.precision);
+    setSelectedAccuracy(null);
     setQuery(result.display_name);
     setLocalResults([]);
     setOsmResults([]);
@@ -280,6 +303,8 @@ export default function AddressSearch({
 
   const handleChipClick = (areaName: string) => {
     setHasSelectedAddress(false);
+    setSelectedPrecision(null);
+    setSelectedAccuracy(null);
     setQuery(areaName);
     onLocationSearchChange();
     setIsFocused(true);
@@ -326,6 +351,8 @@ export default function AddressSearch({
           onFocus={() => setIsFocused(true)}
           onChange={(event) => {
             setHasSelectedAddress(false);
+            setSelectedPrecision(null);
+            setSelectedAccuracy(null);
             setQuery(event.target.value);
             onLocationSearchChange();
             setIsFocused(true);
@@ -335,6 +362,17 @@ export default function AddressSearch({
           className="w-full rounded-xl border border-[#4F534C]/25 bg-white py-3 pl-10 pr-10 text-sm text-[#1A1E16] outline-none focus:ring-2 focus:ring-[#656B4F] shadow-xs"
         />
       </div>
+      {selectedPrecision === 'area' && (
+        <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
+          This is an approximate area-centre pin, not your house. Choose a street/building result or use live GPS to continue.
+        </p>
+      )}
+      {selectedPrecision === 'map-search' && (
+        <p role="status" className="text-xs font-semibold text-[#50563D]">Map address selected. Check the pin against your exact house before continuing.</p>
+      )}
+      {selectedPrecision === 'gps' && selectedAccuracy !== null && (
+        <p role="status" className="text-xs font-semibold text-[#50563D]">Live GPS pin selected · reported accuracy ±{selectedAccuracy} m.</p>
+      )}
 
       {/* Quick Popular Area Chips */}
       <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
@@ -356,14 +394,14 @@ export default function AddressSearch({
 
       {/* Search Results Dropdown */}
       {isFocused && hasSuggestions && (
-        <div className="absolute z-50 left-0 right-0 mt-1 max-h-80 w-full overflow-y-auto rounded-2xl border border-[#4F534C]/20 bg-white shadow-2xl divide-y divide-stone-100 animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute z-50 left-0 right-0 mt-1 flex max-h-80 w-full flex-col overflow-y-auto rounded-2xl border border-[#4F534C]/20 bg-white shadow-2xl divide-y divide-stone-100 animate-in fade-in zoom-in-95 duration-150">
           
           {/* Master Coimbatore Localities */}
           {localResults.length > 0 && (
-            <div>
+            <div className="order-2">
               <div className="px-3 py-1.5 bg-[#F3FBEE] text-[10px] font-black uppercase tracking-wider text-[#50563D] flex items-center justify-between border-b border-[#656B4F]/10">
                 <span>Coimbatore Areas & Sub-Localities ({localResults.length})</span>
-                <span>Verified GPS Rate</span>
+                <span>Approximate area pins</span>
               </div>
               {localResults.map((item) => (
                 <button
@@ -401,9 +439,9 @@ export default function AddressSearch({
 
           {/* OpenStreetMap Live GPS Results */}
           {osmResults.length > 0 && (
-            <div>
+            <div className="order-1">
               <div className="px-3 py-1.5 bg-stone-50 text-[10px] font-black uppercase tracking-wider text-stone-500 border-b border-stone-200">
-                <span>Specific Building / Street Addresses</span>
+                <span>Street / Building Map Matches</span>
               </div>
               {osmResults.map((item, index) => (
                 <button

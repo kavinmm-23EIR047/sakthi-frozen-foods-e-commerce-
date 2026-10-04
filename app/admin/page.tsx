@@ -164,6 +164,7 @@ export default function AdminPortalPage() {
     category: 'Mutton Alternatives',
     description: '',
     stock: 50,
+    isAvailable: true,
     image: '',
     isPopular: false,
     variants: [] as { weight: string; price: number }[],
@@ -266,7 +267,10 @@ export default function AdminPortalPage() {
         await fetchData(true);
         return;
       }
-      updateProductCache(id, updates);
+      updateProductCache(id, { ...response.data, ...updates });
+      invalidateCache('home_products_cache');
+      invalidateCache('shop_products_cache');
+      await fetchData(true);
     } catch (error) {
       console.error(`Failed to update product ${label.toLowerCase()}:`, error);
       alert(`${label} could not be updated. Please try again.`);
@@ -580,6 +584,7 @@ export default function AdminPortalPage() {
       category: prod.category,
       description: prod.description,
       stock: prod.stock,
+      isAvailable: prod.isAvailable ?? prod.stock > 0,
       image: prod.image,
       isPopular: !!prod.isPopular,
       variants: prod.variants || [],
@@ -600,6 +605,7 @@ export default function AdminPortalPage() {
       category: categories[0]?.name || 'Mutton Alternatives',
       description: '',
       stock: 50,
+      isAvailable: true,
       image: '',
       isPopular: false,
       variants: [],
@@ -1289,35 +1295,24 @@ export default function AdminPortalPage() {
                           <td className="py-3 px-4">
                             <button
                               type="button"
-                              onClick={async () => {
-                                const nextStock = p.stock > 0 ? 0 : 50;
-                                await fetchApi(`/products/${p.id}`, {
-                                  method: 'PUT',
-                                  body: JSON.stringify({ stock: nextStock }),
-                                });
-                                fetchData(true);
-                              }}
+                              onClick={() => handleUpdateProductFields(p.id, { isAvailable: !(p.isAvailable ?? p.stock > 0) }, 'Stock')}
+                              disabled={activeAdminAction === `product-update:${p.id}`}
                               className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-xs cursor-pointer ${
-                                p.stock > 0
+                                (p.isAvailable ?? p.stock > 0)
                                   ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200'
                                   : 'bg-red-100 text-red-700 hover:bg-red-200 border border-red-300'
                               }`}
                               title="Click to toggle Stock ON / OFF"
                             >
-                              <span className={`w-2 h-2 rounded-full ${p.stock > 0 ? 'bg-white animate-pulse' : 'bg-red-500'}`} />
-                              <span>{p.stock > 0 ? 'In Stock (Live)' : 'No Stock (Off)'}</span>
+                              <span className={`w-2 h-2 rounded-full ${(p.isAvailable ?? p.stock > 0) ? 'bg-white animate-pulse' : 'bg-red-500'}`} />
+                              <span>{(p.isAvailable ?? p.stock > 0) ? 'In Stock (Live)' : 'No Stock (Off)'}</span>
                             </button>
                           </td>
                           <td className="py-3 px-4">
                             <button
                               type="button"
-                              onClick={async () => {
-                                await fetchApi(`/products/${p.id}`, {
-                                  method: 'PUT',
-                                  body: JSON.stringify({ isPopular: !p.isPopular }),
-                                });
-                                fetchData();
-                              }}
+                              onClick={() => handleUpdateProductFields(p.id, { isPopular: !p.isPopular }, 'Best Seller')}
+                              disabled={activeAdminAction === `product-update:${p.id}`}
                               className={`px-3 py-1 rounded-xl text-[11px] font-black transition-all flex items-center gap-1 shadow-xs ${
                                 p.isPopular
                                   ? 'bg-amber-500 text-white shadow-amber-200'
@@ -1398,20 +1393,26 @@ export default function AdminPortalPage() {
                       <span className="font-black text-[#656B4F]">₹{p.price}</span>
                       <button
                         type="button"
-                        onClick={async () => {
-                          const nextStock = p.stock > 0 ? 0 : 50;
-                          await fetchApi(`/products/${p.id}`, {
-                            method: 'PUT',
-                            body: JSON.stringify({ stock: nextStock }),
-                          });
-                          fetchData(true);
-                        }}
+                        onClick={() => handleUpdateProductFields(p.id, { isAvailable: !(p.isAvailable ?? p.stock > 0) }, 'Stock')}
+                        disabled={activeAdminAction === `product-update:${p.id}`}
                         className={`rounded-lg px-2.5 py-1 font-black text-[11px] flex items-center gap-1 cursor-pointer ${
-                          p.stock > 0 ? 'bg-emerald-600 text-white' : 'bg-red-100 text-red-800 border border-red-300'
+                          (p.isAvailable ?? p.stock > 0) ? 'bg-emerald-600 text-white' : 'bg-red-100 text-red-800 border border-red-300'
                         }`}
                       >
-                        <span className={`w-1.5 h-1.5 rounded-full ${p.stock > 0 ? 'bg-white animate-pulse' : 'bg-red-500'}`} />
-                        <span>{p.stock > 0 ? 'In Stock (Live)' : 'No Stock'}</span>
+                        <span className={`w-1.5 h-1.5 rounded-full ${(p.isAvailable ?? p.stock > 0) ? 'bg-white animate-pulse' : 'bg-red-500'}`} />
+                        <span>{(p.isAvailable ?? p.stock > 0) ? 'In Stock (Live)' : 'No Stock'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateProductFields(p.id, { isPopular: !p.isPopular }, 'Best Seller')}
+                        disabled={activeAdminAction === `product-update:${p.id}`}
+                        aria-pressed={Boolean(p.isPopular)}
+                        className={`rounded-lg px-2.5 py-1 font-black text-[11px] flex items-center gap-1 cursor-pointer disabled:cursor-wait disabled:opacity-60 ${
+                          p.isPopular ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 border border-gray-300'
+                        }`}
+                      >
+                        <Flame className={`h-3.5 w-3.5 ${p.isPopular ? 'fill-white' : ''}`} />
+                        <span>{p.isPopular ? 'Best Seller' : 'Feature'}</span>
                       </button>
                       <div className="ml-auto flex items-center gap-1">
                         <button onClick={() => openEditModal(p)} className="rounded-lg p-2 text-blue-700 hover:bg-blue-50" aria-label={`Edit ${p.name}`}><Edit className="h-4 w-4" /></button>
@@ -2941,18 +2942,18 @@ export default function AdminPortalPage() {
                   <label className="block font-bold text-[#1E201D] mb-1">Live Stock Status</label>
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, stock: formData.stock > 0 ? 0 : 50 })}
+                    onClick={() => setFormData({ ...formData, isAvailable: !formData.isAvailable })}
                     className={`w-full py-2 px-3 rounded-lg font-black text-xs flex items-center justify-center gap-2 border transition-all cursor-pointer ${
-                      formData.stock > 0
+                      formData.isAvailable
                         ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
                         : 'bg-red-50 text-red-700 border-red-300 hover:bg-red-100'
                     }`}
                   >
-                    <span className={`w-2 h-2 rounded-full ${formData.stock > 0 ? 'bg-white animate-pulse' : 'bg-red-500'}`} />
-                    <span>{formData.stock > 0 ? 'IN STOCK (LIVE)' : 'OUT OF STOCK (OFF)'}</span>
+                    <span className={`w-2 h-2 rounded-full ${formData.isAvailable ? 'bg-white animate-pulse' : 'bg-red-500'}`} />
+                    <span>{formData.isAvailable ? 'IN STOCK (LIVE)' : 'OUT OF STOCK (OFF)'}</span>
                   </button>
                 </div>
-                {formData.stock > 0 && (
+                {formData.isAvailable && (
                   <div className="flex items-center gap-2 mt-2">
                     <input
                       type="checkbox"

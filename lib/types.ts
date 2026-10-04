@@ -16,6 +16,7 @@ export interface ProductType {
   category: string;
   description: string;
   stock: number;
+  isAvailable?: boolean;
   image: string;
   rating: number;
   isPopular?: boolean;
@@ -44,7 +45,12 @@ export interface OrderType {
   city?: string;
   district?: string;
   state?: string;
-  coordinates?: { lat: number; lng: number };
+  coordinates?: {
+    lat: number;
+    lng: number;
+    precision?: 'area' | 'map-search' | 'gps';
+    accuracyMeters?: number;
+  };
   items: OrderItemType[];
   subtotal?: number;
   deliveryFee?: number;

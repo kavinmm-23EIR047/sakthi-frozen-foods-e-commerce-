@@ -16,6 +16,8 @@ const orderSchema = new mongoose.Schema(
     coordinates: {
       lat: { type: Number },
       lng: { type: Number },
+      precision: { type: String, enum: ['area', 'map-search', 'gps'] },
+      accuracyMeters: { type: Number, min: 0 },
     },
     deliveryZoneId: { type: String },
     deliveryMode: { type: String, enum: ['BIKE', 'BUS', 'TRAVELS'] },

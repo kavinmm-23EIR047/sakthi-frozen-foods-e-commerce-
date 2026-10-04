@@ -337,7 +337,7 @@ export default function ProductDetailPage() {
                     SKU: {product.code}
                   </span>
                 )}
-                {product.stock !== undefined && product.stock <= 0 ? (
+                {(product.isAvailable === false || (product.isAvailable === undefined && product.stock <= 0)) ? (
                   <span className="text-[11px] sm:text-xs font-bold text-red-700 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 whitespace-nowrap ml-auto">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
                     Out of Stock
@@ -493,7 +493,7 @@ export default function ProductDetailPage() {
                   </button>
                 </div>
 
-                {product.stock !== undefined && product.stock <= 0 ? (
+                {(product.isAvailable === false || (product.isAvailable === undefined && product.stock <= 0)) ? (
                   <button
                     type="button"
                     disabled

@@ -22,9 +22,29 @@ function productInput(body, partial = false) {
   if (body.code !== undefined) input.code = String(body.code).trim();
   if (body.description !== undefined) input.description = String(body.description);
   if (body.image !== undefined) input.image = String(body.image);
-  if (body.isPopular !== undefined) input.isPopular = Boolean(body.isPopular);
+  if (body.isPopular !== undefined) {
+    if (typeof body.isPopular !== 'boolean') return null;
+    input.isPopular = body.isPopular;
+  }
+  if (body.isAvailable !== undefined) {
+    if (typeof body.isAvailable !== 'boolean') return null;
+    input.isAvailable = body.isAvailable;
+  }
   if (body.variants !== undefined) input.variants = body.variants;
   const validVariants = !input.variants || (Array.isArray(input.variants) && input.variants.every((variant) => variant.weight && Number.isFinite(Number(variant.price)) && Number(variant.price) >= 0));
+
+  if (partial) {
+    if (Object.keys(input).length === 0) return null;
+    if (input.name !== undefined && !input.name) return null;
+    if (input.category !== undefined && !input.category) return null;
+    if (input.weight !== undefined && !input.weight) return null;
+    if (input.price !== undefined && (!Number.isFinite(input.price) || input.price < 0)) return null;
+    if (input.mrp !== undefined && (!Number.isFinite(input.mrp) || input.mrp < 0)) return null;
+    if (input.stock !== undefined && (!Number.isInteger(input.stock) || input.stock < 0)) return null;
+    if (!validVariants) return null;
+    return input;
+  }
+
   if (!input.name || !input.category || !input.weight || !Number.isFinite(input.price) || input.price < 0 || !Number.isFinite(input.mrp) || input.mrp < 0 || !Number.isInteger(input.stock) || input.stock < 0 || !validVariants) return null;
   return input;
 }
@@ -32,7 +52,7 @@ function productInput(body, partial = false) {
 // GET all products (with optional category and search filters, cached via Upstash Redis)
 router.get('/', async (req, res) => {
   try {
-    res.set('Cache-Control', 'public, max-age=60, s-maxage=60, stale-while-revalidate=120');
+    res.set('Cache-Control', 'no-store');
     const { category, search, page: pageQuery, limit: limitQuery } = req.query;
     const page = Math.max(parseInt(pageQuery || '1', 10), 1);
     const limit = Math.min(Math.max(parseInt(limitQuery || '50', 10), 1), 100);
@@ -72,7 +92,7 @@ router.get('/', async (req, res) => {
       }
       
       const productQuery = Product.find(query)
-        .select('code name weight mrp price category description stock image isPopular variants')
+        .select('code name weight mrp price category description stock isAvailable image isPopular variants')
         .sort({ code: 1 })
         .skip((page - 1) * limit)
         .limit(limit)
@@ -93,6 +113,7 @@ router.get('/', async (req, res) => {
         category: p.category,
         description: p.description,
         stock: p.stock,
+        isAvailable: p.isAvailable ?? p.stock > 0,
         image: p.image,
         isPopular: p.isPopular,
         variants: p.variants || [],
@@ -119,7 +140,7 @@ router.get('/:id', async (req, res) => {
   try {
     const paramId = String(req.params.id || '').trim();
     if (!paramId) return res.status(400).json({ success: false, error: 'Product ID required' });
-    res.set('Cache-Control', 'public, max-age=60, s-maxage=60, stale-while-revalidate=120');
+    res.set('Cache-Control', 'no-store');
 
     const cacheKey = `sakthi:product:${paramId}`;
 
@@ -150,6 +171,7 @@ router.get('/:id', async (req, res) => {
           category: product.category,
           description: product.description,
           stock: product.stock,
+          isAvailable: product.isAvailable ?? product.stock > 0,
           image: product.image,
           isPopular: product.isPopular,
           variants: product.variants || [],
@@ -175,7 +197,7 @@ router.post('/', protect, admin, async (req, res) => {
     if (!input) return res.status(400).json({ success: false, error: 'Invalid product data' });
     
     const newProd = await Product.create({
-      code: input.code || String(Date.now()), description: '', image: '', isPopular: false, variants: [], ...input,
+      code: input.code || String(Date.now()), description: '', image: '', isPopular: false, isAvailable: true, variants: [], ...input,
     });
 
     // Invalidate product & category caches
@@ -196,6 +218,7 @@ router.post('/', protect, admin, async (req, res) => {
         category: newProd.category,
         description: newProd.description,
         stock: newProd.stock,
+        isAvailable: newProd.isAvailable,
         image: newProd.image,
         isPopular: newProd.isPopular,
         variants: newProd.variants || [],
@@ -245,6 +268,7 @@ router.put('/:id', protect, admin, async (req, res) => {
         category: updated.category,
         description: updated.description,
         stock: updated.stock,
+        isAvailable: updated.isAvailable,
         image: updated.image,
         isPopular: updated.isPopular,
         variants: updated.variants || [],

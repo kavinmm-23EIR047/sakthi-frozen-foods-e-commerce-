@@ -86,7 +86,7 @@ export default function CheckoutPage() {
   const [destinationQuery, setDestinationQuery] = useState('Coimbatore');
   const [destinationOpen, setDestinationOpen] = useState(false);
   const [pincode, setPincode] = useState('');
-  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+  const [coordinates, setCoordinates] = useState<Pick<LocationData, 'lat' | 'lng' | 'precision' | 'accuracyMeters'> | null>(null);
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -277,12 +277,18 @@ export default function CheckoutPage() {
     /^\d{6}$/.test(pincode.trim()) &&
     deliveryCalc.isServiceable &&
     cart.length > 0 &&
+    (selectedDestination?.id !== 'coimbatore' || coordinates?.precision !== 'area') &&
     !pendingPayment
   );
 
   // Address search fills the street, coordinates, and PIN for Coimbatore pricing.
   const handleLocationSelect = (loc: LocationData) => {
-    setCoordinates({ lat: loc.lat, lng: loc.lng });
+    setCoordinates({
+      lat: loc.lat,
+      lng: loc.lng,
+      precision: loc.precision,
+      accuracyMeters: loc.accuracyMeters,
+    });
     
     // Auto-fill Street/Area
     const streetParts = [loc.road, loc.suburb].filter(Boolean);
@@ -330,6 +336,11 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (selectedDestination?.id === 'coimbatore' && coordinates?.precision === 'area') {
+      alert('Select a street/building map match or use live GPS. An area-centre pin is not accurate enough for delivery.');
+      return;
+    }
+
     if (!deliveryCalc.isServiceable) {
       alert(!selectedDestination
         ? 'Select one of the listed delivery destinations first.'
@@ -342,7 +353,7 @@ export default function CheckoutPage() {
     const fullShippingAddress = `${flatHouse.trim()}, ${streetArea.trim()}${
       landmark.trim() ? `, Landmark: ${landmark.trim()}` : ''
     }, ${city.trim()}, ${district.trim()}, ${state.trim()} - ${pincode.trim()}${
-      coordinates ? ` [GPS: ${coordinates.lat.toFixed(5)}, ${coordinates.lng.toFixed(5)}]` : ''
+      coordinates ? ` [${coordinates.precision} pin: ${coordinates.lat.toFixed(6)}, ${coordinates.lng.toFixed(6)}]` : ''
     }`;
 
     setIsSubmitting(true);

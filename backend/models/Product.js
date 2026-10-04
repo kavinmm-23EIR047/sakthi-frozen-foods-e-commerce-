@@ -10,6 +10,7 @@ const productSchema = new mongoose.Schema(
     category: { type: String, required: true },
     description: { type: String, default: '' },
     stock: { type: Number, default: 50 },
+    isAvailable: { type: Boolean, default: true },
     image: { type: String, default: '' },
     isPopular: { type: Boolean, default: false },
     variants: [
