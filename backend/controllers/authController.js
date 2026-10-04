@@ -131,6 +131,12 @@ const loginUser = async (req, res) => {
     const user = await User.findOne({ $or: searchConditions });
 
     if (user && (await user.matchPassword(password))) {
+      if (!/^\$2[aby]\$/.test(user.password || '')) {
+        user.password = password;
+        user.markModified('password');
+        await user.save();
+      }
+
       // Ensure user has a valid mobile number associated
       if (!user.phone || !isValidMobileNumber(user.phone)) {
         // If legacy user missing valid mobile, check if rawInput was a mobile or block until updated

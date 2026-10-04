@@ -1,15 +1,5 @@
 import jwt from 'jsonwebtoken';
-
-let bcryptInstance: any = null;
-try {
-  bcryptInstance = require('bcryptjs');
-} catch {
-  try {
-    bcryptInstance = require('../backend/node_modules/bcryptjs');
-  } catch {
-    bcryptInstance = null;
-  }
-}
+import bcrypt from 'bcryptjs';
 
 // Helper to sanitize and validate 10-digit Indian phone numbers
 export const cleanPhoneNumber = (phone: string | number | undefined | null): string => {
@@ -30,33 +20,38 @@ export const isValidMobileNumber = (phone: string | number | undefined | null): 
 };
 
 export const generateAuthToken = (id: string, role: string, sessionVersion = 0): string => {
-  const secret = process.env.JWT_SECRET || 'sakthi_frozen_foods_jwt_secret_key_2026_super_secure_auth_token_9988';
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error('JWT_SECRET is not configured');
   return jwt.sign({ id, role, sessionVersion }, secret, {
     expiresIn: '7d',
   });
 };
 
 export const hashPassword = async (password: string): Promise<string> => {
-  if (bcryptInstance?.hash) {
-    // rounds=8 (~25ms) matches backend — still very secure
-    const salt = await bcryptInstance.genSalt(8);
-    return bcryptInstance.hash(password, salt);
-  }
-  const crypto = require('crypto');
-  return crypto.createHash('sha256').update(password).digest('hex');
+  return bcrypt.hash(password, 8);
 };
 
 export const comparePassword = async (enteredPassword: string, hashedPassword?: string): Promise<boolean> => {
   if (!enteredPassword || !hashedPassword) return false;
-  if (bcryptInstance?.compare) {
+  if (/^\$2[aby]\$/.test(hashedPassword)) {
     try {
-      const match = await bcryptInstance.compare(enteredPassword, hashedPassword);
-      if (match) return true;
+      return await bcrypt.compare(enteredPassword, hashedPassword);
     } catch {
-      // fallback
+      return false;
     }
   }
+
   const crypto = require('crypto');
-  const hashedEntered = crypto.createHash('sha256').update(enteredPassword).digest('hex');
-  return hashedEntered === hashedPassword;
+  if (/^[a-f\d]{64}$/i.test(hashedPassword)) {
+    const legacyHash = crypto.createHash('sha256').update(enteredPassword).digest('hex');
+    const expected = Buffer.from(legacyHash, 'utf8');
+    const stored = Buffer.from(hashedPassword.toLowerCase(), 'utf8');
+    if (expected.length === stored.length && crypto.timingSafeEqual(expected, stored)) return true;
+  }
+
+  const entered = Buffer.from(enteredPassword, 'utf8');
+  const stored = Buffer.from(hashedPassword, 'utf8');
+  return entered.length === stored.length && crypto.timingSafeEqual(entered, stored);
 };
+
+export const isBcryptPasswordHash = (passwordHash?: string): boolean => /^\$2[aby]\$/.test(passwordHash || '');

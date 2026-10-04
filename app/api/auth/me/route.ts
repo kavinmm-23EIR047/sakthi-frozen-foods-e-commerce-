@@ -4,10 +4,11 @@ import { connectToDatabase } from '@/lib/db';
 import User from '@/models/User';
 import jwt from 'jsonwebtoken';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('auth_token')?.value;
+    const bearerToken = request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
+    const token = cookieStore.get('auth_token')?.value || bearerToken;
 
     if (!token) {
       return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 });
@@ -43,7 +44,7 @@ export async function GET() {
       const u = user as any;
 
       // Invalidate if sessionVersion mismatch (e.g. password was changed)
-      if (decoded.sessionVersion !== undefined && u.sessionVersion !== decoded.sessionVersion) {
+      if (Number(decoded.sessionVersion || 0) !== Number(u.sessionVersion || 0)) {
         const res = NextResponse.json({ success: false, error: 'Session expired, please log in again' }, { status: 401 });
         res.cookies.delete('auth_token');
         return res;

@@ -7,6 +7,7 @@ const Product = require('../models/Product');
 const Cart = require('../models/Cart');
 const PaymentEvent = require('../models/PaymentEvent');
 const { queueOrderNotifications } = require('../services/notificationService');
+const cacheService = require('../services/cacheService');
 
 const router = express.Router();
 
@@ -139,6 +140,7 @@ async function markPaymentCaptured({ razorpayOrderId, razorpayPaymentId, razorpa
     error.statusCode = 409;
     throw error;
   }
+  await cacheService.del('sakthi:users:all');
   return updatedOrder;
 }
 

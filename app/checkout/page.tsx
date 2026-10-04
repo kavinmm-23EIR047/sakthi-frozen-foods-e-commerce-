@@ -145,20 +145,6 @@ export default function CheckoutPage() {
     }
   }, [user, flatHouse, streetArea]);
 
-  // Test Mode Logic (To be deleted after testing)
-  const isTestMode = cart.some((item: any) => item.name && (item.name.toLowerCase().includes('dummy') || item.name.toLowerCase().includes('test')));
-  
-  useEffect(() => {
-    if (isTestMode) {
-      if (!flatHouse) setFlatHouse('123 Demo Villa');
-      if (!streetArea) setStreetArea('Test Street, Demo Area');
-      if (!landmark) setLandmark('Near Demo Station');
-      if (!pincode) setPincode('641001');
-      if (!customerName) setCustomerName('Test User');
-      if (!customerPhone) setCustomerPhone('9999999999');
-    }
-  }, [isTestMode, flatHouse, streetArea, landmark, pincode, customerName, customerPhone]);
-
   // Resume a pending payment after a refresh or return from an external payment app.
   useEffect(() => {
     const pending = readPendingCheckoutPayment();
@@ -275,13 +261,24 @@ export default function CheckoutPage() {
     });
   }, [subtotal, coordinates, city, state]);
 
-  const deliveryCalc = isTestMode
-    ? { ...rawDeliveryCalc, fee: 0, isServiceable: true }
-    : rawDeliveryCalc;
+  const deliveryCalc = rawDeliveryCalc;
 
   const deliveryFee = deliveryCalc.fee;
-  const convenienceFee = isTestMode ? 0 : Number((subtotal * 0.025).toFixed(2));
-  const grandTotal = isTestMode ? 1 : Number((subtotal + deliveryFee + convenienceFee).toFixed(2));
+  const convenienceFee = Number((subtotal * 0.025).toFixed(2));
+  const grandTotal = Number((subtotal + deliveryFee + convenienceFee).toFixed(2));
+  const isCheckoutFormComplete = Boolean(
+    customerName.trim() &&
+    /^\d{10}$/.test(customerPhone.trim()) &&
+    flatHouse.trim() &&
+    streetArea.trim() &&
+    city &&
+    district &&
+    state &&
+    /^\d{6}$/.test(pincode.trim()) &&
+    deliveryCalc.isServiceable &&
+    cart.length > 0 &&
+    !pendingPayment
+  );
 
   // Address search fills the street, coordinates, and PIN for Coimbatore pricing.
   const handleLocationSelect = (loc: LocationData) => {
@@ -295,10 +292,8 @@ export default function CheckoutPage() {
       setStreetArea(loc.displayName.split(',').slice(0, 2).join(', ').trim());
     }
 
-    // Auto-fill Landmark / Suburb
-    if (loc.landmark || loc.neighbourhood || loc.suburb) {
-      setLandmark(loc.landmark || loc.neighbourhood || loc.suburb || '');
-    }
+    // Keep the user's landmark separate from a searched locality.
+    if (loc.landmark) setLandmark((current) => current || loc.landmark || '');
 
     // The selected delivery dropdown controls the destination and pricing zone.
     if (loc.pincode) {
@@ -322,6 +317,11 @@ export default function CheckoutPage() {
 
     if (!customerName || !customerPhone || !flatHouse || !streetArea || !city || !district || !state || !pincode) {
       alert('Please fill in all required fields: Name, Phone, House/Flat No, Street/Area, City, and 6-digit Pincode.');
+      return;
+    }
+
+    if (!/^\d{10}$/.test(customerPhone.trim())) {
+      alert('Please enter a valid 10-digit mobile number.');
       return;
     }
 
@@ -1068,8 +1068,8 @@ export default function CheckoutPage() {
                 <button
                   type="submit"
                   form="checkout-form"
-                  disabled={isSubmitting || !deliveryCalc.isServiceable}
-                  className="w-full py-4 px-6 bg-[#656B4F] text-white font-black rounded-xl hover:bg-[#50563D] transition-all shadow-md hover:shadow-lg text-base disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer active:scale-[0.99]"
+                  disabled={isSubmitting || !isCheckoutFormComplete}
+                  className="w-full py-4 px-6 bg-[#656B4F] text-white font-black rounded-xl hover:bg-[#50563D] transition-all shadow-md hover:shadow-lg text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer active:scale-[0.99]"
                 >
                   {isSubmitting ? (
                     <>

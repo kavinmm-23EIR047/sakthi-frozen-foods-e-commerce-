@@ -22,8 +22,8 @@ export default function CartDrawer() {
 
   if (!isCartOpen) return null;
 
-  const deliveryFee = totalPrice >= 2999 || totalPrice === 0 ? 0 : 40;
-  const grandTotal = totalPrice + deliveryFee;
+  const convenienceFee = Number((totalPrice * 0.025).toFixed(2));
+  const estimatedTotal = Number((totalPrice + convenienceFee).toFixed(2));
 
   return (
     <div className="fixed inset-0 z-[100] overflow-hidden animate-in fade-in duration-200">
@@ -168,26 +168,36 @@ export default function CartDrawer() {
                   <span>Subtotal</span>
                   <span className="font-bold text-[#1E201D]">₹{totalPrice}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span>Convenience Fee (2.5%)</span>
+                  <span className="font-bold text-[#1E201D]">₹{convenienceFee}</span>
+                </div>
                 <div className="flex justify-between items-center">
                   <span>Delivery Fee</span>
                   <span className="font-bold text-[#1E201D]">
-                    {deliveryFee === 0 ? (
+                    {totalPrice >= 2999 ? (
                       <span className="text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded text-[10px] font-black">FREE</span>
                     ) : (
-                      `₹${deliveryFee}`
+                      'Calculated at checkout'
                     )}
                   </span>
                 </div>
-                {deliveryFee > 0 && (
+                {totalPrice < 2999 && (
                   <div className="text-[11px] text-[#50563D] font-bold bg-white/80 p-2 rounded-xl border border-[#656B4F]/20">
-                    🚚 Add ₹{2999 - totalPrice} more for free cold-chain delivery!
+                    Add ₹{2999 - totalPrice} more for free cold-chain delivery!
                   </div>
                 )}
+                <div className="rounded-lg bg-white/70 px-2.5 py-2 text-[10px] leading-relaxed text-[#59604F]">
+                  Exact delivery cost is calculated after you choose a destination at checkout.
+                </div>
               </div>
 
               <div className="pt-2 border-t border-stone-300/60 flex justify-between items-center">
-                <span className="text-sm font-extrabold text-[#1E201D]">Total Amount</span>
-                <span className="text-xl font-black text-[#50563D]">₹{grandTotal}</span>
+                <div>
+                  <span className="text-sm font-extrabold text-[#1E201D] block">Estimated total before delivery</span>
+                  <span className="text-[10px] text-[#61665D]">Finalized at checkout</span>
+                </div>
+                <span className="text-xl font-black text-[#50563D]">₹{estimatedTotal}</span>
               </div>
 
               <div className="grid grid-cols-2 gap-2 pt-1">

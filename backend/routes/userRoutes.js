@@ -13,31 +13,53 @@ router.get('/', protect, admin, async (req, res) => {
   try {
     res.set('Cache-Control', 'private, max-age=30');
     const { data: users } = await cacheService.getOrSet(USERS_CACHE_KEY, async () => {
-      const [rawUsers, orderStats] = await Promise.all([
-        User.find().sort({ createdAt: -1 }).select('-password -sessionVersion').lean(),
-        Order.aggregate([
-          { $match: { status: { $nin: ['Cancelled', 'Failed', 'Payment Failed'] } } },
-          { $group: { _id: "$user", totalOrders: { $sum: 1 }, totalSpent: { $sum: "$totalAmount" } } }
-        ])
-      ]);
+      const rawUsers = await User.find().sort({ createdAt: -1 }).select('-password -sessionVersion').lean();
+      const userIds = rawUsers.map((user) => user._id);
+      const userEmails = rawUsers
+        .map((user) => String(user.email || '').trim())
+        .filter(Boolean)
+        .map((email) => new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'));
+      const rawOrders = userIds.length ? await Order.find({
+        $or: [
+          { user: { $in: userIds } },
+          { customerEmail: { $in: userEmails } },
+        ],
+      }).sort({ createdAt: -1 }).select('-razorpaySignature').lean() : [];
 
-      const statsMap = orderStats.reduce((acc, curr) => {
-        if (curr._id) acc[curr._id.toString()] = curr;
-        return acc;
-      }, {});
+      const usersById = new Map(rawUsers.map((user) => [user._id.toString(), user]));
+      const usersByEmail = new Map(rawUsers.map((user) => [String(user.email || '').trim().toLowerCase(), user]));
+      const ordersByUser = new Map(rawUsers.map((user) => [user._id.toString(), []]));
 
-      return rawUsers.map((u) => {
-        const stats = statsMap[u._id.toString()] || { totalOrders: 0, totalSpent: 0 };
+      for (const order of rawOrders) {
+        const user = (order.user && usersById.get(order.user.toString())) || usersByEmail.get(String(order.customerEmail || '').trim().toLowerCase());
+        if (user) ordersByUser.get(user._id.toString()).push(order);
+      }
+
+      return rawUsers.map((user) => {
+        const userOrders = ordersByUser.get(user._id.toString()) || [];
+        const countedOrders = userOrders.filter((order) => !['Cancelled', 'Failed', 'Payment Failed'].includes(order.status));
+        const paidOrders = countedOrders.filter((order) => order.paymentStatus === 'Paid' || order.status === 'Confirmed');
+        const totalSpent = paidOrders.reduce((total, order) => total + Number(order.totalAmount || 0), 0);
+
         return {
-          id: u._id.toString(),
-          name: u.name,
-          email: u.email,
-          phone: u.phone,
-          role: u.role,
-          totalOrders: stats.totalOrders,
-          totalSpent: stats.totalSpent,
-          joinedDate: u.joinedDate,
-          address: u.address,
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          totalOrders: countedOrders.length,
+          totalSpent,
+          joinedDate: user.joinedDate,
+          address: user.address,
+          orderHistory: userOrders.map((order) => ({
+            id: order._id.toString(),
+            orderNumber: order.orderNumber,
+            status: order.status || 'Pending',
+            paymentStatus: order.paymentStatus || 'Pending',
+            totalAmount: Number(order.totalAmount || 0),
+            createdAt: order.createdAt ? new Date(order.createdAt).toISOString() : '',
+            items: Array.isArray(order.items) ? order.items : [],
+          })),
         };
       });
     }, USERS_TTL);

@@ -118,6 +118,43 @@ async function webhookRequest(event, payment, eventId) {
   return requestBuilder.send(payload);
 }
 
+test('admin customer purchase history matches orders by email when account id is missing', async () => {
+  const customer = await register('history@example.com');
+  await Order.create({
+    orderNumber: 'SKT-HISTORY-001',
+    customerName: customer.user.name,
+    customerEmail: customer.user.email.toUpperCase(),
+    customerPhone: customer.user.phone,
+    shippingAddress: '12 Test Street, Coimbatore',
+    items: [{ productId: 'product-history', name: 'Frozen Bites', weight: '500g', price: 120, quantity: 1 }],
+    totalAmount: 145,
+    paymentStatus: 'Paid',
+    status: 'Confirmed',
+  });
+  const adminUser = await register('history-admin@example.com', 'password123', 'Admin');
+
+  const response = await request(app).get('/api/users').set('Authorization', `Bearer ${adminUser.token}`);
+  assert.equal(response.status, 200);
+  const reportedCustomer = response.body.data.find((user) => user.id === customer.user.id);
+  assert.equal(reportedCustomer.totalOrders, 1);
+  assert.equal(reportedCustomer.totalSpent, 145);
+  assert.equal(reportedCustomer.orderHistory.length, 1);
+  assert.equal(reportedCustomer.orderHistory[0].items[0].name, 'Frozen Bites');
+});
+
+test('legacy plaintext passwords are upgraded to bcrypt after a successful login', async () => {
+  const password = 'LegacyPassword123!';
+  const user = await User.create({ name: 'Legacy User', email: 'legacy-auth@example.com', password, phone: '9999999999' });
+  await User.collection.updateOne({ _id: user._id }, { $set: { password } });
+
+  const response = await request(app).post('/api/auth/login').send({ email: user.email, password });
+  assert.equal(response.status, 200);
+
+  const refreshedUser = await User.findById(user._id).select('+password');
+  assert.match(refreshedUser.password, /^\$2[aby]\$/);
+  assert.equal(await refreshedUser.matchPassword(password), true);
+});
+
 test('authentication, admin authorization, and password reset revoke old sessions', async () => {
   const { user, token } = await register();
   const protectedResponse = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);

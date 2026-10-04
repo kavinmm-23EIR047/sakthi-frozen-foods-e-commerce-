@@ -51,6 +51,8 @@ export default function AddressSearch({
   const [localResults, setLocalResults] = useState<CoimbatoreSearchResult[]>([]);
   const [osmResults, setOsmResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationError, setLocationError] = useState('');
   const [hasSelectedAddress, setHasSelectedAddress] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -165,7 +167,6 @@ export default function AddressSearch({
       road: result.subArea || '',
       suburb: result.areaName,
       neighbourhood: result.subArea || result.areaName,
-      landmark: result.subArea ? `${result.subArea}, ${result.areaName}` : result.areaName,
       city: 'Coimbatore',
       state: 'Tamil Nadu',
       pincode: result.pincode,
@@ -176,6 +177,84 @@ export default function AddressSearch({
     setOsmResults([]);
     setIsFocused(false);
     onLocationSelect(location);
+  };
+
+  const resolveLiveLocation = async (position: GeolocationPosition) => {
+    const lat = position.coords.latitude;
+    const lng = position.coords.longitude;
+    const distance = calculateDistanceKm(SHOP_COORDINATES.lat, SHOP_COORDINATES.lng, lat, lng);
+
+    if (!Number.isFinite(distance) || distance > LOCAL_RADIUS_KM) {
+      setLocationError('Live location is outside the Coimbatore delivery area. Search for a supported destination instead.');
+      setIsLocating(false);
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams({
+        format: 'jsonv2',
+        lat: String(lat),
+        lon: String(lng),
+        zoom: '18',
+        addressdetails: '1',
+      });
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params}`, {
+        headers: { 'Accept-Language': 'en' },
+      });
+      if (!response.ok) throw new Error('Could not resolve the live address.');
+
+      const result = await response.json();
+      const address = result.address || {};
+      const resolvedState = String(address.state || '').toLowerCase();
+      const resolvedDistrict = String(address.county || address.state_district || address.city_district || '').toLowerCase();
+      if ((resolvedState && !resolvedState.includes('tamil nadu')) || (resolvedDistrict && !resolvedDistrict.includes('coimbatore'))) {
+        setLocationError('Live location is not in Coimbatore. Search for a supported destination instead.');
+        return;
+      }
+
+      const location: LocationData = {
+        lat,
+        lng,
+        displayName: result.display_name || 'Current Coimbatore location',
+        road: address.road || address.street || address.pedestrian || '',
+        suburb: address.suburb || address.neighbourhood || address.residential || '',
+        neighbourhood: address.neighbourhood || address.suburb || '',
+        landmark: address.amenity || address.building || '',
+        city: 'Coimbatore',
+        state: 'Tamil Nadu',
+        pincode: address.postcode || '',
+      };
+      setHasSelectedAddress(true);
+      setQuery(location.displayName);
+      setLocalResults([]);
+      setOsmResults([]);
+      setIsFocused(false);
+      onLocationSelect(location);
+    } catch (error) {
+      setLocationError(error instanceof Error ? error.message : 'Could not resolve the live address. Please search for your area.');
+    } finally {
+      setIsLocating(false);
+    }
+  };
+
+  const handleUseLiveLocation = () => {
+    setLocationError('');
+    if (!navigator.geolocation) {
+      setLocationError('Live location is not available in this browser. Search for your Coimbatore area.');
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => { void resolveLiveLocation(position); },
+      (error) => {
+        setIsLocating(false);
+        setLocationError(error.code === error.PERMISSION_DENIED
+          ? 'Allow location access in your browser, or search for your Coimbatore area.'
+          : 'Could not get your live location. Please try again or search for your area.');
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
+    );
   };
 
   const selectOsmAddress = (result: any) => {
@@ -210,7 +289,7 @@ export default function AddressSearch({
 
   return (
     <div ref={wrapperRef} className="relative space-y-2">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <label
           htmlFor="address-search"
           className="block text-xs font-black text-[#1A1E16] flex items-center gap-1.5"
@@ -219,9 +298,20 @@ export default function AddressSearch({
           <span>Search Any Coimbatore Area, Colony, Street or PIN Code</span>
         </label>
         <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
-          Entire Coimbatore District Covered
+          Coimbatore only · within 25 km
         </span>
       </div>
+
+      <button
+        type="button"
+        onClick={handleUseLiveLocation}
+        disabled={isLocating}
+        className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#656B4F]/30 bg-[#EAF0E5] px-3 py-2 text-xs font-bold text-[#50563D] transition-colors hover:bg-[#DDE8D6] disabled:cursor-wait disabled:opacity-60 sm:w-auto"
+      >
+        {isLocating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Navigation className="h-4 w-4" />}
+        {isLocating ? 'Finding your location...' : 'Use my live location'}
+      </button>
+      {locationError && <p role="alert" className="text-xs font-semibold text-red-700">{locationError}</p>}
 
       {/* Search Input Box */}
       <div className="relative">

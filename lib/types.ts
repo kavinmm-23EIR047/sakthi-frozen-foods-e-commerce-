@@ -74,4 +74,13 @@ export interface UserType {
   totalSpent: number;
   joinedDate: string;
   address: string;
+  orderHistory?: {
+    id: string;
+    orderNumber: string;
+    status: string;
+    paymentStatus: string;
+    totalAmount: number;
+    createdAt: string;
+    items: OrderItemType[];
+  }[];
 }

@@ -6,6 +6,7 @@ import {
   isValidMobileNumber,
   generateAuthToken,
   comparePassword,
+  isBcryptPasswordHash,
 } from '@/lib/authHelper';
 
 export async function POST(request: Request) {
@@ -41,6 +42,12 @@ export async function POST(request: Request) {
       const user = await User.findOne({ $or: searchConditions }).select('+password +sessionVersion');
 
       if (user && (await comparePassword(password, user.password))) {
+        if (!isBcryptPasswordHash(user.password)) {
+          user.password = password;
+          user.markModified('password');
+          await user.save();
+        }
+
         if (!user.phone || !isValidMobileNumber(user.phone)) {
           if (isMobile) {
             user.phone = cleanedPhone;
@@ -75,7 +82,7 @@ export async function POST(request: Request) {
           httpOnly: true,
           path: '/',
           secure: process.env.NODE_ENV === 'production',
-          maxAge: 30 * 24 * 60 * 60, // 30 days
+          maxAge: 7 * 24 * 60 * 60,
           sameSite: 'lax',
         });
 
@@ -107,7 +114,7 @@ export async function POST(request: Request) {
           httpOnly: true,
           path: '/',
           secure: process.env.NODE_ENV === 'production',
-          maxAge: 30 * 24 * 60 * 60,
+          maxAge: 7 * 24 * 60 * 60,
           sameSite: 'lax',
         });
       }

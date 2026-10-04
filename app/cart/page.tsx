@@ -15,11 +15,9 @@ export default function CartPage() {
   const { cart, removeFromCart, updateQuantity, totalPrice, totalItems, isCartLoading } = useCart();
   const [isNavigating, setIsNavigating] = React.useState(false);
 
-  const isTestMode = cart.some((item: any) => item.name && (item.name.toLowerCase().includes('dummy') || item.name.toLowerCase().includes('test')));
   const subtotal = totalPrice;
-  const deliveryFee = isTestMode ? 0 : (subtotal >= 2999 || subtotal === 0 ? 0 : 40);
-  const convenienceFee = isTestMode ? 0 : Number((subtotal * 0.025).toFixed(2));
-  const grandTotal = isTestMode ? 1 : Number((subtotal + deliveryFee + convenienceFee).toFixed(2));
+  const convenienceFee = Number((subtotal * 0.025).toFixed(2));
+  const estimatedTotal = Number((subtotal + convenienceFee).toFixed(2));
 
   if (isCartLoading) {
     return (
@@ -158,21 +156,21 @@ export default function CartPage() {
                 <div className="flex justify-between items-center">
                   <span>Estimated Delivery</span>
                   <span className="font-black text-[#1A1E16]">
-                    {deliveryFee === 0 ? (
+                    {subtotal >= 2999 ? (
                       <span className="text-[#50563D] bg-[#EAF0E5] border border-[#656B4F]/20 px-2 py-0.5 rounded text-xs font-black">FREE</span>
                     ) : (
-                      <span>From {String.fromCharCode(8377)}{deliveryFee}</span>
+                      <span>Calculated at checkout</span>
                     )}
                   </span>
                 </div>
               
-                {deliveryFee > 0 && cart.length > 0 && (
+                {cart.length > 0 && (
                   <p className="rounded-lg bg-white/70 px-3 py-2 text-[11px] leading-relaxed text-[#59604F]">
                     Delivery varies by destination. Coimbatore local delivery is {'\u20B9'}10/km (minimum {'\u20B9'}40); other listed cities have fixed rates. Your exact charge is calculated after you choose a destination at checkout.
                   </p>
                 )}
 
-              {deliveryFee > 0 && cart.length > 0 && (
+              {subtotal < 2999 && cart.length > 0 && (
                 <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 font-bold mt-2">
                   Add ₹{2999 - subtotal} more to your order for <span className="font-black">FREE Delivery!</span>
                 </div>
@@ -181,10 +179,10 @@ export default function CartPage() {
 
             <div className="pt-5 mt-6 border-t border-[#4F534C]/20 flex justify-between items-center mb-4">
               <div>
-                <span className="text-sm font-black text-[#1A1E16] block">Estimated Total</span>
+                <span className="text-sm font-black text-[#1A1E16] block">Estimated Total before delivery</span>
                 <span className="text-[10px] text-[#4F5547] font-semibold">Delivery is finalized at checkout</span>
               </div>
-              <span className="text-2xl font-black text-[#50563D]">₹{grandTotal}</span>
+              <span className="text-2xl font-black text-[#50563D]">₹{estimatedTotal}</span>
             </div>
 
             {user ? (

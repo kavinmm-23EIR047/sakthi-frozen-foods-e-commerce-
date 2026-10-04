@@ -969,10 +969,10 @@ export default function AdminPortalPage() {
       </header>
 
       {/* Main Admin Content */}
-      <div className="mx-auto grid w-full max-w-[1600px] gap-5 px-3 py-5 sm:gap-6 sm:px-6 sm:py-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-7 lg:px-8">
-        <aside className="rounded-2xl border border-[#4F534C]/15 bg-white p-3 shadow-sm lg:sticky lg:top-24 lg:h-fit">
+      <div className="mx-auto grid w-full min-w-0 max-w-[1600px] grid-cols-1 gap-5 px-3 py-5 sm:gap-6 sm:px-6 sm:py-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-7 lg:px-8">
+        <aside className="min-w-0 rounded-2xl border border-[#4F534C]/15 bg-white p-3 shadow-sm lg:sticky lg:top-24 lg:h-fit">
           <p className="px-3 pb-2 pt-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#61665D]">Workspace</p>
-          <nav className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide lg:flex-col lg:overflow-visible lg:pb-0">
+          <nav className="grid w-full min-w-0 grid-cols-2 gap-2 pb-2 lg:flex lg:flex-col lg:pb-0">
             {[
               ['analytics', 'Analytics', BarChart2, null],
               ['products', 'Products', Package, products.length],
@@ -988,17 +988,17 @@ export default function AdminPortalPage() {
                 <button
                   key={id as string}
                   onClick={() => setActiveTab(id as typeof activeTab)}
-                  className={`flex min-h-11 min-w-0 items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs font-bold transition-colors lg:w-full lg:px-3 ${
+                  className={`flex min-h-11 w-full min-w-0 items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs font-bold transition-colors lg:px-3 ${
                     isActive ? 'bg-[#656B4F] text-white shadow-sm' : 'text-[#52574E] hover:bg-[#EAF0E5] hover:text-[#1E201D]'
                   }`}
                 >
                   <NavIcon className={`h-4 w-4 shrink-0 ${id === 'reviews' && !isActive ? 'fill-amber-500 text-amber-500' : ''}`} />
-                  <span className="whitespace-nowrap">{String(label)}</span>
+                  <span className="min-w-0 flex-1 whitespace-normal leading-tight">{String(label)}</span>
                   {count !== null && (
                     loading ? (
                       <Loader2 className={`ml-auto w-4 h-4 shrink-0 animate-spin ${isActive ? 'text-white' : 'text-[#656B4F]'}`} />
                     ) : (
-                      <span className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] ${isActive ? 'bg-white/20' : 'bg-[#EAF0E5] text-[#656B4F]'}`}>{count as number}</span>
+                      <span className={`ml-auto shrink-0 rounded-full px-1.5 py-0.5 text-[10px] ${isActive ? 'bg-white/20' : 'bg-[#EAF0E5] text-[#656B4F]'}`}>{count as number}</span>
                     )
                   )}
                 </button>
@@ -2610,6 +2610,7 @@ export default function AdminPortalPage() {
                       <th className="py-3.5 px-4">Joined Date</th>
                       <th className="py-3.5 px-4">Total Orders</th>
                       <th className="py-3.5 px-4">Total Spent</th>
+                      <th className="py-3.5 px-4">Purchase History</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#4F534C]/10">
@@ -2627,7 +2628,7 @@ export default function AdminPortalPage() {
                       ))
                     ) : filteredUsers.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-12 text-center text-[#61665D]">
+                        <td colSpan={8} className="py-12 text-center text-[#61665D]">
                           <Users className="w-10 h-10 mx-auto text-[#656B4F]/40 mb-2" />
                           <p className="font-bold text-sm text-[#1E201D]">No registered users found</p>
                         </td>
@@ -2652,6 +2653,33 @@ export default function AdminPortalPage() {
                           <td className="py-3.5 px-4 text-[#61665D]">{usr.joinedDate}</td>
                           <td className="py-3.5 px-4 font-bold text-center sm:text-left">{usr.totalOrders}</td>
                           <td className="py-3.5 px-4 font-black text-[#656B4F]">₹{usr.totalSpent}</td>
+                          <td className="py-3.5 px-4 min-w-[240px]">
+                            <details>
+                              <summary className="cursor-pointer text-xs font-bold text-[#50563D]">View {usr.orderHistory?.length || 0} orders</summary>
+                              <div className="mt-2 max-h-72 space-y-2 overflow-y-auto">
+                                {!usr.orderHistory?.length ? (
+                                  <p className="text-xs text-[#61665D]">No orders linked to this customer.</p>
+                                ) : usr.orderHistory.map((order) => (
+                                  <div key={order.id} className="rounded-lg border border-[#4F534C]/10 bg-[#F8FAF4] p-2.5">
+                                    <div className="flex items-start justify-between gap-2 text-[11px]">
+                                      <span className="font-black">#{order.orderNumber}</span>
+                                      <span className="font-bold text-[#656B4F]">{order.status}</span>
+                                    </div>
+                                    <p className="mt-1 text-[10px] text-[#61665D]">{order.createdAt.slice(0, 10)} · {order.paymentStatus}</p>
+                                    <ul className="mt-1.5 space-y-1">
+                                      {order.items.map((item, index) => (
+                                        <li key={`${order.id}-${item.productId}-${index}`} className="flex justify-between gap-2 text-[10px]">
+                                          <span>{item.name} · {item.weight} × {item.quantity}</span>
+                                          <span className="shrink-0 font-bold">₹{item.price * item.quantity}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                    <p className="mt-1 text-right text-[10px] font-black">Order total: ₹{order.totalAmount}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </details>
+                          </td>
                         </tr>
                       ))
                     )}
@@ -2676,7 +2704,36 @@ export default function AdminPortalPage() {
                 filteredUsers.map((usr) => (
                   <article key={usr.id} className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
                     <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="text-sm font-black break-words">{usr.name}</h3><p className="text-xs text-[#61665D] break-words">{usr.email}</p></div><span className="rounded-full bg-[#EAF0E5] px-2 py-1 text-[10px] font-bold text-[#656B4F]">{usr.role}</span></div>
-                    <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[#4F534C]/10 pt-3 text-xs"><p><span className="block text-[#61665D]">Phone</span>{usr.phone}</p><p><span className="block text-[#61665D]">Total spent</span><strong className="text-[#656B4F]">₹{usr.totalSpent}</strong></p></div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[#4F534C]/10 pt-3 text-xs">
+                      <p><span className="block text-[#61665D]">Phone</span>{usr.phone}</p>
+                      <p><span className="block text-[#61665D]">Orders</span><strong>{usr.totalOrders}</strong></p>
+                      <p><span className="block text-[#61665D]">Total spent</span><strong className="text-[#656B4F]">₹{usr.totalSpent}</strong></p>
+                    </div>
+                    <details className="mt-3 border-t border-[#4F534C]/10 pt-3">
+                      <summary className="cursor-pointer text-xs font-bold text-[#50563D]">Purchase history ({usr.orderHistory?.length || 0})</summary>
+                      <div className="mt-2 space-y-2">
+                        {!usr.orderHistory?.length ? (
+                          <p className="text-xs text-[#61665D]">No orders linked to this customer.</p>
+                        ) : usr.orderHistory.map((order) => (
+                          <div key={order.id} className="rounded-xl border border-[#4F534C]/10 bg-[#F8FAF4] p-3">
+                            <div className="flex items-start justify-between gap-2 text-xs">
+                              <span className="font-black">#{order.orderNumber}</span>
+                              <span className="text-right font-bold text-[#656B4F]">{order.status}</span>
+                            </div>
+                            <p className="mt-1 text-[10px] text-[#61665D]">{order.createdAt.slice(0, 10)} · {order.paymentStatus}</p>
+                            <ul className="mt-2 space-y-1.5">
+                              {order.items.map((item, index) => (
+                                <li key={`${order.id}-${item.productId}-${index}`} className="flex justify-between gap-2 text-xs">
+                                  <span>{item.name} · {item.weight} × {item.quantity}</span>
+                                  <span className="shrink-0 font-bold">₹{item.price * item.quantity}</span>
+                                </li>
+                              ))}
+                            </ul>
+                            <p className="mt-2 text-right text-xs font-black">Order total: ₹{order.totalAmount}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
                   </article>
                 ))
               )}

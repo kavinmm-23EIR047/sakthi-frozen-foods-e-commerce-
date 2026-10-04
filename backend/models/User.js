@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const userSchema = new mongoose.Schema(
   {
@@ -39,7 +40,25 @@ userSchema.pre('save', async function (next) {
 
 // Method to compare passwords
 userSchema.methods.matchPassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+  const storedPassword = String(this.password || '');
+  if (/^\$2[aby]\$/.test(storedPassword)) {
+    try {
+      return await bcrypt.compare(enteredPassword, storedPassword);
+    } catch {
+      return false;
+    }
+  }
+
+  if (/^[a-f\d]{64}$/i.test(storedPassword)) {
+    const legacyHash = crypto.createHash('sha256').update(enteredPassword).digest('hex');
+    const expected = Buffer.from(legacyHash, 'utf8');
+    const stored = Buffer.from(storedPassword.toLowerCase(), 'utf8');
+    if (expected.length === stored.length && crypto.timingSafeEqual(expected, stored)) return true;
+  }
+
+  const entered = Buffer.from(enteredPassword, 'utf8');
+  const stored = Buffer.from(storedPassword, 'utf8');
+  return entered.length === stored.length && crypto.timingSafeEqual(entered, stored);
 };
 
 module.exports = mongoose.model('User', userSchema);

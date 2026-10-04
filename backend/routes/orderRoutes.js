@@ -391,10 +391,9 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
     if (!calc.isServiceable) {
       return res.status(400).json({ success: false, error: 'We could not find a delivery rate for this address. Search a Coimbatore address within 25 km or choose one of the listed delivery cities.' });
     }
-    const isTestMode = body.items.some(i => i.name && (i.name.toLowerCase().includes('dummy') || i.name.toLowerCase().includes('test')));
-    const deliveryFee = isTestMode ? 0 : calc.fee;
-    const convenienceFee = isTestMode ? 0 : Math.round(subtotal * 0.025 * 100) / 100;
-    const totalAmount = isTestMode ? 1 : Math.round((subtotal + deliveryFee + convenienceFee) * 100) / 100;
+    const deliveryFee = calc.fee;
+    const convenienceFee = Math.round(subtotal * 0.025 * 100) / 100;
+    const totalAmount = Math.round((subtotal + deliveryFee + convenienceFee) * 100) / 100;
     const paymentMethod = 'Razorpay (Online)';
     created = await Order.create({
       orderNumber: `SKT-${crypto.randomBytes(5).toString('hex').toUpperCase()}`,
@@ -453,6 +452,7 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
       await Cart.deleteOne({ userId: req.user._id }).catch(() => {});
     }
 
+    await cacheService.del('sakthi:users:all');
     void queueOrderNotifications(created, 'order.created');
     socketService.emitEvent('newOrder', publicOrder(created)); // Emit real-time event
 
@@ -491,6 +491,7 @@ router.post('/:id/cancel', protect, async (req, res, next) => {
         { new: true, session, runValidators: true }
       );
     });
+    await cacheService.del('sakthi:users:all');
     void queueOrderNotifications(cancelled, 'order.cancelled');
     res.json({ success: true, data: publicOrder(cancelled) });
   } catch (error) {
@@ -649,12 +650,14 @@ router.put('/:id', protect, admin, async (req, res, next) => {
         await session.endSession();
       }
       if (!cancelled) return res.status(409).json({ success: false, error: 'Order was already changed' });
+      await cacheService.del('sakthi:users:all');
       void queueOrderNotifications(cancelled, 'order.cancelled');
       return res.json({ success: true, data: publicOrder(cancelled) });
     }
 
     const updated = await Order.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true, runValidators: true });
     if (!updated) return res.status(404).json({ success: false, error: 'Order not found' });
+    await cacheService.del('sakthi:users:all');
     void queueOrderNotifications(updated, `order.${req.body.status.toLowerCase()}`);
     
     const pub = publicOrder(updated);
@@ -677,6 +680,7 @@ router.post('/:id/refund', protect, admin, async (req, res, next) => {
     try {
       const refund = await getRazorpay().payments.refund(order.razorpayPaymentId, { amount: Math.round(order.totalAmount * 100), notes: { orderId: order._id.toString() } });
       const refunded = await Order.findByIdAndUpdate(order._id, { paymentStatus: 'Refunded', refundStatus: 'Processed', razorpayRefundId: refund.id, refundedAmount: refund.amount, refundedAt: new Date(), status: 'Cancelled', isLocked: true }, { new: true, runValidators: true });
+      await cacheService.del('sakthi:users:all');
       void queueOrderNotifications(refunded, 'payment.refunded');
       return res.json({ success: true, data: publicOrder(refunded) });
     } catch (error) {
