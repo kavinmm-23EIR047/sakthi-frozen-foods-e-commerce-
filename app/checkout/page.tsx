@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
-import { CheckCircle2, ShoppingBag, CreditCard, Truck, ArrowLeft, ShieldCheck, Lock, UserCheck, LogIn, ArrowRight, Search, ChevronDown, Package, Sparkles, Loader2 } from 'lucide-react';
+import { CheckCircle2, ShoppingBag, CreditCard, Truck, ArrowLeft, ShieldCheck, Lock, UserCheck, LogIn, ArrowRight, ChevronDown, Package, Sparkles, Loader2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { fetchApi, setCachedData, invalidateCache } from '@/lib/apiConfig';
@@ -83,8 +83,7 @@ export default function CheckoutPage() {
   const [state, setState] = useState('Tamil Nadu');
   const [district, setDistrict] = useState('Coimbatore');
   const [destinationZoneId, setDestinationZoneId] = useState('coimbatore');
-  const [destinationQuery, setDestinationQuery] = useState('Coimbatore');
-  const [destinationOpen, setDestinationOpen] = useState(false);
+  const [, setDestinationQuery] = useState('Coimbatore');
   const [pincode, setPincode] = useState('');
   const [coordinates, setCoordinates] = useState<Pick<LocationData, 'lat' | 'lng' | 'precision' | 'accuracyMeters'> | null>(null);
   const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
@@ -302,9 +301,14 @@ export default function CheckoutPage() {
     if (loc.landmark) setLandmark((current) => current || loc.landmark || '');
 
     // The selected delivery dropdown controls the destination and pricing zone.
-    if (loc.pincode) {
-      setPincode(loc.pincode.replace(/\D/g, '').slice(0, 6));
-    }
+    setPincode(loc.pincode ? loc.pincode.replace(/\D/g, '').slice(0, 6) : '');
+  };
+
+  const clearDestinationAddressDetails = () => {
+    setPincode('');
+    setCoordinates(null);
+    setStreetArea('');
+    setLandmark('');
   };
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
@@ -555,7 +559,7 @@ export default function CheckoutPage() {
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <Navbar />
 
-      <main className="mx-auto w-full max-w-[1180px] px-3 py-5 sm:px-4 sm:py-8 md:py-10 flex-1">
+      <main className="mx-auto w-full max-w-[1080px] px-3 py-5 sm:px-5 sm:py-8 md:py-10 flex-1">
         <button
           onClick={() => router.push('/cart')}
           className="flex items-center gap-2 text-[#3D4533] hover:text-[#1A1E16] font-bold text-sm mb-6 transition-colors"
@@ -563,9 +567,9 @@ export default function CheckoutPage() {
           <ArrowLeft className="w-4 h-4" /> Back to Cart
         </button>
 
-        <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#4F534C]/15">
+        <div className="mx-auto max-w-[980px] bg-white rounded-2xl overflow-hidden shadow-sm border border-[#4F534C]/15">
           {/* Header */}
-          <div className="bg-[#656B4F] px-6 sm:px-8 py-5 text-[#FAFAF5] flex items-center justify-between">
+          <div className="bg-[#656B4F] px-4 sm:px-7 py-4 text-[#FAFAF5] flex items-center justify-between">
             <div className="flex items-center gap-3">
               <ShoppingBag className="w-6 h-6" />
               <h1 className="font-black text-xl sm:text-2xl font-poppins">
@@ -581,8 +585,8 @@ export default function CheckoutPage() {
           </div>
 
           {/* Checkout Form */}
-          <div className="p-4 sm:p-6 md:p-8 flex flex-col md:flex-row gap-6 lg:gap-8">
-            <form id="checkout-form" onSubmit={handleSubmitOrder} className="flex-1 space-y-6">
+          <div className="grid grid-cols-1 items-start gap-6 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8 lg:p-8">
+            <form id="checkout-form" onSubmit={handleSubmitOrder} className="min-w-0 space-y-6">
                 {paymentMessage && (
                   <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold leading-relaxed text-amber-950">
                     {paymentMessage}{' '}
@@ -732,7 +736,7 @@ export default function CheckoutPage() {
                           setDistrict('');
                           setDestinationZoneId('');
                           setDestinationQuery('');
-                          setCoordinates(null);
+                          clearDestinationAddressDetails();
                         }}
                         className="w-full rounded-xl border border-[#4F534C]/25 bg-white px-3.5 py-3 text-sm font-semibold text-[#1A1E16] outline-none focus:ring-2 focus:ring-[#656B4F]"
                       >
@@ -750,7 +754,7 @@ export default function CheckoutPage() {
                           setDistrict(event.target.value);
                           setDestinationZoneId('');
                           setDestinationQuery('');
-                          setCoordinates(null);
+                          clearDestinationAddressDetails();
                         }}
                         className="w-full rounded-xl border border-[#4F534C]/25 bg-white px-3.5 py-3 text-sm font-semibold text-[#1A1E16] outline-none focus:ring-2 focus:ring-[#656B4F] disabled:bg-gray-50"
                       >
@@ -759,65 +763,27 @@ export default function CheckoutPage() {
                       </select>
                     </div>
 
-                    <div className="relative">
-                      <label htmlFor="delivery-destination" className="mb-1 block text-xs font-bold text-[#1A1E16]">Search destination city *</label>
-                      <div className="relative">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#656B4F]" />
-                        <input
-                          id="delivery-destination"
-                          type="text"
-                          role="combobox"
-                          aria-expanded={destinationOpen}
-                          aria-controls="delivery-destination-options"
-                          autoComplete="off"
-                          placeholder="Type a city or destination"
-                          value={destinationQuery}
-                          onFocus={() => {
-                            setDestinationQuery('');
-                            setDestinationOpen(true);
-                          }}
-                          onChange={(event) => {
-                            setDestinationQuery(event.target.value);
-                            setDestinationZoneId('');
-                            setCoordinates(null);
-                            setDestinationOpen(true);
-                          }}
-                          onBlur={() => setTimeout(() => setDestinationOpen(false), 150)}
-                          className="w-full rounded-xl border border-[#4F534C]/25 bg-white py-3 pl-10 pr-3 text-sm font-semibold text-[#1A1E16] outline-none focus:ring-2 focus:ring-[#656B4F]"
-                        />
-                        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#656B4F]" />
-                      </div>
-                      {destinationOpen && (
-                        <div id="delivery-destination-options" role="listbox" className="absolute left-0 z-40 mt-1 max-h-64 w-max min-w-full max-w-[calc(100vw-2rem)] overflow-y-auto rounded-xl border border-[#4F534C]/20 bg-white shadow-xl">
-                          {availableDestinations
-                            .filter((zone) => `${zone.name} ${zone.aliases.join(' ')}`.toLowerCase().includes(destinationQuery.toLowerCase()))
-                            .map((zone) => (
-                              <button
-                                key={zone.id}
-                                type="button"
-                                role="option"
-                                aria-selected={destinationZoneId === zone.id}
-                                onMouseDown={(event) => event.preventDefault()}
-                                onClick={() => {
-                                  setDestinationZoneId(zone.id);
-                                  setDestinationQuery(zone.id === 'coimbatore' ? 'Coimbatore' : zone.name);
-                                  setCoordinates(null);
-                                  setDestinationOpen(false);
-                                }}
-                                className="flex w-full min-w-0 items-center justify-between gap-3 border-b border-[#4F534C]/10 px-3.5 py-3 text-left last:border-0 hover:bg-[#EAF0E5]"
-                              >
-                                <span className="text-sm font-semibold text-[#1A1E16]">{zone.id === 'coimbatore' ? 'Coimbatore (local)' : zone.name}</span>
-                                <span className="shrink-0 text-xs font-bold text-[#656B4F]">{zone.id === 'coimbatore' ? '₹40–₹250 by distance' : `₹${zone.price}`}</span>
-                              </button>
-                            ))}
-                          {availableDestinations.length === 0 && (
-                            <p className="px-3.5 py-3 text-sm text-[#59604F]">No delivery destinations are listed for this state yet.</p>
-                          )}
-                          {availableDestinations.length > 0 && !availableDestinations.some((zone) => `${zone.name} ${zone.aliases.join(' ')}`.toLowerCase().includes(destinationQuery.toLowerCase())) && (
-                            <p className="px-3.5 py-3 text-sm text-[#59604F]">No matching destination. Try another spelling.</p>
-                          )}
-                        </div>
-                      )}
+                    <div>
+                      <label htmlFor="delivery-destination" className="mb-1 block text-xs font-bold text-[#1A1E16]">Destination city *</label>
+                      <select
+                        id="delivery-destination"
+                        value={destinationZoneId}
+                        disabled={availableDestinations.length === 0}
+                        onChange={(event) => {
+                          const zone = availableDestinations.find((item) => item.id === event.target.value);
+                          setDestinationZoneId(zone?.id || '');
+                          setDestinationQuery(zone?.id === 'coimbatore' ? 'Coimbatore' : zone?.name || '');
+                          clearDestinationAddressDetails();
+                        }}
+                        className="w-full rounded-xl border border-[#4F534C]/25 bg-white px-3.5 py-3 text-sm font-semibold text-[#1A1E16] outline-none focus:ring-2 focus:ring-[#656B4F] disabled:bg-gray-50"
+                      >
+                        <option value="">Choose destination</option>
+                        {availableDestinations.map((zone) => (
+                          <option key={zone.id} value={zone.id}>
+                            {zone.id === 'coimbatore' ? 'Coimbatore (local)' : zone.name} — {zone.id === 'coimbatore' ? 'Bike delivery by distance' : zone.mode + ' parcel'}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
 
@@ -1011,7 +977,7 @@ export default function CheckoutPage() {
               </form>
 
               {/* Order Summary Card (Desktop sticky sidebar & Mobile full card) */}
-              <div className="w-full md:w-80 lg:w-96 bg-[#EAF0E5] rounded-2xl p-5 sm:p-6 border border-[#4F534C]/20 h-fit shadow-xs space-y-5 md:sticky md:top-24">
+              <div className="w-full min-w-0 rounded-2xl border border-[#4F534C]/20 bg-[#EAF0E5] p-4 shadow-xs space-y-5 lg:sticky lg:top-24">
                 <div className="flex items-center justify-between border-b border-[#4F534C]/20 pb-2">
                   <h3 className="text-base font-black text-[#1A1E16]">Order Summary</h3>
                   <span className="text-[11px] font-black text-[#656B4F] bg-white border border-[#656B4F]/20 px-2 py-0.5 rounded-md">
