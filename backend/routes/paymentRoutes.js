@@ -51,7 +51,7 @@ async function fetchVerifiedPayment(razorpayOrderId, razorpayPaymentId, expected
     payment.order_id !== razorpayOrderId ||
     payment.amount !== expectedAmount ||
     payment.currency !== 'INR' ||
-    payment.status !== 'captured'
+    (payment.status !== 'captured' && payment.status !== 'authorized')
   ) {
     const error = new Error('Payment amount or status could not be verified');
     error.statusCode = 400;
