@@ -7,7 +7,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import { fetchApi } from '@/lib/apiConfig';
+import { fetchApi, getCachedData, setCachedData } from '@/lib/apiConfig';
 import { OrderType } from '@/lib/types';
 import {
   CheckCircle2,
@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { printCommercialBill } from '@/lib/printUtils';
 import OptimizedImage from '@/components/OptimizedImage';
+import DeliveryLoadingScreen from '@/components/DeliveryLoadingScreen';
 
 const WHATSAPP_PHONE = '918056389214';
 
@@ -44,8 +45,9 @@ export default function OrderSuccessPage() {
   const { user } = useAuth();
   const { clearCart } = useCart();
 
-  const orderId = params.id as string;
+  const rawOrderId = params?.id ? (Array.isArray(params.id) ? params.id[0] : params.id) : '';
 
+  const [mounted, setMounted] = useState(false);
   const [order, setOrder] = useState<OrderType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -68,21 +70,60 @@ export default function OrderSuccessPage() {
     }
   }, [clearCart]);
 
+  // Synchronize on client mount from memory or storage (prevents hydration mismatch)
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window !== 'undefined') {
+      try {
+        if (rawOrderId) {
+          const mem = getCachedData<OrderType>('order_detail_' + rawOrderId);
+          if (mem) {
+            setOrder(mem);
+            setLoading(false);
+            return;
+          }
+          const stored = sessionStorage.getItem('order_cache_' + rawOrderId) || localStorage.getItem('order_cache_' + rawOrderId);
+          if (stored) {
+            setOrder(JSON.parse(stored));
+            setLoading(false);
+            return;
+          }
+        }
+        const latest = sessionStorage.getItem('latest_completed_order') || localStorage.getItem('latest_completed_order');
+        if (latest) {
+          const parsed = JSON.parse(latest);
+          if (parsed && (!rawOrderId || parsed._id === rawOrderId || parsed.id === rawOrderId || parsed.orderNumber === rawOrderId)) {
+            setOrder(parsed);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (e) {}
+    }
+  }, [rawOrderId]);
+
+  // Background silent fetch to ensure order has latest database record
   const fetchOrderDetail = useCallback(async () => {
-    if (!orderId) return;
+    if (!rawOrderId) return;
     try {
-      const res = await fetchApi<OrderType>(`/orders/${orderId}`);
+      const res = await fetchApi<OrderType>(`/orders/${rawOrderId}`);
       if (res.success && res.data) {
         setOrder(res.data);
-      } else {
-        setError(res.error || 'Order not found');
+        setCachedData('order_detail_' + rawOrderId, res.data);
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('order_cache_' + rawOrderId, JSON.stringify(res.data));
+        }
+      } else if (!order) {
+        setError(res.error || 'Order confirmation details not found');
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to load order confirmation details');
+      if (!order) {
+        setError(err.message || 'Failed to load order confirmation details');
+      }
     } finally {
       setLoading(false);
     }
-  }, [orderId]);
+  }, [rawOrderId, order]);
 
   useEffect(() => {
     fetchOrderDetail();
@@ -97,6 +138,10 @@ export default function OrderSuccessPage() {
 
   const isPaid = order?.paymentStatus === 'Paid' || order?.status === 'Confirmed';
 
+  if ((!mounted || (loading && !order)) && !error) {
+    return <DeliveryLoadingScreen message="Opening your order confirmation..." />;
+  }
+
   return (
     <div className="min-h-screen bg-[#F3FBEE] text-[#1E201D] flex flex-col font-sans selection:bg-[#656B4F] selection:text-white">
       <Navbar />
@@ -104,7 +149,7 @@ export default function OrderSuccessPage() {
       <main className="mx-auto w-full max-w-[960px] px-3 sm:px-6 py-6 sm:py-10 flex-1">
         <div className="space-y-6">
 
-          {/* Navigation Bar */}
+          {/* Top Navigation Bar */}
           <div className="flex items-center justify-between">
             <Link
               href="/orders"
@@ -123,17 +168,8 @@ export default function OrderSuccessPage() {
             </Link>
           </div>
 
-          {/* Loading State */}
-          {loading && (
-            <div className="bg-white rounded-3xl p-12 text-center border border-[#4F534C]/15 shadow-sm space-y-4 animate-in fade-in duration-200">
-              <div className="w-12 h-12 border-4 border-[#656B4F] border-t-transparent rounded-full animate-spin mx-auto" />
-              <h3 className="text-base font-black text-[#1A1E16]">Finalizing Your Order Confirmation...</h3>
-              <p className="text-xs font-semibold text-[#61665D]">Retrieving verified payment receipt from server</p>
-            </div>
-          )}
-
           {/* Error State */}
-          {!loading && error && (
+          {mounted && !loading && !order && error && (
             <div className="bg-white rounded-3xl p-8 sm:p-10 text-center border border-red-200 shadow-md space-y-4">
               <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto border border-red-200">
                 <AlertCircle className="w-7 h-7" />
@@ -157,58 +193,47 @@ export default function OrderSuccessPage() {
             </div>
           )}
 
-          {/* Success Hero Card with Animated Tick */}
-          {!loading && order && (
-            <div className="bg-white rounded-3xl border border-[#4F534C]/15 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-400">
+          {/* Success Hero Card with Instant Vibrant Green Tick Mark */}
+          {mounted && order && (
+            <div className="bg-white rounded-3xl border border-[#4F534C]/15 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
               
               {/* Header Hero Banner with Animated Tick */}
               <div className="relative overflow-hidden bg-gradient-to-b from-[#EAF0E5] via-[#F3FBEE] to-white px-6 py-8 sm:py-10 text-center border-b border-[#4F534C]/10">
                 
                 {/* Decorative Sparkle Icons */}
-                <div className="absolute top-6 left-8 text-[#656B4F]/30 animate-sparkle hidden sm:block">
-                  <Sparkles className="w-6 h-6" />
+                <div className="absolute top-6 left-8 text-emerald-600/40 hidden sm:block">
+                  <Sparkles className="w-6 h-6 animate-pulse" />
                 </div>
-                <div className="absolute top-10 right-10 text-[#656B4F]/30 animate-sparkle delay-700 hidden sm:block">
-                  <Sparkles className="w-5 h-5" />
+                <div className="absolute top-10 right-10 text-emerald-600/40 hidden sm:block">
+                  <Sparkles className="w-5 h-5 animate-pulse" />
                 </div>
 
-                {/* ANIMATED TICK SYMBOL */}
+                {/* HERO ANIMATED TICK SYMBOL - VIBRANT EMERALD GREEN */}
                 <div className="relative mx-auto w-24 h-24 mb-4 flex items-center justify-center">
                   {/* Outer Pulsing Glow */}
-                  <div className="absolute inset-0 rounded-full bg-[#656B4F]/15 animate-glow-ring" />
+                  <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping opacity-75" style={{ animationDuration: '3s' }} />
+                  <div className="absolute -inset-1.5 rounded-full bg-emerald-500/20 blur-sm" />
 
-                  {/* SVG Animated Tick */}
-                  <div className="relative w-20 h-20 rounded-full bg-[#656B4F] flex items-center justify-center shadow-lg shadow-[#656B4F]/30 animate-checkmark-pop">
+                  {/* Vibrant Emerald Green Circle */}
+                  <div className="relative w-20 h-20 rounded-full bg-gradient-to-tr from-[#15803D] via-[#16A34A] to-[#22C55E] flex items-center justify-center shadow-xl shadow-emerald-600/40 border-2 border-white/90 transform transition-transform duration-500 scale-100 animate-in zoom-in-75">
+                    {/* SVG Clean Solid Checkmark */}
                     <svg
-                      className="w-12 h-12 text-white drop-shadow-sm"
-                      viewBox="0 0 52 52"
+                      className="w-11 h-11 text-white drop-shadow-md"
+                      viewBox="0 0 24 24"
                       fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
+                      stroke="currentColor"
+                      strokeWidth="3.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     >
-                      <circle
-                        cx="26"
-                        cy="26"
-                        r="23"
-                        stroke="rgba(255, 255, 255, 0.35)"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                        className="animate-checkmark-circle"
-                      />
-                      <path
-                        d="M15 27L22.5 34.5L37 19"
-                        stroke="#FAFAF5"
-                        strokeWidth="4.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="animate-checkmark-check"
-                      />
+                      <polyline points="20 6 9 17 4 12" />
                     </svg>
                   </div>
                 </div>
 
                 {/* Title & Badge */}
-                <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-black bg-[#656B4F] text-white shadow-xs mb-3 uppercase tracking-wider">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black bg-gradient-to-r from-emerald-700 to-green-600 text-white shadow-sm mb-3 uppercase tracking-wider">
+                  <ShieldCheck className="w-4 h-4 text-emerald-200" />
                   <span>Payment Verified & Confirmed</span>
                 </div>
 
@@ -244,7 +269,7 @@ export default function OrderSuccessPage() {
 
                   <div className="flex items-center gap-1.5 text-[#61665D]">
                     <Clock className="w-3.5 h-3.5 text-[#656B4F]" />
-                    <span className="font-semibold">
+                    <span suppressHydrationWarning className="font-semibold">
                       {new Date(order.createdAt).toLocaleString('en-IN', {
                         day: '2-digit',
                         month: 'short',

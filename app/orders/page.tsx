@@ -6,7 +6,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import { fetchApi, fetchCachedApi, getCachedData, invalidateCache } from '@/lib/apiConfig';
+import { fetchApi, fetchCachedApi, getCachedData, setCachedData, invalidateCache } from '@/lib/apiConfig';
 import { useRouter } from 'next/navigation';
 import { OrderType } from '@/lib/types';
 import {
@@ -48,6 +48,7 @@ declare global {
 const WHATSAPP_PHONE = '918056389214';
 
 export default function OrdersAndAccountPage() {
+  const router = useRouter();
   const { user, logout, loading: authLoading } = useAuth();
   const { clearCart } = useCart();
 
@@ -68,13 +69,13 @@ export default function OrdersAndAccountPage() {
     return () => clearInterval(timer);
   }, []);
 
-  const fetchOrders = async (silent = false) => {
+  const fetchOrders = async (silent = false, bypassCache = false) => {
     if (!silent && orders.length === 0) setLoading(true);
     try {
       const data = await fetchCachedApi<OrderType[]>('/orders/mine', {
         cacheKey: 'user_orders_cache',
         ttlMs: 30000,
-        bypassCache: !silent,
+        bypassCache: bypassCache || !silent,
       });
       if (data.success && Array.isArray(data.data)) {
         setOrders(data.data);
@@ -106,6 +107,7 @@ export default function OrdersAndAccountPage() {
     setCancellingId(orderId);
     const data = await fetchApi<any>(`/orders/${orderId}/cancel`, { method: 'POST' });
     if (data.success) {
+      invalidateCache('user_orders_cache');
       setOrders((current) => current.map((order) => (order.id === orderId ? data.data : order)));
     } else {
       setError(data.error || 'Unable to cancel order.');
@@ -130,20 +132,31 @@ export default function OrdersAndAccountPage() {
 
       if (!retryRes.success) {
         alert(retryRes.error || 'Payment retry window expired.');
-        fetchOrders(true);
+        fetchOrders(true, true);
         setRetryingOrderId(null);
         return;
       }
 
       if (retryRes.alreadyPaid) {
-        setPaymentSuccessOrder(order.orderNumber);
+        invalidateCache('user_orders_cache');
         clearCart();
-        if (retryRes.data) {
-          setOrders((current) => current.map((ord) => (ord.id === order.id ? retryRes.data : ord)));
+        const confirmedOrder = retryRes.data || order;
+        const confirmedId = confirmedOrder?.id || confirmedOrder?._id || order.id;
+        if (confirmedOrder) {
+          const keys = [confirmedId, confirmedOrder._id, confirmedOrder.id, confirmedOrder.orderNumber, order.id, order._id, order.orderNumber].filter(Boolean);
+          keys.forEach((k: string) => {
+            setCachedData('order_detail_' + k, confirmedOrder);
+            try {
+              sessionStorage.setItem('order_cache_' + k, JSON.stringify(confirmedOrder));
+              localStorage.setItem('order_cache_' + k, JSON.stringify(confirmedOrder));
+            } catch (e) {}
+          });
+          try {
+            sessionStorage.setItem('latest_completed_order', JSON.stringify(confirmedOrder));
+            localStorage.setItem('latest_completed_order', JSON.stringify(confirmedOrder));
+          } catch (e) {}
         }
-        fetchOrders(true);
-        setRetryingOrderId(null);
-        setTimeout(() => setPaymentSuccessOrder(null), 8000);
+        router.replace(`/order-success/${confirmedId}`);
         return;
       }
 
@@ -177,13 +190,28 @@ export default function OrdersAndAccountPage() {
             });
 
             if (verifyData.success) {
-              setPaymentSuccessOrder(order.orderNumber);
+              invalidateCache('user_orders_cache');
               clearCart();
-              if (verifyData.data) {
-                setOrders((current) => current.map((ord) => (ord.id === order.id ? verifyData.data : ord)));
+              const confirmedOrder = verifyData.data || order;
+              const confirmedId = confirmedOrder?.id || confirmedOrder?._id || order.id;
+
+              if (confirmedOrder) {
+                const keys = [confirmedId, confirmedOrder._id, confirmedOrder.id, confirmedOrder.orderNumber, order.id, order._id, order.orderNumber].filter(Boolean);
+                keys.forEach((k: string) => {
+                  setCachedData('order_detail_' + k, confirmedOrder);
+                  try {
+                    sessionStorage.setItem('order_cache_' + k, JSON.stringify(confirmedOrder));
+                    localStorage.setItem('order_cache_' + k, JSON.stringify(confirmedOrder));
+                  } catch (e) {}
+                });
+                try {
+                  sessionStorage.setItem('latest_completed_order', JSON.stringify(confirmedOrder));
+                  localStorage.setItem('latest_completed_order', JSON.stringify(confirmedOrder));
+                } catch (e) {}
               }
-              fetchOrders(true);
-              setTimeout(() => setPaymentSuccessOrder(null), 8000);
+
+              router.replace(`/order-success/${confirmedId}`);
+              return;
             } else {
               alert('Payment verification failed: ' + (verifyData.error || 'Unknown error'));
             }
@@ -527,7 +555,7 @@ export default function OrdersAndAccountPage() {
                           <span className="text-xs font-black text-[#262E1F] uppercase tracking-wider block mb-0.5 font-mono">
                             Order #{order.orderNumber}
                           </span>
-                          <span className="text-[11px] sm:text-xs font-semibold text-stone-500 block">
+                          <span suppressHydrationWarning className="text-[11px] sm:text-xs font-semibold text-stone-500 block">
                             Placed on{' '}
                             {new Date(order.createdAt).toLocaleDateString('en-IN', {
                               year: 'numeric',

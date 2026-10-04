@@ -13,10 +13,23 @@ export default function OrderSuccessFallbackPage() {
   useEffect(() => {
     if (id) {
       router.replace(`/order-success/${encodeURIComponent(id)}`);
-    } else {
-      router.replace('/orders');
+      return;
     }
+    if (typeof window !== 'undefined') {
+      try {
+        const latest = sessionStorage.getItem('latest_completed_order') || localStorage.getItem('latest_completed_order');
+        if (latest) {
+          const parsed = JSON.parse(latest);
+          const targetId = parsed.id || parsed._id || parsed.orderNumber;
+          if (targetId) {
+            router.replace(`/order-success/${encodeURIComponent(targetId)}`);
+            return;
+          }
+        }
+      } catch (e) {}
+    }
+    router.replace('/orders');
   }, [id, router]);
 
-  return <DeliveryLoadingScreen message="Loading your order confirmation..." />;
+  return <DeliveryLoadingScreen message="Opening your order confirmation..." />;
 }

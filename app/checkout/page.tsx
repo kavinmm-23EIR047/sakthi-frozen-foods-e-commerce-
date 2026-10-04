@@ -6,7 +6,7 @@ import Script from 'next/script';
 import { CheckCircle2, ShoppingBag, CreditCard, Truck, ArrowLeft, ShieldCheck, Lock, UserCheck, LogIn, ArrowRight, Search, ChevronDown, Package, Sparkles, Loader2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
-import { fetchApi } from '@/lib/apiConfig';
+import { fetchApi, setCachedData, invalidateCache } from '@/lib/apiConfig';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import AddressSearch from '@/components/AddressSearch';
@@ -108,7 +108,23 @@ export default function CheckoutPage() {
             } catch (e) {}
             clearCart();
             setIsRecoveringPayment(false);
-            const confirmedId = statusRes.data.id || statusRes.data._id || pending.orderId;
+            const confirmedOrder = statusRes.data;
+            const confirmedId = confirmedOrder.id || confirmedOrder._id || pending.orderId;
+            if (confirmedOrder) {
+              const keys = [confirmedId, confirmedOrder._id, confirmedOrder.id, confirmedOrder.orderNumber, pending.orderId].filter(Boolean);
+              keys.forEach((k: string) => {
+                setCachedData('order_detail_' + k, confirmedOrder);
+                try {
+                  sessionStorage.setItem('order_cache_' + k, JSON.stringify(confirmedOrder));
+                  localStorage.setItem('order_cache_' + k, JSON.stringify(confirmedOrder));
+                } catch (e) {}
+              });
+              try {
+                sessionStorage.setItem('latest_completed_order', JSON.stringify(confirmedOrder));
+                localStorage.setItem('latest_completed_order', JSON.stringify(confirmedOrder));
+              } catch (e) {}
+            }
+            invalidateCache('user_orders_cache');
             router.replace(`/order-success/${confirmedId}`);
             return;
           } else if (statusRes.data?.paymentStatus === 'Failed') {
@@ -326,7 +342,35 @@ export default function CheckoutPage() {
                 } catch (e) {}
               }
               clearCart();
-              const confirmedId = verifyData.data?.id || verifyData.data?._id || orderData.data?.id;
+              const confirmedOrder = verifyData.data || orderData.data;
+              const confirmedId = confirmedOrder?.id || confirmedOrder?._id || orderData.data?.id;
+
+              if (confirmedOrder) {
+                const keys = [
+                  confirmedId,
+                  confirmedOrder._id,
+                  confirmedOrder.id,
+                  confirmedOrder.orderNumber,
+                  orderData.data?.id,
+                  orderData.data?._id,
+                  orderData.data?.orderNumber,
+                ].filter(Boolean);
+
+                keys.forEach((k: string) => {
+                  setCachedData('order_detail_' + k, confirmedOrder);
+                  try {
+                    sessionStorage.setItem('order_cache_' + k, JSON.stringify(confirmedOrder));
+                    localStorage.setItem('order_cache_' + k, JSON.stringify(confirmedOrder));
+                  } catch (e) {}
+                });
+
+                try {
+                  sessionStorage.setItem('latest_completed_order', JSON.stringify(confirmedOrder));
+                  localStorage.setItem('latest_completed_order', JSON.stringify(confirmedOrder));
+                } catch (e) {}
+              }
+
+              invalidateCache('user_orders_cache');
               router.replace(`/order-success/${confirmedId}`);
               return;
             } else {

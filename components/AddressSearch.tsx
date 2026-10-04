@@ -1,8 +1,13 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Loader2, MapPin, Search } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Loader2, MapPin, Search, Sparkles, Navigation, Check } from 'lucide-react';
 import { calculateDistanceKm, SHOP_COORDINATES } from '@/lib/deliveryRates';
+import {
+  searchCoimbatoreLocalities,
+  COIMBATORE_MASTER_AREAS,
+  type CoimbatoreSearchResult,
+} from '@/lib/coimbatoreAreas';
 
 const LOCAL_RADIUS_KM = 25;
 const LOCAL_VIEWBOX = '76.67,11.27,77.22,10.82';
@@ -25,15 +30,50 @@ interface AddressSearchProps {
   onLocationSearchChange: () => void;
 }
 
-export default function AddressSearch({ onLocationSelect, onLocationSearchChange }: AddressSearchProps) {
+const POPULAR_QUICK_CHIPS = [
+  'RS Puram',
+  'Gandhipuram',
+  'Saibaba Colony',
+  'Peelamedu',
+  'Saravanampatti',
+  'Vadavalli',
+  'Thudiyalur',
+  'Koundampalayam',
+  'Singanallur',
+  'Kovaipudur',
+];
+
+export default function AddressSearch({
+  onLocationSelect,
+  onLocationSearchChange,
+}: AddressSearchProps) {
   const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [localResults, setLocalResults] = useState<CoimbatoreSearchResult[]>([]);
+  const [osmResults, setOsmResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasSelectedAddress, setHasSelectedAddress] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
+  // Instant Local Coimbatore Search (0 ms latency)
+  useEffect(() => {
+    if (hasSelectedAddress) {
+      setLocalResults([]);
+      return;
+    }
+
+    if (query.trim().length >= 2) {
+      const matches = searchCoimbatoreLocalities(query);
+      setLocalResults(matches);
+    } else {
+      setLocalResults([]);
+    }
+  }, [query, hasSelectedAddress]);
+
+  // Live OpenStreetMap search for specific door/building/street numbers
   useEffect(() => {
     if (hasSelectedAddress || query.trim().length < 3) {
-      setSuggestions([]);
+      setOsmResults([]);
       setLoading(false);
       return;
     }
@@ -46,15 +86,18 @@ export default function AddressSearch({ onLocationSelect, onLocationSearchChange
           format: 'json',
           addressdetails: '1',
           countrycodes: 'in',
-          limit: '10',
+          limit: '8',
           viewbox: LOCAL_VIEWBOX,
           bounded: '1',
-          q: query,
+          q: `${query}, Coimbatore`,
         });
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-          signal: controller.signal,
-          headers: { 'Accept-Language': 'en' },
-        });
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?${params}`,
+          {
+            signal: controller.signal,
+            headers: { 'Accept-Language': 'en' },
+          }
+        );
         if (response.ok) {
           const text = await response.text();
           let results = [];
@@ -64,23 +107,35 @@ export default function AddressSearch({ onLocationSelect, onLocationSearchChange
             results = [];
           }
           if (Array.isArray(results)) {
-            setSuggestions(results.filter((item: any) => {
+            const filtered = results.filter((item: any) => {
               const lat = Number(item.lat);
               const lng = Number(item.lon);
               const address = item.address || {};
               const state = String(address.state || '').toLowerCase();
-              const distance = calculateDistanceKm(SHOP_COORDINATES.lat, SHOP_COORDINATES.lng, lat, lng);
-              return Number.isFinite(lat) && Number.isFinite(lng) &&
-                state.includes('tamil nadu') && distance <= LOCAL_RADIUS_KM;
-            }));
+              const distance = calculateDistanceKm(
+                SHOP_COORDINATES.lat,
+                SHOP_COORDINATES.lng,
+                lat,
+                lng
+              );
+              return (
+                Number.isFinite(lat) &&
+                Number.isFinite(lng) &&
+                state.includes('tamil nadu') &&
+                distance <= LOCAL_RADIUS_KM
+              );
+            });
+            setOsmResults(filtered);
           }
         }
       } catch (error) {
-        if ((error as Error).name !== 'AbortError') console.warn('Address search failed:', error);
+        if ((error as Error).name !== 'AbortError') {
+          console.warn('Live address search skipped:', error);
+        }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
-    }, 400);
+    }, 450);
 
     return () => {
       clearTimeout(timer);
@@ -88,7 +143,42 @@ export default function AddressSearch({ onLocationSelect, onLocationSearchChange
     };
   }, [query, hasSelectedAddress]);
 
-  const selectAddress = (result: any) => {
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(event.target as Node)
+      ) {
+        setIsFocused(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectMasterArea = (result: CoimbatoreSearchResult) => {
+    const location: LocationData = {
+      lat: result.lat,
+      lng: result.lng,
+      displayName: result.displayName,
+      road: result.subArea || '',
+      suburb: result.areaName,
+      neighbourhood: result.subArea || result.areaName,
+      landmark: result.subArea ? `${result.subArea}, ${result.areaName}` : result.areaName,
+      city: 'Coimbatore',
+      state: 'Tamil Nadu',
+      pincode: result.pincode,
+    };
+    setHasSelectedAddress(true);
+    setQuery(result.title + ', Coimbatore');
+    setLocalResults([]);
+    setOsmResults([]);
+    setIsFocused(false);
+    onLocationSelect(location);
+  };
+
+  const selectOsmAddress = (result: any) => {
     const address = result.address || {};
     const location: LocationData = {
       lat: Number(result.lat),
@@ -97,54 +187,156 @@ export default function AddressSearch({ onLocationSelect, onLocationSearchChange
       road: address.road || address.street || address.pedestrian || '',
       suburb: address.suburb || address.neighbourhood || address.residential || '',
       landmark: address.amenity || address.building || '',
-      city: address.city || address.town || address.village || address.municipality || address.county || address.state_district || '',
-      state: address.state || '',
+      city: address.city || address.town || address.village || address.municipality || 'Coimbatore',
+      state: address.state || 'Tamil Nadu',
       pincode: address.postcode || '',
     };
     setHasSelectedAddress(true);
     setQuery(result.display_name);
-    setSuggestions([]);
+    setLocalResults([]);
+    setOsmResults([]);
+    setIsFocused(false);
     onLocationSelect(location);
   };
 
+  const handleChipClick = (areaName: string) => {
+    setHasSelectedAddress(false);
+    setQuery(areaName);
+    onLocationSearchChange();
+    setIsFocused(true);
+  };
+
+  const hasSuggestions = localResults.length > 0 || osmResults.length > 0;
+
   return (
-    <div className="relative">
-      <label htmlFor="address-search" className="mb-1 block text-xs font-bold text-[#1A1E16]">
-        Search a Coimbatore street, landmark or PIN code
-      </label>
+    <div ref={wrapperRef} className="relative space-y-2">
+      <div className="flex items-center justify-between">
+        <label
+          htmlFor="address-search"
+          className="block text-xs font-black text-[#1A1E16] flex items-center gap-1.5"
+        >
+          <Navigation className="w-3.5 h-3.5 text-[#656B4F]" />
+          <span>Search Any Coimbatore Area, Colony, Street or PIN Code</span>
+        </label>
+        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60">
+          Entire Coimbatore District Covered
+        </span>
+      </div>
+
+      {/* Search Input Box */}
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#656B4F]" />
-        {loading && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[#656B4F]" />}
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#656B4F]" />
+        {loading && (
+          <Loader2 className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[#656B4F]" />
+        )}
         <input
           id="address-search"
           type="search"
           value={query}
+          onFocus={() => setIsFocused(true)}
           onChange={(event) => {
             setHasSelectedAddress(false);
             setQuery(event.target.value);
             onLocationSearchChange();
+            setIsFocused(true);
           }}
-          placeholder="Search within 25 km of the Coimbatore shop"
+          placeholder="e.g. RS Puram, DB Road, Gandhipuram, Saibaba Colony, Peelamedu, 641002..."
           autoComplete="off"
-          className="w-full rounded-xl border border-[#4F534C]/25 bg-white py-3 pl-10 pr-10 text-sm text-[#1A1E16] outline-none focus:ring-2 focus:ring-[#656B4F]"
+          className="w-full rounded-xl border border-[#4F534C]/25 bg-white py-3 pl-10 pr-10 text-sm text-[#1A1E16] outline-none focus:ring-2 focus:ring-[#656B4F] shadow-xs"
         />
       </div>
-      {suggestions.length > 0 && (
-        <div className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-[#4F534C]/20 bg-white shadow-xl">
-          {suggestions.map((item, index) => (
-            <button
-              key={`${item.place_id}-${index}`}
-              type="button"
-              onClick={() => selectAddress(item)}
-              className="flex w-full items-start gap-2 border-b border-[#4F534C]/10 px-3 py-3 text-left last:border-0 hover:bg-[#EAF0E5]"
-            >
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#656B4F]" />
-              <span className="text-xs font-medium leading-relaxed text-[#1A1E16]">{item.display_name}</span>
-            </button>
-          ))}
+
+      {/* Quick Popular Area Chips */}
+      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+        <span className="text-[10px] font-bold text-[#61665D] mr-0.5 flex items-center gap-1">
+          <Sparkles className="w-3 h-3 text-amber-500" />
+          <span>Popular:</span>
+        </span>
+        {POPULAR_QUICK_CHIPS.map((chip) => (
+          <button
+            key={chip}
+            type="button"
+            onClick={() => handleChipClick(chip)}
+            className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-[#EAF0E5] hover:bg-[#DDE8D6] text-[#50563D] border border-[#656B4F]/20 transition-all cursor-pointer active:scale-95"
+          >
+            {chip}
+          </button>
+        ))}
+      </div>
+
+      {/* Search Results Dropdown */}
+      {isFocused && hasSuggestions && (
+        <div className="absolute z-50 left-0 right-0 mt-1 max-h-80 w-full overflow-y-auto rounded-2xl border border-[#4F534C]/20 bg-white shadow-2xl divide-y divide-stone-100 animate-in fade-in zoom-in-95 duration-150">
+          
+          {/* Master Coimbatore Localities */}
+          {localResults.length > 0 && (
+            <div>
+              <div className="px-3 py-1.5 bg-[#F3FBEE] text-[10px] font-black uppercase tracking-wider text-[#50563D] flex items-center justify-between border-b border-[#656B4F]/10">
+                <span>Coimbatore Areas & Sub-Localities ({localResults.length})</span>
+                <span>Verified GPS Rate</span>
+              </div>
+              {localResults.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => selectMasterArea(item)}
+                  className="flex w-full items-start justify-between gap-3 px-3.5 py-2.5 text-left hover:bg-[#EAF0E5] transition-colors cursor-pointer group"
+                >
+                  <div className="flex items-start gap-2.5 min-w-0">
+                    <div className="w-6 h-6 rounded-lg bg-[#EAF0E5] group-hover:bg-[#656B4F] text-[#656B4F] group-hover:text-white flex items-center justify-center shrink-0 mt-0.5 transition-colors">
+                      <MapPin className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-black text-[#1A1E16] truncate">
+                        {item.title}
+                      </div>
+                      <div className="text-[11px] font-semibold text-[#61665D] truncate">
+                        {item.subtitle}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span className="text-[11px] font-black px-2 py-0.5 rounded bg-[#EAF0E5] text-[#50563D] border border-[#656B4F]/20">
+                      ₹{item.deliveryFee} fee
+                    </span>
+                    <div className="text-[10px] text-stone-400 font-bold mt-0.5">
+                      ~{item.distanceKm} km
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* OpenStreetMap Live GPS Results */}
+          {osmResults.length > 0 && (
+            <div>
+              <div className="px-3 py-1.5 bg-stone-50 text-[10px] font-black uppercase tracking-wider text-stone-500 border-b border-stone-200">
+                <span>Specific Building / Street Addresses</span>
+              </div>
+              {osmResults.map((item, index) => (
+                <button
+                  key={`${item.place_id}-${index}`}
+                  type="button"
+                  onClick={() => selectOsmAddress(item)}
+                  className="flex w-full items-start gap-2.5 px-3.5 py-2.5 text-left hover:bg-stone-50 transition-colors cursor-pointer"
+                >
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-stone-400" />
+                  <span className="text-xs font-medium leading-relaxed text-[#1A1E16]">
+                    {item.display_name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
-      <p className="mt-1 text-[11px] text-[#59604F]">Only Tamil Nadu addresses within 25 km of the shop are shown. Select a result to calculate the local delivery charge.</p>
+
+      <p className="text-[11px] text-[#59604F] flex items-center gap-1">
+        <span>📍 Direct bike delivery across all Coimbatore areas within 25 km from store (Koundampalayam). Delivery fee is ₹10/km (₹40 min to ₹250 max). Free over ₹2999.</span>
+      </p>
     </div>
   );
 }
+
