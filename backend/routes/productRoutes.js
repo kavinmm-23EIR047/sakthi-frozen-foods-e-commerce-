@@ -4,6 +4,7 @@ const router = express.Router();
 const Product = require('../models/Product');
 const { protect, admin } = require('../middleware/authMiddleware');
 const cacheService = require('../services/cacheService');
+const socketService = require('../services/socketService');
 const { broadcastProductUpdate } = require('../services/pushNotificationService');
 
 function escapeRegex(value) {
@@ -228,6 +229,9 @@ router.put('/:id', protect, admin, async (req, res) => {
     } else if (input.stock !== undefined && input.stock > 0 && req.body.broadcastStock) {
       broadcastProductUpdate(updated, 'backInStock').catch((e) => console.error('Push error:', e.message));
     }
+
+    // Emit real-time product update event to connected clients (like Admin portal)
+    socketService.emitEvent('productUpdated', updated);
 
     res.json({
       success: true,

@@ -13,6 +13,7 @@ const { getDeliveryCalculation } = require('../utils/deliveryRates');
 const { buildInvoiceHtml } = require('../services/emailService');
 const { generateInvoicePdf } = require('../services/pdfService');
 const cacheService = require('../services/cacheService');
+const socketService = require('../services/socketService');
 
 const router = express.Router();
 const createOrderLimiter = rateLimit({ windowMs: 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
@@ -445,6 +446,8 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
     }
 
     void queueOrderNotifications(created, 'order.created');
+    socketService.emitEvent('newOrder', publicOrder(created)); // Emit real-time event
+
     res.status(201).json({
       success: true,
       data: publicOrder(created),
@@ -645,7 +648,11 @@ router.put('/:id', protect, admin, async (req, res, next) => {
     const updated = await Order.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true, runValidators: true });
     if (!updated) return res.status(404).json({ success: false, error: 'Order not found' });
     void queueOrderNotifications(updated, `order.${req.body.status.toLowerCase()}`);
-    res.json({ success: true, data: publicOrder(updated) });
+    
+    const pub = publicOrder(updated);
+    socketService.emitEvent('orderUpdated', pub); // Emit real-time event
+    
+    res.json({ success: true, data: pub });
   } catch (error) {
     next(error);
   }

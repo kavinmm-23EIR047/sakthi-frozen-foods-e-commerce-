@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Script from 'next/script';
+import io from 'socket.io-client';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
@@ -68,6 +69,36 @@ export default function OrdersAndAccountPage() {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Real-time socket.io hook for listening to order updates
+  useEffect(() => {
+    if (!user) return; // Only connect if logged in
+
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL
+      ? process.env.NEXT_PUBLIC_API_URL.replace('/api', '')
+      : (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://api.tnmockmeat.com');
+      
+    const socket = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+    });
+
+    socket.on('connect', () => {
+      console.log('User connected to real-time socket:', socket.id);
+    });
+
+    socket.on('orderUpdated', (updatedOrder) => {
+      // If the updated order belongs to the current user, refresh the list
+      if (updatedOrder && updatedOrder.user === user.id) {
+        // fetch orders silently and bypass cache to get the latest status
+        fetchOrders(true, true);
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user]);
 
   const fetchOrders = async (silent = false, bypassCache = false) => {
     if (!silent && orders.length === 0) setLoading(true);

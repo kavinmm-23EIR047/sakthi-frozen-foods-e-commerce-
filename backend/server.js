@@ -6,14 +6,21 @@ require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const http = require('http');
 const rateLimit = require('express-rate-limit');
 const crypto = require('crypto');
 const connectDB = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const { retryDueNotifications } = require('./services/notificationService');
 const cacheService = require('./services/cacheService');
+const socketService = require('./services/socketService');
 
 const app = express();
+const server = http.createServer(app);
+
+// Initialize Socket.io
+socketService.init(server);
+
 app.set('trust proxy', 1);
 
 // Middleware
@@ -115,7 +122,7 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 
 function startServer() {
-  const server = app.listen(PORT, () => {
+  const serverInstance = server.listen(PORT, () => {
     console.log(`Sakthi Frozen Foods Backend API running on port ${PORT}`);
   });
 
@@ -177,11 +184,11 @@ function startServer() {
     }
   };
   void connectWithRetry();
-  return server;
+  return serverInstance;
 }
 
 if (require.main === module) {
   startServer();
 }
 
-module.exports = { app, startServer };
+module.exports = { app, server, startServer };

@@ -114,13 +114,6 @@ export default function CheckoutPage() {
           if (statusRes.data?.paymentStatus === 'Paid') {
             clearInterval(intervalId);
             isRedirectingToOrders.current = true;
-            try {
-              localStorage.removeItem('sakthi_pending_payment');
-              localStorage.setItem('sakthi_cart', JSON.stringify([]));
-              sessionStorage.removeItem('active_checkout_rzp_order_id');
-              sessionStorage.removeItem('active_checkout_order_id');
-            } catch (e) {}
-            clearCart();
             setIsRecoveringPayment(false);
             const confirmedOrder = statusRes.data;
             const confirmedId = confirmedOrder.id || confirmedOrder._id || pending.orderId;
@@ -351,15 +344,6 @@ export default function CheckoutPage() {
 
             if (verifyData.success) {
               isRedirectingToOrders.current = true;
-              if (typeof window !== 'undefined') {
-                try {
-                  localStorage.removeItem('sakthi_pending_payment');
-                  localStorage.setItem('sakthi_cart', JSON.stringify([]));
-                  sessionStorage.removeItem('active_checkout_rzp_order_id');
-                  sessionStorage.removeItem('active_checkout_order_id');
-                } catch (e) {}
-              }
-              clearCart();
               const confirmedOrder = verifyData.data || orderData.data;
               const confirmedId = confirmedOrder?.id || confirmedOrder?._id || orderData.data?.id;
 

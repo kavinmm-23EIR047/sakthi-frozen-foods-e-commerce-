@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import io from 'socket.io-client';
 import {
   LayoutDashboard,
   Package,
@@ -257,7 +258,7 @@ export default function AdminPortalPage() {
     }
   }, []);
 
-  // Live Auto-Refresh Polling Hook
+  // Live Auto-Refresh Polling Hook (fallback for standard sync)
   useEffect(() => {
     if (!refreshInterval || refreshInterval <= 0) return;
     const timer = setInterval(() => {
@@ -265,6 +266,41 @@ export default function AdminPortalPage() {
     }, refreshInterval * 1000);
     return () => clearInterval(timer);
   }, [refreshInterval, soundEnabled]);
+
+  // Real-time Socket.io Hook
+  useEffect(() => {
+    // Determine the correct backend URL for Socket.io
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL
+      ? process.env.NEXT_PUBLIC_API_URL.replace('/api', '')
+      : (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://api.tnmockmeat.com');
+      
+    const socket = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+    });
+
+    socket.on('connect', () => {
+      console.log('Admin connected to real-time socket:', socket.id);
+    });
+
+    socket.on('newOrder', (order) => {
+      setNewOrderAlert(`1 New Order Received! (#${order?.orderNumber || ''} by ${order?.customerName || ''})`);
+      if (soundEnabled) playNewOrderSound();
+      fetchData(true);
+    });
+
+    socket.on('orderUpdated', () => {
+      fetchData(true);
+    });
+
+    socket.on('productUpdated', () => {
+      fetchData(true);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [soundEnabled]);
 
   // CRUD Handlers for Products
   const handleSaveProduct = async (e: React.FormEvent) => {
