@@ -57,6 +57,20 @@ async function fetchVerifiedPayment(razorpayOrderId, razorpayPaymentId, expected
     error.statusCode = 400;
     throw error;
   }
+
+  // Auto-capture authorized payments to prevent 5-day auto-refunds
+  if (payment.status === 'authorized') {
+    try {
+      await razorpay.payments.capture(razorpayPaymentId, expectedAmount, 'INR');
+      payment.status = 'captured';
+    } catch (captureErr) {
+      console.error('Error auto-capturing authorized payment:', captureErr);
+      const error = new Error('Payment was authorized but failed to capture. Please contact support.');
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+
   return payment;
 }
 

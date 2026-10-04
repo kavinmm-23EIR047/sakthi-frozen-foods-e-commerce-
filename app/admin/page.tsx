@@ -160,6 +160,7 @@ export default function AdminPortalPage() {
     image: '',
     isPopular: false,
     variants: [] as { weight: string; price: number }[],
+    broadcastStock: false,
   });
 
   const [categoryFormData, setCategoryFormData] = useState({
@@ -439,6 +440,7 @@ export default function AdminPortalPage() {
       image: prod.image,
       isPopular: !!prod.isPopular,
       variants: prod.variants || [],
+      broadcastStock: false,
     });
     setImageType('url');
     setImageFile(null);
@@ -458,6 +460,7 @@ export default function AdminPortalPage() {
       image: '',
       isPopular: false,
       variants: [],
+      broadcastStock: false,
     });
     setImageType('url');
     setImageFile(null);
@@ -2754,6 +2757,21 @@ export default function AdminPortalPage() {
                     <span>{formData.stock > 0 ? 'IN STOCK (LIVE)' : 'OUT OF STOCK (OFF)'}</span>
                   </button>
                 </div>
+                {formData.stock > 0 && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <input
+                      type="checkbox"
+                      id="broadcastStock"
+                      checked={formData.broadcastStock || false}
+                      onChange={(e) => setFormData({ ...formData, broadcastStock: e.target.checked })}
+                      className="w-4 h-4 rounded border-[#D3D8CF] text-[#656B4F] focus:ring-[#656B4F]"
+                    />
+                    <label htmlFor="broadcastStock" className="text-xs font-bold text-[#656B4F] flex items-center gap-1 cursor-pointer">
+                      <Bell className="w-3.5 h-3.5" />
+                      Send "Back in Stock" push notification
+                    </label>
+                  </div>
+                )}
               </div>
 
               <ImageUploader
