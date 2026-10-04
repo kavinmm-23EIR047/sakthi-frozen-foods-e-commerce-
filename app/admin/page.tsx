@@ -457,13 +457,21 @@ export default function AdminPortalPage() {
 
 
   const handleUpdateOrderStatus = async (orderId: string, status: string) => {
+    // Optimistic Update
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
+    if (selectedOrderModal && selectedOrderModal.id === orderId) {
+      setSelectedOrderModal(prev => prev ? { ...prev, status: status as any } : prev);
+    }
+    
     try {
       const data = await fetchApi(`/orders/${orderId}`, {
         method: 'PUT',
         body: JSON.stringify({ status }),
       });
       if (data.success) {
-        fetchData();
+        fetchData(true);
+      } else {
+        fetchData(true); // Revert
       }
     } catch (err) {
       console.error(err);
@@ -652,9 +660,16 @@ export default function AdminPortalPage() {
     return `https://wa.me/${phoneWithCountry}?text=${msg}`;
   };
 
-  // Follow-Up Status Update Handler
   const handleUpdateFollowUp = async (orderId: string, status: string, notes?: string) => {
     setUpdatingFollowUpId(orderId);
+    
+    // Optimistic Update
+    setOrders(prev => prev.map(o => o.id === orderId ? { 
+      ...o, 
+      followUpStatus: status,
+      ...(notes !== undefined ? { followUpNotes: notes } : {})
+    } : o));
+    
     try {
       const res = await fetchApi(`/orders/${orderId}/follow-up`, {
         method: 'PUT',
@@ -665,9 +680,12 @@ export default function AdminPortalPage() {
       });
       if (res.success) {
         fetchData(true);
+      } else {
+        fetchData(true); // Revert
       }
     } catch (err) {
       console.error('Error updating follow up status:', err);
+      fetchData(true); // Revert
     } finally {
       setUpdatingFollowUpId(null);
     }
