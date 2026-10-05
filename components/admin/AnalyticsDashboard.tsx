@@ -54,6 +54,15 @@ export default function AnalyticsDashboard({ orders, products, users, categories
     ord.status !== 'Payment Failed' &&
     (ord.status === 'Confirmed' || ord.paymentStatus === 'Paid');
 
+  const isRefunded = (ord: OrderType) =>
+    ord.paymentStatus === 'Refunded' || ord.refundStatus === 'Processed';
+  const failedOrders = filteredOrders.filter(o => !isRefunded(o) && (isOrderFailedOrExpired(o) || o.status === 'Payment Failed'));
+  const refundedOrders = filteredOrders.filter(isRefunded);
+  const recentIssueOrders = [...filteredOrders]
+    .filter(o => isRefunded(o) || isOrderFailedOrExpired(o) || o.status === 'Payment Failed')
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
+
   // Metrics
   const totalRevenue = filteredOrders.filter(isConfirmed).reduce((acc, o) => acc + o.totalAmount, 0);
   const totalOrdersCount = filteredOrders.length;
@@ -71,7 +80,8 @@ export default function AnalyticsDashboard({ orders, products, users, categories
   const revenueByStatus = [
     { name: 'Confirmed', value: totalRevenue },
     { name: 'Awaiting', value: filteredOrders.filter(o => !isOrderFailedOrExpired(o) && (o.status === 'Awaiting Payment' || o.status === 'Pending') && o.paymentStatus === 'Pending').reduce((acc, o) => acc + o.totalAmount, 0) },
-    { name: 'Failed/Cancelled', value: filteredOrders.filter(o => isOrderFailedOrExpired(o) || o.status === 'Payment Failed' || o.status === 'Cancelled').reduce((acc, o) => acc + o.totalAmount, 0) }
+    { name: 'Failed/Cancelled', value: failedOrders.reduce((acc, o) => acc + o.totalAmount, 0) },
+    { name: 'Refunded', value: refundedOrders.reduce((acc, o) => acc + o.totalAmount, 0) }
   ];
 
   // Daily Revenue (Last 7 Days)
@@ -112,7 +122,7 @@ export default function AnalyticsDashboard({ orders, products, users, categories
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-[#4F534C]/15 shadow-sm">
         <div>
           <h2 className="text-lg font-black text-[#1E201D] font-poppins">Analytics Overview</h2>
-          <p className="text-xs text-[#61665D] mt-0.5">Track your store's performance and sales trends.</p>
+          <p className="text-xs text-[#61665D] mt-0.5">Sales metrics include paid or confirmed orders only. Failed, cancelled, and refunded orders are excluded.</p>
         </div>
         <div className="flex items-center gap-2 bg-[#EAF0E5] p-1 rounded-xl w-full sm:w-auto overflow-x-auto scrollbar-hide">
           {[
@@ -183,6 +193,34 @@ export default function AnalyticsDashboard({ orders, products, users, categories
             </div>
           </div>
 
+          <section className="rounded-2xl border border-[#4F534C]/15 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-bold text-[#1E201D]">Recent Failed &amp; Refunded Orders</h3>
+              <span className="text-[11px] text-[#61665D]">{failedOrders.length} failed · {refundedOrders.length} refunded in this period</span>
+            </div>
+            {recentIssueOrders.length ? (
+              <div className="divide-y divide-[#EAF0E5]">
+                {recentIssueOrders.map(order => (
+                  <div key={order.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-xs">
+                    <div className="min-w-0">
+                      <span className="font-bold text-[#1E201D]">#{order.orderNumber}</span>
+                      <span className="ml-2 text-[#61665D]">{order.customerName}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`rounded-full px-2 py-1 font-bold ${isRefunded(order) ? 'bg-purple-50 text-purple-700' : 'bg-red-50 text-red-700'}`}>
+                        {isRefunded(order) ? 'Refunded' : order.status === 'Cancelled' ? 'Cancelled' : 'Failed'}
+                      </span>
+                      <span className="font-bold text-[#1E201D]">₹{Number(order.totalAmount || 0).toLocaleString()}</span>
+                      <span className="text-[#61665D]">{new Date(order.createdAt).toLocaleDateString('en-IN')}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-[#61665D]">No failed or refunded orders in this period.</p>
+            )}
+          </section>
+
           {/* Charts Row 1 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#4F534C]/15 shadow-sm">
@@ -211,7 +249,8 @@ export default function AnalyticsDashboard({ orders, products, users, categories
             </div>
 
             <div className="bg-white p-4 sm:p-6 rounded-2xl border border-[#4F534C]/15 shadow-sm">
-              <h3 className="text-sm font-bold text-[#1E201D] mb-6">Revenue by Order Status (Filtered)</h3>
+              <h3 className="text-sm font-bold text-[#1E201D] mb-1">Order Totals by Status (Filtered)</h3>
+              <p className="text-[11px] text-[#61665D] mb-4">Failed, cancelled, and refunded order amounts are shown separately; these are not counted as sales revenue above.</p>
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={revenueByStatus} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -257,7 +296,7 @@ export default function AnalyticsDashboard({ orders, products, users, categories
               ) : (
                 <div className="h-64 flex flex-col items-center justify-center text-[#61665D]">
                   <Package className="w-10 h-10 mb-2 opacity-50" />
-                  <p className="text-xs">No product sales in this period.</p>
+                  <p className="text-xs">No paid or confirmed product sales in this period. Failed, cancelled, and refunded orders are excluded.</p>
                 </div>
               )}
             </div>

@@ -60,6 +60,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 import ImageUploader from '@/components/ImageUploader';
 import OptimizedImage from '@/components/OptimizedImage';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
+import { NotificationsPage } from './notifications/page';
 
 function isRetailCategory(category: string) {
   return category.toUpperCase().includes('RETAIL PACK');
@@ -101,7 +102,7 @@ function playNewOrderSound() {
 }
 
 export default function AdminPortalPage() {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'products' | 'categories' | 'orders' | 'logs' | 'users' | 'reviews'>('orders');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'products' | 'categories' | 'orders' | 'logs' | 'users' | 'reviews' | 'notifications'>('orders');
 
   // Data states
   const [products, setProducts] = useState<ProductType[]>([]);
@@ -1011,10 +1012,10 @@ export default function AdminPortalPage() {
               );
             })}
           </nav>
-          <Link href="/admin/notifications" className="mt-3 flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold text-[#52574E] hover:bg-[#EAF0E5] hover:text-[#1E201D]">
+          <button onClick={() => setActiveTab('notifications')} className={`mt-3 flex min-h-11 w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-bold transition-colors ${activeTab === 'notifications' ? 'bg-[#656B4F] text-white shadow-sm' : 'text-[#52574E] hover:bg-[#EAF0E5] hover:text-[#1E201D]'}`}>
             <Bell className="h-4 w-4" />
             Notifications
-          </Link>
+          </button>
         </aside>
 
         <div className="min-w-0 space-y-6">
@@ -1161,6 +1162,8 @@ export default function AdminPortalPage() {
             loading={loading} 
           />
         )}
+
+        {activeTab === 'notifications' && <NotificationsPage />}
 
         {/* TAB 1: PRODUCTS (CRUD) */}
         {activeTab === 'products' && (

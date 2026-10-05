@@ -41,7 +41,7 @@ type TelegramChat = {
   lastName: string | null;
 };
 
-export default function NotificationsPage() {
+export function NotificationsPage() {
   const [records, setRecords] = useState<NotificationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
@@ -456,3 +456,5 @@ export default function NotificationsPage() {
     </main>
   );
 }
+
+export default NotificationsPage;
