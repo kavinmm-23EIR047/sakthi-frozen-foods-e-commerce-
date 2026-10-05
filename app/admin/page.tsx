@@ -60,7 +60,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
 import ImageUploader from '@/components/ImageUploader';
 import OptimizedImage from '@/components/OptimizedImage';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
-import { NotificationsPage } from './notifications/page';
+import { NotificationsPage } from './notifications/NotificationsPage';
 
 function isRetailCategory(category: string) {
   return category.toUpperCase().includes('RETAIL PACK');
