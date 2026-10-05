@@ -306,6 +306,16 @@ export default function Navbar({
                 <ExternalLink className="w-3 h-3 opacity-50" />
               </a>
 
+              <a
+                href={`${MAIN_SITE_URL}/licenses`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 px-3 py-2 rounded-lg hover:text-[#656B4F] hover:bg-gray-100 transition-all"
+              >
+                <span>Licensed</span>
+                <ExternalLink className="w-3 h-3 opacity-50" />
+              </a>
+
               {/* Corporate & Wholesale Cross-Domain Link */}
               <a
                 href={MAIN_SITE_URL}
@@ -628,6 +638,18 @@ export default function Navbar({
                     <span>Contact Us</span>
                     <ExternalLink className="ml-auto h-3.5 w-3.5 text-gray-400" />
                   </a>
+
+                  <a
+                    href={`${MAIN_SITE_URL}/licenses`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-[#26362a] hover:bg-[#edf3e9]"
+                  >
+                    <ShieldCheck className="h-4 w-4 text-emerald-700" />
+                    <span>Licensed</span>
+                    <ExternalLink className="ml-auto h-3.5 w-3.5 text-gray-400" />
+                  </a>
                 </nav>
                 <div className="mt-6 border-t border-[#e4e9df] pt-4">
                   <p className="mb-2 px-3 text-[10px] font-extrabold uppercase tracking-widest text-[#818b7c]">Shop categories</p>
@@ -744,4 +766,3 @@ export default function Navbar({
     </>
   );
 }
-

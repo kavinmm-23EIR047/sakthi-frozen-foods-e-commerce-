@@ -67,9 +67,25 @@ export default function Footer() {
               Premium plant-based frozen foods made for everyday cooking and authentic flavour. Express -18°C doorstep delivery across Tamil Nadu.
             </p>
 
-            <div className="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/10 px-2.5 py-1 text-[10px] sm:text-xs text-white font-bold">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#A9F2B7]" />
-              <span>FSSAI Certified</span>
+            <div className="flex flex-wrap gap-1.5 text-[10px] sm:text-xs text-white font-bold">
+              {['FSSAI Certified', 'GST Registered', 'MSME Registered'].map((license) => (
+                <span key={license} className="inline-flex items-center gap-1.5 rounded-lg border border-white/25 bg-white/10 px-2.5 py-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#A9F2B7]" />
+                  {license}
+                </span>
+              ))}
+            </div>
+
+            <div>
+              <a
+                href={`${MAIN_SITE_URL}/licenses`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#D9F2CF] underline underline-offset-2 hover:text-white"
+              >
+                View Licenses &amp; Certificates
+                <ExternalLink className="h-3 w-3" />
+              </a>
             </div>
 
             <div>
@@ -188,6 +204,12 @@ export default function Footer() {
                 <li>
                   <a href={`${MAIN_SITE_URL}/contact`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition flex items-center gap-1.5">
                     <span>Wholesale (50kg+)</span>
+                    <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                  </a>
+                </li>
+                <li>
+                  <a href={`${MAIN_SITE_URL}/licenses`} target="_blank" rel="noopener noreferrer" className="hover:text-white transition flex items-center gap-1.5">
+                    <span>Licenses &amp; Certifications</span>
                     <ExternalLink className="w-2.5 h-2.5 opacity-60" />
                   </a>
                 </li>
