@@ -49,7 +49,10 @@ export default function AnalyticsDashboard({ orders, products, users, categories
     return false;
   };
 
-  const isConfirmed = (ord: OrderType) => ord.status === 'Confirmed' || ord.paymentStatus === 'Paid';
+  const isConfirmed = (ord: OrderType) =>
+    !isOrderFailedOrExpired(ord) &&
+    ord.status !== 'Payment Failed' &&
+    (ord.status === 'Confirmed' || ord.paymentStatus === 'Paid');
 
   // Metrics
   const totalRevenue = filteredOrders.filter(isConfirmed).reduce((acc, o) => acc + o.totalAmount, 0);
