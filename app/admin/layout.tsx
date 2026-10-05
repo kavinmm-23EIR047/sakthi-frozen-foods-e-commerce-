@@ -18,13 +18,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [user, loading, router]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#E8EEE0] flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-[#656B4F] border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   // Only render children if user is Admin
   if (user && user.role === 'Admin') {
