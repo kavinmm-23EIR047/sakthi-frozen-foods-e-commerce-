@@ -36,6 +36,7 @@ import {
   Building2,
   ExternalLink,
   FileText,
+  ShieldCheck,
 } from 'lucide-react';
 import { MAIN_SITE_URL } from '@/lib/config';
 import { useCart } from '@/context/CartContext';
