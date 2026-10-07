@@ -4,7 +4,7 @@ import React from 'react';
 import { Star, ExternalLink, ShieldCheck, Info } from 'lucide-react';
 
 export const GOOGLE_MAPS_REVIEW_URL =
-  'https://www.google.com/maps/place/mock+meat+%26+frozen+foods+supplier/@11.0442489,76.7937082,12z/data=!4m10!1m2!2m1!1smock+meat+%26+frozen+foods!3m6!1s0x3ba8590037fcc29d:0x3a840ef21bcac8d5!8m2!3d11.0442489!4d76.9461435!15sChhtb2NrIG1lYXQgJiBmcm96ZW4gZm9vZHNaGiIYbW9jayBtZWF0ICYgZnJvemVuIGZvb2RzkgERZnJvemVuX2Zvb2Rfc3RvcmXgAQA!16s%2Fg%2F11vxl4fb52?entry=ttu&g_ep=EgoyMDI2MDkzMC4wIKXMDSoASAFQAw%3D%3D';
+  'https://g.page/r/CdXIyhvyDoQ6EBM/review';
 
 export const GOOGLE_RATING = 4.9;
 export const GOOGLE_REVIEW_COUNT = 33;
