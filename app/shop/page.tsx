@@ -43,7 +43,7 @@ import {
   Loader2
 } from 'lucide-react';
 import OptimizedImage from '@/components/OptimizedImage';
-import { getBackendPackOptions, PackOption, formatCleanWeight } from '@/lib/productPacks';
+import { getBackendPackOptions, PackOption, formatCleanWeight, getDefaultPackOptionIndex } from '@/lib/productPacks';
 
 // Clean Vector SVG Icon helper for Categories
 function getCategoryIcon(name: string, className = 'w-5 h-5') {
@@ -73,7 +73,6 @@ function getCategoryIcon(name: string, className = 'w-5 h-5') {
 }
 
 // Single Interactive Product Card Component
-// Single Interactive Product Card Component
 function ProductCard({
   product,
   allProducts,
@@ -88,14 +87,24 @@ function ProductCard({
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { showToast } = useToast();
 
-  const [selectedWeightIdx, setSelectedWeightIdx] = useState(0);
-
   // Compute available pack options dynamically from backend product variants & companions
   const packOptions = useMemo<PackOption[]>(() => {
     return getBackendPackOptions(product, allProducts);
   }, [product, allProducts]);
 
-  const activeOption = packOptions[selectedWeightIdx] || packOptions[0] || {
+  // Compute default option index matching this specific product's own weight
+  const defaultIdx = useMemo(() => {
+    return getDefaultPackOptionIndex(product, packOptions);
+  }, [product, packOptions]);
+
+  const [selectedWeightIdx, setSelectedWeightIdx] = useState(defaultIdx);
+
+  // Sync state if product changes or pack options compute
+  useEffect(() => {
+    setSelectedWeightIdx(defaultIdx);
+  }, [defaultIdx]);
+
+  const activeOption = packOptions[selectedWeightIdx] || packOptions[defaultIdx] || packOptions[0] || {
     productId: product.id,
     weight: product.weight || '1kg',
     price: product.price,
@@ -139,7 +148,7 @@ function ProductCard({
   const [isNavigating, setIsNavigating] = useState(false);
 
   const handleCardClick = () => {
-    const targetId = product.id || (product as any)._id || product.code;
+    const targetId = activeOption.productId || product.id || (product as any)._id || product.code;
     if (targetId) {
       setCachedData(`product_detail_${targetId}`, product);
       setIsNavigating(true);
@@ -148,7 +157,7 @@ function ProductCard({
   };
 
   const handlePrefetch = () => {
-    const targetId = product.id || (product as any)._id || product.code;
+    const targetId = activeOption.productId || product.id || (product as any)._id || product.code;
     if (targetId) {
       setCachedData(`product_detail_${targetId}`, product);
       router.prefetch(`/product/${targetId}`);

@@ -32,7 +32,7 @@ import { useWishlist } from '@/context/WishlistContext';
 import { useToast } from '@/context/ToastContext';
 import { fetchApi, fetchCachedApi, getCachedData, setCachedData } from '@/lib/apiConfig';
 import { ProductType } from '@/lib/types';
-import { getBackendPackOptions, PackOption } from '@/lib/productPacks';
+import { getBackendPackOptions, PackOption, getDefaultPackOptionIndex } from '@/lib/productPacks';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import OptimizedImage from '@/components/OptimizedImage';
@@ -109,7 +109,20 @@ export default function ProductDetailPage() {
     return getBackendPackOptions(product, allProducts);
   }, [product, allProducts]);
 
-  const activePack = packOptions[selectedPackIdx] || packOptions[0];
+  // Compute default option index matching this specific product's own weight
+  const defaultPackIdx = useMemo(() => {
+    if (!product || !packOptions || packOptions.length === 0) return 0;
+    return getDefaultPackOptionIndex(product, packOptions);
+  }, [product, packOptions]);
+
+  // Sync selectedPackIdx when product or packOptions load
+  useEffect(() => {
+    if (product && packOptions.length > 0) {
+      setSelectedPackIdx(defaultPackIdx);
+    }
+  }, [defaultPackIdx]);
+
+  const activePack = packOptions[selectedPackIdx] || packOptions[defaultPackIdx] || packOptions[0];
   const dynamicPrice = activePack ? activePack.price : product?.price || 0;
   const dynamicMrp = activePack ? activePack.mrp : product?.mrp || Math.round(dynamicPrice * 1.25);
   const discountPercent = dynamicMrp > dynamicPrice ? Math.round(((dynamicMrp - dynamicPrice) / dynamicMrp) * 100) : 0;

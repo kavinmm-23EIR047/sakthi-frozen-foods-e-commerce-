@@ -142,6 +142,17 @@ function startServer() {
         retryTimer = setInterval(runNotificationRetry, 30 * 1000);
         retryTimer.unref();
 
+        // 🕒 Background cleanup: auto-expire stale pending checkout sessions (>30 mins)
+        const orderRoutes = require('./routes/orderRoutes');
+        if (typeof orderRoutes.autoExpirePendingOrders === 'function') {
+          const runOrderExpiryCleanup = () => {
+            orderRoutes.autoExpirePendingOrders().catch((err) => console.error('Order expiry cleanup error:', err.message));
+          };
+          runOrderExpiryCleanup();
+          const orderExpiryTimer = setInterval(runOrderExpiryCleanup, 5 * 60 * 1000);
+          orderExpiryTimer.unref();
+        }
+
         // ⚡ Warm L1 cache immediately after DB connects
         // This ensures the very first user request is served from memory (<1ms)
         const Product = require('./models/Product');

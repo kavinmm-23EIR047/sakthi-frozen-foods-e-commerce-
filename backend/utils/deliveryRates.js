@@ -1,7 +1,7 @@
 // Official Sakthi Frozen Foods Store Location (Coimbatore)
 const SHOP_COORDINATES = {
-  lat: 11.0431204487083,
-  lng: 76.81346682338442,
+  lat: 11.0431,
+  lng: 76.9335,
   address: 'peons colony, Kalpana Theatre, opposite Edayarpalayam - Koundampalayam Road, Koundampalayam, Coimbatore, Tamil Nadu 641030',
 };
 

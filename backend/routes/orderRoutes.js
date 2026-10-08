@@ -134,46 +134,25 @@ function publicOrder(order) {
 async function autoExpirePendingOrders() {
   try {
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-    const expiredCandidates = await Order.find({
-      paymentMethod: 'Razorpay (Online)',
-      paymentStatus: 'Pending',
-      $or: [
-        { createdAt: { $lte: thirtyMinutesAgo } },
-        { paymentExpiresAt: { $lte: new Date() } },
-      ],
-    });
-
-    for (const order of expiredCandidates) {
-      // Before marking failed, cross check if user actually paid on Razorpay
-      if (order.razorpayOrderId) {
-        try {
-          const razorpay = getRazorpay();
-          const payments = await razorpay.orders.fetchPayments(order.razorpayOrderId);
-          const capturedPayment = payments?.items?.find((p) => p.status === 'captured');
-          if (capturedPayment) {
-            order.paymentStatus = 'Paid';
-            order.status = 'Confirmed';
-            order.razorpayPaymentId = capturedPayment.id;
-            order.paymentVerifiedAt = new Date();
-            order.stockCommitted = true;
-            order.isLocked = false;
-            order.failureReason = null;
-            await order.save();
-            if (order.user) await Cart.deleteOne({ userId: order.user }).catch(() => {});
-            void queueOrderNotifications(order, 'payment.success');
-            continue;
-          }
-        } catch (e) {
-          // If check fails, continue with expiration
-        }
+    await Order.updateMany(
+      {
+        paymentMethod: 'Razorpay (Online)',
+        paymentStatus: 'Pending',
+        isLocked: { $ne: true },
+        $or: [
+          { createdAt: { $lte: thirtyMinutesAgo } },
+          { paymentExpiresAt: { $lte: new Date() } },
+        ],
+      },
+      {
+        $set: {
+          paymentStatus: 'Failed',
+          status: 'Payment Failed',
+          isLocked: true,
+          failureReason: 'Payment window expired (30 minutes elapsed without completion)',
+        },
       }
-
-      order.paymentStatus = 'Failed';
-      order.status = 'Payment Failed';
-      order.isLocked = true;
-      order.failureReason = 'Payment window expired (30 minutes elapsed without completion)';
-      await order.save();
-    }
+    );
   } catch (err) {
     console.error('Error auto-expiring pending orders:', err);
   }
@@ -225,7 +204,6 @@ async function commitCashOnDeliveryStock(order) {
 
 router.get('/', protect, admin, async (req, res, next) => {
   try {
-    await autoExpirePendingOrders();
     const page = Math.max(Number.parseInt(req.query.page || '1', 10), 1);
     const limit = Math.min(Math.max(Number.parseInt(req.query.limit || '20', 10), 1), 100);
     const cacheKey = `sakthi:orders:admin:${page}:${limit}`;
@@ -238,7 +216,7 @@ router.get('/', protect, admin, async (req, res, next) => {
         Order.countDocuments(),
       ]);
       return { count: orders.length, total, page, totalPages: Math.ceil(total / limit), data: orders.map(publicOrder) };
-    }, 30); // 30s cache — admin list stays fresh enough
+    }, 30); // 30s cache — admin list stays fresh
 
     res.json({ success: true, ...payload });
   } catch (error) {
@@ -248,7 +226,6 @@ router.get('/', protect, admin, async (req, res, next) => {
 
 router.get('/mine', protect, async (req, res, next) => {
   try {
-    await autoExpirePendingOrders();
     const userEmail = (req.user.email || '').toLowerCase();
     const queryConditions = [
       { user: req.user._id },
@@ -256,19 +233,10 @@ router.get('/mine', protect, async (req, res, next) => {
     if (userEmail) {
       queryConditions.push({ customerEmail: userEmail });
     }
-    let orders = await Order.find({ $or: queryConditions })
+    const orders = await Order.find({ $or: queryConditions })
       .sort({ createdAt: -1 })
-      .select('-razorpaySignature');
-
-    // Auto-heal pending online orders that have a Razorpay order ID
-    orders = await Promise.all(
-      orders.map(async (ord) => {
-        if (ord.paymentMethod === 'Razorpay (Online)' && ord.paymentStatus === 'Pending' && ord.razorpayOrderId) {
-          return await checkAndAutoHealRazorpayPayment(ord);
-        }
-        return ord;
-      })
-    );
+      .select('-razorpaySignature')
+      .lean();
 
     res.json({ success: true, count: orders.length, data: orders.map(publicOrder) });
   } catch (error) {
@@ -278,14 +246,10 @@ router.get('/mine', protect, async (req, res, next) => {
 
 router.get('/:id', protect, async (req, res, next) => {
   try {
-    await autoExpirePendingOrders();
-    let order = await Order.findById(req.params.id).select('-razorpaySignature');
+    const order = await Order.findById(req.params.id).select('-razorpaySignature').lean();
     if (!order) return res.status(404).json({ success: false, error: 'Order not found' });
-    if (req.user.role !== 'Admin' && order.customerEmail !== req.user.email) return res.status(403).json({ success: false, error: 'Not authorized to view this order' });
-
-    // Auto-heal pending online order if Razorpay was already captured
-    if (order.paymentMethod === 'Razorpay (Online)' && order.paymentStatus === 'Pending' && order.razorpayOrderId) {
-      order = await checkAndAutoHealRazorpayPayment(order);
+    if (req.user.role !== 'Admin' && order.customerEmail !== req.user.email) {
+      return res.status(403).json({ success: false, error: 'Not authorized to view this order' });
     }
 
     res.json({ success: true, data: publicOrder(order) });
@@ -388,9 +352,6 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
       precision: ['area', 'map-search', 'gps'].includes(body.coordinates.precision) ? body.coordinates.precision : 'area',
       accuracyMeters: Number.isFinite(Number(body.coordinates.accuracyMeters)) ? Number(body.coordinates.accuracyMeters) : undefined,
     } : undefined;
-    if (String(body.city || '').toLowerCase() === 'coimbatore' && coordinates?.precision === 'area') {
-      return res.status(400).json({ success: false, error: 'Choose a street/building map match or use live GPS. Area-centre pins are not accurate enough for Coimbatore delivery.' });
-    }
 
     const calc = getDeliveryCalculation({
       subtotal,
@@ -750,4 +711,5 @@ router.get('/:id/invoice', optionalProtect, async (req, res, next) => {
   }
 });
 
+router.autoExpirePendingOrders = autoExpirePendingOrders;
 module.exports = router;

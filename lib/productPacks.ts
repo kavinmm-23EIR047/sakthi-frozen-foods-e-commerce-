@@ -44,9 +44,9 @@ export function formatCleanWeight(w: string): string {
   return w.trim();
 }
 
-function parseWeightGrams(weightStr: string): number {
+export function parseWeightGrams(weightStr: string): number {
   if (!weightStr) return 1000;
-  const str = weightStr.toUpperCase();
+  const str = String(weightStr).toUpperCase();
   const match = str.match(/([\d.]+)\s*(KG|GRM|GM|G|KILO)/);
   if (!match) return 1000;
   const val = parseFloat(match[1]);
@@ -58,6 +58,36 @@ function parseWeightGrams(weightStr: string): number {
 export function isRetailWeight(weightStr: string): boolean {
   const grams = parseWeightGrams(weightStr);
   return grams < 900;
+}
+
+/**
+ * Finds the default PackOption index matching the specific product's weight / identity.
+ */
+export function getDefaultPackOptionIndex(product: ProductType, packOptions: PackOption[]): number {
+  if (!product || !packOptions || packOptions.length === 0) return 0;
+
+  const targetGrams = parseWeightGrams(product.weight || '1kg');
+  const targetId = product.id || (product as any)._id || product.code;
+
+  // 1. Exact match by productId and grams
+  if (targetId) {
+    const exactMatchIdx = packOptions.findIndex(
+      (opt) => opt.productId === targetId && parseWeightGrams(opt.weight) === targetGrams
+    );
+    if (exactMatchIdx >= 0) return exactMatchIdx;
+  }
+
+  // 2. Match by isBase flag
+  const baseMatchIdx = packOptions.findIndex((opt) => opt.isBase);
+  if (baseMatchIdx >= 0) return baseMatchIdx;
+
+  // 3. Match by weight in grams
+  const weightMatchIdx = packOptions.findIndex(
+    (opt) => parseWeightGrams(opt.weight) === targetGrams
+  );
+  if (weightMatchIdx >= 0) return weightMatchIdx;
+
+  return 0;
 }
 
 /**

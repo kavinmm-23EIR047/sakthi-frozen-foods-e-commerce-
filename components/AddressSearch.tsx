@@ -18,6 +18,7 @@ export interface LocationData {
   displayName: string;
   precision: 'area' | 'map-search' | 'gps';
   accuracyMeters?: number;
+  houseNumber?: string;
   road?: string;
   suburb?: string;
   neighbourhood?: string;
@@ -232,13 +233,14 @@ export default function AddressSearch({
         displayName: result.display_name || 'Current Coimbatore location',
         precision: 'gps',
         accuracyMeters: Math.round(accuracyMeters),
+        houseNumber: address.house_number || address.building || address.house || '',
         road: address.road || address.street || address.pedestrian || '',
         suburb: address.suburb || address.neighbourhood || address.residential || '',
         neighbourhood: address.neighbourhood || address.suburb || '',
         landmark: address.amenity || address.building || '',
         city: 'Coimbatore',
         state: 'Tamil Nadu',
-        pincode: address.postcode || '',
+        pincode: address.postcode ? String(address.postcode).replace(/\D/g, '').slice(0, 6) : '',
       };
       setHasSelectedAddress(true);
       setSelectedPrecision('gps');
@@ -363,8 +365,9 @@ export default function AddressSearch({
         />
       </div>
       {selectedPrecision === 'area' && (
-        <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
-          This is an approximate area-centre pin, not your house. Choose a street/building result or use live GPS to continue.
+        <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900 flex items-center gap-1.5">
+          <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+          <span>Area selected & delivery rate calculated. Please fill in your Door No. and Street details below.</span>
         </p>
       )}
       {selectedPrecision === 'map-search' && (

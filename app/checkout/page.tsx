@@ -12,6 +12,7 @@ import Footer from '@/components/Footer';
 import AddressSearch from '@/components/AddressSearch';
 import type { LocationData } from '@/components/AddressSearch';
 import { DELIVERY_STATES, DELIVERY_ZONES, getDeliveryCalculation, getDeliveryDistrictsForState, getDeliveryZonesForDistrict } from '@/lib/deliveryRates';
+import { COIMBATORE_MASTER_AREAS } from '@/lib/coimbatoreAreas';
 import Link from 'next/link';
 import DeliveryLoadingScreen from '@/components/DeliveryLoadingScreen';
 
@@ -260,27 +261,49 @@ export default function CheckoutPage() {
     });
   }, [subtotal, coordinates, city, state]);
 
+  // Auto-resolve coordinates from entered Coimbatore PIN code or locality if coordinates are null
+  useEffect(() => {
+    if (selectedDestination?.id === 'coimbatore' && !coordinates) {
+      const cleanPin = pincode.replace(/\D/g, '').trim();
+      if (cleanPin.length === 6 && cleanPin.startsWith('641')) {
+        const match = COIMBATORE_MASTER_AREAS.find((a) => a.pincode === cleanPin);
+        if (match) {
+          setCoordinates({
+            lat: match.lat,
+            lng: match.lng,
+            precision: 'area',
+          });
+          if (!streetArea.trim()) {
+            setStreetArea(match.name);
+          }
+        }
+      }
+    }
+  }, [pincode, selectedDestination?.id, coordinates, streetArea]);
+
   const deliveryCalc = rawDeliveryCalc;
 
   const deliveryFee = deliveryCalc.fee;
   const convenienceFee = Number((subtotal * 0.025).toFixed(2));
   const grandTotal = Number((subtotal + deliveryFee + convenienceFee).toFixed(2));
+
+  // All fields strictly compulsory before payment can proceed
   const isCheckoutFormComplete = Boolean(
     customerName.trim() &&
     /^\d{10}$/.test(customerPhone.trim()) &&
     flatHouse.trim() &&
     streetArea.trim() &&
+    landmark.trim() &&
     city &&
     district &&
     state &&
     /^\d{6}$/.test(pincode.trim()) &&
     deliveryCalc.isServiceable &&
     cart.length > 0 &&
-    (selectedDestination?.id !== 'coimbatore' || coordinates?.precision !== 'area') &&
     !pendingPayment
   );
 
-  // Address search fills the street, coordinates, and PIN for Coimbatore pricing.
+  // Address search / Live GPS fills the street, door no, coordinates, and PIN
   const handleLocationSelect = (loc: LocationData) => {
     setCoordinates({
       lat: loc.lat,
@@ -289,6 +312,11 @@ export default function CheckoutPage() {
       accuracyMeters: loc.accuracyMeters,
     });
     
+    // Auto-fill House/Door No if available from geocoder and not yet typed
+    if (loc.houseNumber && !flatHouse.trim()) {
+      setFlatHouse(loc.houseNumber);
+    }
+
     // Auto-fill Street/Area
     const streetParts = [loc.road, loc.suburb].filter(Boolean);
     if (streetParts.length > 0) {
@@ -301,7 +329,9 @@ export default function CheckoutPage() {
     if (loc.landmark) setLandmark((current) => current || loc.landmark || '');
 
     // The selected delivery dropdown controls the destination and pricing zone.
-    setPincode(loc.pincode ? loc.pincode.replace(/\D/g, '').slice(0, 6) : '');
+    if (loc.pincode) {
+      setPincode(loc.pincode.replace(/\D/g, '').slice(0, 6));
+    }
   };
 
   const clearDestinationAddressDetails = () => {
@@ -325,8 +355,8 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!customerName || !customerPhone || !flatHouse || !streetArea || !city || !district || !state || !pincode) {
-      alert('Please fill in all required fields: Name, Phone, House/Flat No, Street/Area, City, and 6-digit Pincode.');
+    if (!customerName || !customerPhone || !flatHouse || !streetArea || !landmark.trim() || !city || !district || !state || !pincode) {
+      alert('Please fill in all required fields: Name, Phone, House/Flat No, Street/Area, Landmark, City, and 6-digit Pincode.');
       return;
     }
 
@@ -337,11 +367,6 @@ export default function CheckoutPage() {
 
     if (!/^\d{6}$/.test(pincode.trim())) {
       alert('Please enter a valid 6-digit PIN code.');
-      return;
-    }
-
-    if (selectedDestination?.id === 'coimbatore' && coordinates?.precision === 'area') {
-      alert('Select a street/building map match or use live GPS. An area-centre pin is not accurate enough for delivery.');
       return;
     }
 
@@ -897,11 +922,12 @@ export default function CheckoutPage() {
 
                     <div>
                       <label className="block text-xs font-bold text-[#1A1E16] mb-1">
-                        Landmark / Nearest Popular Spot (Recommended)
+                        Landmark / Nearest Popular Spot *
                       </label>
                       <input
                         type="text"
-                        placeholder="Enter nearby landmark (e.g. Near hospital / school)"
+                        required
+                        placeholder="Enter nearby landmark (e.g. Near hospital / school / temple)"
                         value={landmark}
                         onChange={(e) => setLandmark(e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-xl bg-[#EAF0E5] border border-[#4F534C]/25 text-xs font-bold text-[#1A1E16] focus:outline-none focus:ring-2 focus:ring-[#656B4F]"

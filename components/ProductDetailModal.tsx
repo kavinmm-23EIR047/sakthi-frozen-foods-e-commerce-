@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, Star, ShoppingBag, Plus, Minus, ShieldCheck, Flame, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { getBackendPackOptions, PackOption } from '@/lib/productPacks';
+import { getBackendPackOptions, PackOption, getDefaultPackOptionIndex } from '@/lib/productPacks';
 
 export default function ProductDetailModal() {
   const router = useRouter();
@@ -18,10 +18,11 @@ export default function ProductDetailModal() {
   const product = selectedProductForModal;
   const weightOptions: PackOption[] = getBackendPackOptions(product);
 
-  // If the product changed, reset the selected weight
+  // If the product changed, reset the selected weight to its matching default weight
   if (product.id !== lastProductId) {
     setLastProductId(product.id || product.code);
-    setSelectedWeightIdx(0);
+    const defaultIdx = getDefaultPackOptionIndex(product, weightOptions);
+    setSelectedWeightIdx(defaultIdx);
   }
 
   const safeIdx = selectedWeightIdx >= 0 && selectedWeightIdx < weightOptions.length ? selectedWeightIdx : 0;
