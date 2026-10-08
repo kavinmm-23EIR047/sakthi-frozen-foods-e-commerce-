@@ -23,17 +23,54 @@ socketService.init(server);
 
 app.set('trust proxy', 1);
 
-// Middleware
-const allowedOrigins = (process.env.FRONTEND_URL || '')
+// Middleware: Resilient CORS supporting custom domain, Vercel previews & localhost
+const defaultTrustedOrigins = [
+  'https://buy.tnmockmeat.com',
+  'https://www.buy.tnmockmeat.com',
+  'http://buy.tnmockmeat.com',
+  'http://www.buy.tnmockmeat.com',
+  'https://tnmockmeat.com',
+  'https://www.tnmockmeat.com',
+  'http://tnmockmeat.com',
+  'http://www.tnmockmeat.com',
+  'http://localhost:3000',
+  'http://localhost:3005',
+];
+
+const customEnvOrigins = (process.env.FRONTEND_URL || '')
   .split(',')
-  .map((origin) => origin.trim())
+  .map((origin) => origin.trim().replace(/\/+$/, ''))
   .filter(Boolean);
 
+const allowedOriginsSet = new Set([...defaultTrustedOrigins, ...customEnvOrigins]);
+
 app.use(cors({
-  origin: allowedOrigins.length ? allowedOrigins : false,
+  origin: (origin, callback) => {
+    // Allow non-browser requests (like server-to-server, curl, Postman, health checks)
+    if (!origin) return callback(null, true);
+
+    const cleanOrigin = origin.trim().replace(/\/+$/, '');
+    if (allowedOriginsSet.has(cleanOrigin)) {
+      return callback(null, true);
+    }
+
+    // Allow any tnmockmeat.com subdomains, *.vercel.app, and localhost on any port
+    if (
+      cleanOrigin.endsWith('.tnmockmeat.com') ||
+      cleanOrigin.endsWith('tnmockmeat.com') ||
+      cleanOrigin.endsWith('.vercel.app') ||
+      /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(cleanOrigin)
+    ) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`Origin ${origin} is not allowed by CORS policy`));
+  },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-request-id', 'x-razorpay-signature', 'x-razorpay-event-id'],
 }));
+app.options('*', cors());
 app.use((req, res, next) => {
   req.requestId = req.headers['x-request-id'] || crypto.randomUUID();
   res.setHeader('X-Request-Id', req.requestId);
