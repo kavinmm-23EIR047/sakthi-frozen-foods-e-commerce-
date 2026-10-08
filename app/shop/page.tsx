@@ -572,27 +572,9 @@ function ShopContent() {
   const initialCategory = searchParams.get('category') || 'All';
   const { totalItems, totalPrice, setIsCartOpen } = useCart();
 
-  const [products, setProducts] = useState<ProductType[]>(() => {
-    if (typeof window !== 'undefined') {
-      const cached = getCachedData<ProductType[]>('shop_products_cache') || getCachedData<ProductType[]>('home_products_cache');
-      if (cached && Array.isArray(cached) && cached.length > 0) return cached;
-    }
-    return [];
-  });
-  const [categories, setCategories] = useState<CategoryType[]>(() => {
-    if (typeof window !== 'undefined') {
-      const cached = getCachedData<CategoryType[]>('shop_categories_cache') || getCachedData<CategoryType[]>('home_cats_cache');
-      if (cached && Array.isArray(cached) && cached.length > 0) return cached;
-    }
-    return [];
-  });
-  const [loading, setLoading] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const cached = getCachedData<ProductType[]>('shop_products_cache') || getCachedData<ProductType[]>('home_products_cache');
-      if (cached && Array.isArray(cached) && cached.length > 0) return false;
-    }
-    return true;
-  });
+  const [products, setProducts] = useState<ProductType[]>([]);
+  const [categories, setCategories] = useState<CategoryType[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   // Filter States
   const [searchTerm, setSearchTerm] = useState(initialSearch);

@@ -20,34 +20,12 @@ interface WishlistContextType {
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
-  const [wishlist, setWishlist] = useState<ProductType[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const local = localStorage.getItem('sakthi_wishlist');
-        if (local) {
-          const parsed = JSON.parse(local);
-          if (Array.isArray(parsed)) return parsed;
-        }
-      } catch (e) {}
-    }
-    return [];
-  });
-  const [wishlistIds, setWishlistIds] = useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const local = localStorage.getItem('sakthi_wishlist');
-        if (local) {
-          const parsed = JSON.parse(local);
-          if (Array.isArray(parsed)) return parsed.map((p: any) => p.id || p._id).filter(Boolean);
-        }
-      } catch (e) {}
-    }
-    return [];
-  });
-  const [loading, setLoading] = useState(() => typeof window === 'undefined');
+  const [wishlist, setWishlist] = useState<ProductType[]>([]);
+  const [wishlistIds, setWishlistIds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
   const { showToast } = useToast();
   const { user } = useAuth();
-  const initialLoadDone = useRef(typeof window !== 'undefined');
+  const initialLoadDone = useRef(false);
   const syncInProgress = useRef(false);
 
   // Load from localStorage on mount

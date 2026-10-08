@@ -46,22 +46,9 @@ export default function ProductDetailPage() {
 
   const prodId = (params?.id as string) || '';
 
-  const [product, setProduct] = useState<ProductType | null>(() => {
-    if (typeof window === 'undefined' || !prodId) return null;
-    const direct = getCachedData<ProductType>(`product_detail_${prodId}`);
-    if (direct) return direct;
-    const all = getCachedData<ProductType[]>('shop_products_cache') || getCachedData<ProductType[]>('home_products_cache');
-    if (all && Array.isArray(all)) {
-      const match = all.find((p) => p.id === prodId || (p as any)._id === prodId || (p as any).slug === prodId);
-      if (match) return match;
-    }
-    return null;
-  });
-  const [allProducts, setAllProducts] = useState<ProductType[]>(() => {
-    if (typeof window === 'undefined') return [];
-    return getCachedData<ProductType[]>('shop_products_cache') || getCachedData<ProductType[]>('home_products_cache') || [];
-  });
-  const [loading, setLoading] = useState(() => !product);
+  const [product, setProduct] = useState<ProductType | null>(null);
+  const [allProducts, setAllProducts] = useState<ProductType[]>([]);
+  const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [selectedPackIdx, setSelectedPackIdx] = useState(0);
   const [activeTab, setActiveTab] = useState<'cooking' | 'nutrition' | 'ingredients' | 'storage'>('cooking');

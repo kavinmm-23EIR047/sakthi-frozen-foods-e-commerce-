@@ -418,6 +418,80 @@ function processUniqueProducts(rawProducts: ProductType[]): UnifiedProduct[] {
   });
 }
 
+// Top 7 Verified Google Reviews
+const HARDCODED_GOOGLE_REVIEWS: ReviewType[] = [
+  {
+    id: '6abd3b5d5ba05dd78c577cbf',
+    authorName: 'vasanthan',
+    location: 'Dindukkal',
+    rating: 5,
+    comment: 'Recently brought some frozen food which is good especially those vegan foods. The quality and pricing of the products are good. They are doing bulk orders also for marriage function and more.',
+    avatar: '',
+    dateText: '8 months ago',
+    isGoogleReview: true,
+  },
+  {
+    id: '6abd3b5d5ba05dd78c577cc0',
+    authorName: 'DHARSHAN S',
+    location: 'Nilgiris',
+    rating: 5,
+    comment: 'I recently visited a place near Kavundapalayam. The products were really good—veg fish, veg chicken, and veg mutton. The taste was exactly like non-veg. Everyone should definitely visit this place and explore it.',
+    avatar: '',
+    dateText: '8 months ago',
+    isGoogleReview: true,
+  },
+  {
+    id: '6abd3b5d5ba05dd78c577cc1',
+    authorName: 'Kiruthika Ganesan',
+    location: 'Coimbatore',
+    rating: 5,
+    comment: 'I tried food at mock meat,It was an amazing experience that I first time tried a very different food amazed by its taste. I love this new concept they tried in food. I think even a crazy non-veg lovers also fell in love with this taste.',
+    avatar: '',
+    dateText: '2 years ago',
+    isGoogleReview: true,
+  },
+  {
+    id: '6abd3b5d5ba05dd78c577cc2',
+    authorName: 'Sathish Kumar',
+    location: 'Coimbatore',
+    rating: 5,
+    comment: 'Food quality is very good. French fries and samosa must try. Cheap and best service very affordable',
+    avatar: '',
+    dateText: 'a year ago',
+    isGoogleReview: true,
+  },
+  {
+    id: '6abd3b5d5ba05dd78c577cc3',
+    authorName: 'sathyapushpavanam sathyapushpavanam',
+    location: 'Coimbatore',
+    rating: 5,
+    comment: 'Very friendly shop, lot of mock meat and frozen foods, taste and quality is soo good very useful shop for veg food shops and catering people',
+    avatar: '',
+    dateText: 'a year ago',
+    isGoogleReview: true,
+  },
+  {
+    id: '6abd3b5d5ba05dd78c577cc4',
+    authorName: 'Tarun Teja',
+    location: 'Vijayawada',
+    rating: 5,
+    comment: 'Best place to buy Vegan products in Coimbatore and Frozen snacks also available at excellent prices along with good quality',
+    avatar: '',
+    dateText: 'a year ago',
+    isGoogleReview: true,
+  },
+  {
+    id: '6abd3b5d5ba05dd78c577cc5',
+    authorName: 'Pushpa Valli',
+    location: 'Coimbatore',
+    rating: 5,
+    comment: 'Very nice product. Excellent taste and fresh also. Very easy to cook',
+    avatar: '',
+    dateText: 'a year ago',
+    isGoogleReview: true,
+  },
+];
+
 export default function StorefrontHomePage() {
   const router = useRouter();
   const { cart, addToCart, updateQuantity } = useCart();
@@ -426,59 +500,12 @@ export default function StorefrontHomePage() {
 
   const [heroDishIndex, setHeroDishIndex] = useState(0);
   const [isHeroHovered, setIsHeroHovered] = useState(false);
-  const [topProducts, setTopProducts] = useState<UnifiedProduct[]>(() => {
-    if (typeof window !== 'undefined') {
-      const cached = getCachedData<ProductType[]>('home_products_cache') || getCachedData<ProductType[]>('shop_products_cache');
-      if (cached && Array.isArray(cached) && cached.length > 0) {
-        return processUniqueProducts(cached);
-      }
-    }
-    return [];
-  });
+  const [topProducts, setTopProducts] = useState<UnifiedProduct[]>([]);
   const featuredProducts = topProducts.filter((product) => product.isPopular);
-  const [categoriesList, setCategoriesList] = useState<CategoryItem[]>(() => {
-    if (typeof window !== 'undefined') {
-      const cached = getCachedData<any[]>('home_cats_cache') || getCachedData<any[]>('shop_categories_cache');
-      if (cached && Array.isArray(cached) && cached.length > 0) {
-        return cached.map((c: any) => ({
-          id: c.id || c._id,
-          name: c.name,
-          shortName: c.name,
-          link: `/shop?category=${encodeURIComponent(c.name)}`,
-          img: c.image && c.image.trim() !== '' ? c.image : getCategoryFallbackImage(c.name),
-          description: c.description || '100% Plant-Based',
-        }));
-      }
-    }
-    return DEFAULT_HOMEPAGE_CATEGORIES;
-  });
-  const [reviews, setReviews] = useState<ReviewType[]>(() => {
-    if (typeof window !== 'undefined') {
-      const cached = getCachedData<ReviewType[]>('home_revs_cache');
-      if (cached && Array.isArray(cached) && cached.length > 0) {
-        return cached;
-      }
-    }
-    return [];
-  });
-  const [loading, setLoading] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const cached = getCachedData<ProductType[]>('home_products_cache') || getCachedData<ProductType[]>('shop_products_cache');
-      if (cached && Array.isArray(cached) && cached.length > 0) {
-        return false;
-      }
-    }
-    return true;
-  });
-  const [reviewsLoading, setReviewsLoading] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const cached = getCachedData<ReviewType[]>('home_revs_cache');
-      if (cached && Array.isArray(cached) && cached.length > 0) {
-        return false;
-      }
-    }
-    return true;
-  });
+  const [categoriesList, setCategoriesList] = useState<CategoryItem[]>(DEFAULT_HOMEPAGE_CATEGORIES);
+  const [reviews, setReviews] = useState<ReviewType[]>(HARDCODED_GOOGLE_REVIEWS);
+  const [loading, setLoading] = useState(true);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const [activeReviewIndex, setActiveReviewIndex] = useState(0);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
@@ -541,7 +568,7 @@ export default function StorefrontHomePage() {
   }, [isHeroHovered]);
 
   useEffect(() => {
-    // 1. Instant Cache Hydration (0ms load if cached)
+    // 1. Instant Cache Hydration on Client (runs after initial hydration match)
     const cachedProds = getCachedData<ProductType[]>('home_products_cache') || getCachedData<ProductType[]>('shop_products_cache');
     if (cachedProds && Array.isArray(cachedProds) && cachedProds.length > 0) {
       setTopProducts(processUniqueProducts(cachedProds));
@@ -559,20 +586,18 @@ export default function StorefrontHomePage() {
       }));
       setCategoriesList(cats);
     }
-    const cachedRevs = getCachedData<ReviewType[]>('home_revs_cache');
-    if (cachedRevs && Array.isArray(cachedRevs) && cachedRevs.length > 0) {
-      setReviews(cachedRevs);
-    }
 
     const loadData = async () => {
       if (!cachedProds || cachedProds.length === 0) {
         setLoading(true);
       }
       try {
-        const [prodRes, catRes, revRes] = await Promise.all([
+        // Disabled remote reviews fetching to use the 7 authentic hardcoded Google reviews.
+        // If live API fetching is needed later, uncomment the review fetcher.
+        const [prodRes, catRes] = await Promise.all([
           fetchCachedApi<ProductType[]>('/products', { cacheKey: 'home_products_cache', ttlMs: 120000 }),
           fetchCachedApi<any[]>('/categories', { cacheKey: 'home_cats_cache', ttlMs: 180000 }),
-          fetchCachedApi<ReviewType[]>('/reviews', { cacheKey: 'home_revs_cache', ttlMs: 120000 }),
+          // fetchCachedApi<ReviewType[]>('/reviews', { cacheKey: 'home_revs_cache', ttlMs: 120000 }),
         ]);
 
         if (prodRes.success && Array.isArray(prodRes.data)) {
@@ -591,17 +616,10 @@ export default function StorefrontHomePage() {
           }));
           setCategoriesList(cats);
         }
-
-        if (revRes.success && Array.isArray(revRes.data)) {
-          setReviews(revRes.data);
-        } else {
-          setReviews([]);
-        }
       } catch (err) {
         console.error('Error fetching homepage data from backend:', err);
       } finally {
         setLoading(false);
-        setReviewsLoading(false);
       }
     };
     loadData();
