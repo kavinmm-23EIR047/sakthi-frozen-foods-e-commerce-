@@ -54,8 +54,20 @@ export default function OrdersAndAccountPage() {
   const { clearCart } = useCart();
 
   const [activeTab, setActiveTab] = useState<'orders' | 'profile' | 'notifications'>('orders');
-  const [orders, setOrders] = useState<OrderType[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState<OrderType[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = getCachedData<OrderType[]>('my_orders_cache');
+      if (cached && Array.isArray(cached) && cached.length > 0) return cached;
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = getCachedData<OrderType[]>('my_orders_cache');
+      if (cached && Array.isArray(cached) && cached.length > 0) return false;
+    }
+    return true;
+  });
   const [error, setError] = useState('');
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [retryingOrderId, setRetryingOrderId] = useState<string | null>(null);

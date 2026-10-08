@@ -48,11 +48,18 @@ export default function ProductDetailPage() {
 
   const [product, setProduct] = useState<ProductType | null>(() => {
     if (typeof window === 'undefined' || !prodId) return null;
-    return getCachedData<ProductType>(`product_detail_${prodId}`);
+    const direct = getCachedData<ProductType>(`product_detail_${prodId}`);
+    if (direct) return direct;
+    const all = getCachedData<ProductType[]>('shop_products_cache') || getCachedData<ProductType[]>('home_products_cache');
+    if (all && Array.isArray(all)) {
+      const match = all.find((p) => p.id === prodId || (p as any)._id === prodId || p.slug === prodId);
+      if (match) return match;
+    }
+    return null;
   });
   const [allProducts, setAllProducts] = useState<ProductType[]>(() => {
     if (typeof window === 'undefined') return [];
-    return getCachedData<ProductType[]>('shop_products_cache') || [];
+    return getCachedData<ProductType[]>('shop_products_cache') || getCachedData<ProductType[]>('home_products_cache') || [];
   });
   const [loading, setLoading] = useState(() => !product);
   const [quantity, setQuantity] = useState(1);
@@ -71,13 +78,14 @@ export default function ProductDetailPage() {
       setProduct(cachedProduct);
       setLoading(false);
     }
-    const cachedAll = getCachedData<ProductType[]>('shop_products_cache');
+    const cachedAll = getCachedData<ProductType[]>('shop_products_cache') || getCachedData<ProductType[]>('home_products_cache');
     if (cachedAll && Array.isArray(cachedAll) && cachedAll.length > 0 && allProducts.length === 0) {
       setAllProducts(cachedAll);
     }
 
     const loadProductData = async () => {
-      if (!cachedProduct && !product) setLoading(true);
+      const direct = getCachedData<ProductType>(`product_detail_${prodId}`);
+      if (!direct && !product) setLoading(true);
       try {
         const [prodRes, listRes] = await Promise.all([
           fetchCachedApi<ProductType>(`/products/${prodId}`, { cacheKey: `product_detail_${prodId}`, ttlMs: 120000 }),

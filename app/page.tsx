@@ -426,11 +426,59 @@ export default function StorefrontHomePage() {
 
   const [heroDishIndex, setHeroDishIndex] = useState(0);
   const [isHeroHovered, setIsHeroHovered] = useState(false);
-  const [topProducts, setTopProducts] = useState<UnifiedProduct[]>([]);
+  const [topProducts, setTopProducts] = useState<UnifiedProduct[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = getCachedData<ProductType[]>('home_products_cache') || getCachedData<ProductType[]>('shop_products_cache');
+      if (cached && Array.isArray(cached) && cached.length > 0) {
+        return processUniqueProducts(cached);
+      }
+    }
+    return [];
+  });
   const featuredProducts = topProducts.filter((product) => product.isPopular);
-  const [categoriesList, setCategoriesList] = useState<CategoryItem[]>(DEFAULT_HOMEPAGE_CATEGORIES);
-  const [reviews, setReviews] = useState<ReviewType[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [categoriesList, setCategoriesList] = useState<CategoryItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = getCachedData<any[]>('home_cats_cache') || getCachedData<any[]>('shop_categories_cache');
+      if (cached && Array.isArray(cached) && cached.length > 0) {
+        return cached.map((c: any) => ({
+          id: c.id || c._id,
+          name: c.name,
+          shortName: c.name,
+          link: `/shop?category=${encodeURIComponent(c.name)}`,
+          img: c.image && c.image.trim() !== '' ? c.image : getCategoryFallbackImage(c.name),
+          description: c.description || '100% Plant-Based',
+        }));
+      }
+    }
+    return DEFAULT_HOMEPAGE_CATEGORIES;
+  });
+  const [reviews, setReviews] = useState<ReviewType[]>(() => {
+    if (typeof window !== 'undefined') {
+      const cached = getCachedData<ReviewType[]>('home_revs_cache');
+      if (cached && Array.isArray(cached) && cached.length > 0) {
+        return cached;
+      }
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = getCachedData<ProductType[]>('home_products_cache') || getCachedData<ProductType[]>('shop_products_cache');
+      if (cached && Array.isArray(cached) && cached.length > 0) {
+        return false;
+      }
+    }
+    return true;
+  });
+  const [reviewsLoading, setReviewsLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = getCachedData<ReviewType[]>('home_revs_cache');
+      if (cached && Array.isArray(cached) && cached.length > 0) {
+        return false;
+      }
+    }
+    return true;
+  });
   const [activeReviewIndex, setActiveReviewIndex] = useState(0);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
@@ -494,12 +542,12 @@ export default function StorefrontHomePage() {
 
   useEffect(() => {
     // 1. Instant Cache Hydration (0ms load if cached)
-    const cachedProds = getCachedData<ProductType[]>('home_products_cache');
+    const cachedProds = getCachedData<ProductType[]>('home_products_cache') || getCachedData<ProductType[]>('shop_products_cache');
     if (cachedProds && Array.isArray(cachedProds) && cachedProds.length > 0) {
       setTopProducts(processUniqueProducts(cachedProds));
       setLoading(false);
     }
-    const cachedCats = getCachedData<any[]>('home_cats_cache');
+    const cachedCats = getCachedData<any[]>('home_cats_cache') || getCachedData<any[]>('shop_categories_cache');
     if (cachedCats && Array.isArray(cachedCats) && cachedCats.length > 0) {
       const cats: CategoryItem[] = cachedCats.map((c: any) => ({
         id: c.id || c._id,
@@ -546,11 +594,14 @@ export default function StorefrontHomePage() {
 
         if (revRes.success && Array.isArray(revRes.data)) {
           setReviews(revRes.data);
+        } else {
+          setReviews([]);
         }
       } catch (err) {
         console.error('Error fetching homepage data from backend:', err);
       } finally {
         setLoading(false);
+        setReviewsLoading(false);
       }
     };
     loadData();
@@ -1559,26 +1610,51 @@ export default function StorefrontHomePage() {
               <GoogleReviewSummary variant="card" />
 
               {/* Customer Testimonial Slider */}
-              {loading && displayReviews.length === 0 ? (
-                <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-xs border border-stone-200/80 animate-pulse space-y-2">
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <div key={n} className="w-3.5 h-3.5 rounded bg-stone-200" />
-                    ))}
+              {reviewsLoading && displayReviews.length === 0 ? (
+                <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-xs border border-stone-200/80 animate-pulse space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <div key={n} className="w-3.5 h-3.5 rounded bg-stone-200" />
+                      ))}
+                    </div>
+                    <div className="h-4 w-24 bg-stone-200 rounded-full" />
                   </div>
-                  <div className="h-3.5 bg-stone-200 rounded w-full" />
-                  <div className="h-3.5 bg-stone-200 rounded w-3/4" />
+                  <div className="space-y-1.5">
+                    <div className="h-3.5 bg-stone-200 rounded w-full" />
+                    <div className="h-3.5 bg-stone-200 rounded w-4/5" />
+                  </div>
+                  <div className="flex items-center gap-2.5 pt-2 border-t border-stone-100">
+                    <div className="w-7 h-7 rounded-full bg-stone-200 shrink-0" />
+                    <div className="space-y-1 flex-1">
+                      <div className="h-3 w-24 bg-stone-200 rounded" />
+                      <div className="h-2.5 w-16 bg-stone-200 rounded" />
+                    </div>
+                  </div>
                 </div>
               ) : displayReviews.length === 0 ? (
-                <div className="bg-white rounded-2xl p-4 shadow-xs border border-stone-200/80 text-center space-y-2">
+                <div className="bg-white rounded-2xl p-5 shadow-xs border border-dashed border-[#656B4F]/30 text-center space-y-3">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EAF0E5] text-[#50563D] text-xs font-black shadow-2xs">
+                    <Sparkles className="w-3.5 h-3.5 text-[#50563D]" />
+                    <span>You are the first to put a review!</span>
+                  </div>
                   <div className="flex justify-center gap-1">
                     {[1, 2, 3, 4, 5].map((n) => (
-                      <Star key={n} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                      <Star key={n} className="w-4 h-4 text-stone-300" />
                     ))}
                   </div>
-                  <p className="text-xs text-[#2C382A] font-medium">
-                    Be the first to share your experience with Sakthi Frozen Plant-Based Foods!
+                  <p className="text-xs text-[#61665D] max-w-xs mx-auto font-medium">
+                    Be the first to share your experience with Sakthi Frozen Plant-Based Foods on Google!
                   </p>
+                  <a
+                    href={GOOGLE_MAPS_REVIEW_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#50563D] hover:bg-[#3D422E] text-white rounded-xl text-xs font-black transition-all shadow-xs hover:scale-105 active:scale-95"
+                  >
+                    <GoogleGIcon className="w-3.5 h-3.5 bg-white rounded-full p-0.5" />
+                    <span>Write the First Review</span>
+                  </a>
                 </div>
               ) : (
                 <div className="space-y-2">

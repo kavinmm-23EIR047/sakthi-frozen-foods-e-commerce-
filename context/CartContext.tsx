@@ -26,7 +26,18 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [cart, setCart] = useState<OrderItemType[]>([]);
+  const [cart, setCart] = useState<OrderItemType[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('sakthi_cart');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch (e) {}
+    }
+    return [];
+  });
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [selectedProductForModal, setSelectedProductForModal] = useState<ProductType | null>(null);
@@ -38,7 +49,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     userRef.current = user;
   }, [user]);
 
-  const [cartLoaded, setCartLoaded] = useState(false);
+  const [cartLoaded, setCartLoaded] = useState(() => typeof window !== 'undefined');
   const serverCartReady = useRef(false);
   const isClearingCart = useRef(false);
 
