@@ -52,7 +52,7 @@ export default function ProductDetailPage() {
     if (direct) return direct;
     const all = getCachedData<ProductType[]>('shop_products_cache') || getCachedData<ProductType[]>('home_products_cache');
     if (all && Array.isArray(all)) {
-      const match = all.find((p) => p.id === prodId || (p as any)._id === prodId || p.slug === prodId);
+      const match = all.find((p) => p.id === prodId || (p as any)._id === prodId || (p as any).slug === prodId);
       if (match) return match;
     }
     return null;

@@ -10,6 +10,7 @@ export interface ProductType {
   id: string;
   code: string;
   name: string;
+  slug?: string;
   weight: string;
   mrp?: number;
   price: number;
