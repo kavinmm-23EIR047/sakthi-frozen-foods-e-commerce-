@@ -75,14 +75,34 @@ const AUTHENTIC_GOOGLE_REVIEWS = [
   },
 ];
 
+let reviewsCache: { data: string; expiresAt: number } | null = null;
+
 export async function GET() {
+  if (reviewsCache && reviewsCache.expiresAt > Date.now()) {
+    return new NextResponse(reviewsCache.data, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+        'X-Cache': 'HIT',
+      },
+    });
+  }
+
   try {
     const db = await connectToDatabase();
     if (db) {
-      const reviews = await Review.find().sort({ rating: -1, createdAt: -1 });
+      const reviews = await Review.find().sort({ rating: -1, createdAt: -1 }).lean();
       const data = reviews && reviews.length > 0 ? reviews : AUTHENTIC_GOOGLE_REVIEWS;
-      return NextResponse.json({ success: true, count: data.length, data }, {
-        headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300' }
+      const payload = JSON.stringify({ success: true, count: data.length, data });
+      reviewsCache = { data: payload, expiresAt: Date.now() + 2 * 60 * 1000 };
+      return new NextResponse(payload, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+          'X-Cache': 'MISS',
+        },
       });
     }
     return NextResponse.json({ success: true, count: AUTHENTIC_GOOGLE_REVIEWS.length, data: AUTHENTIC_GOOGLE_REVIEWS });

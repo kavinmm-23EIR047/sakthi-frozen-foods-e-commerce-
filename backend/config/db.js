@@ -8,8 +8,8 @@ const connectDB = async () => {
 
   try {
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      maxPoolSize: 10,          // allow more concurrent auth queries
-      minPoolSize: 2,           // keep connections warm (no cold-start delay)
+      maxPoolSize: 25,          // allow more concurrent queries without queuing
+      minPoolSize: 5,           // keep 5 warm connections (no cold-start delay)
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 20000,
       heartbeatFrequencyMS: 10000,

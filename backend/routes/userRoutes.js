@@ -16,15 +16,14 @@ router.get('/', protect, admin, async (req, res) => {
       const rawUsers = await User.find().sort({ createdAt: -1 }).select('-password -sessionVersion').lean();
       const userIds = rawUsers.map((user) => user._id);
       const userEmails = rawUsers
-        .map((user) => String(user.email || '').trim())
-        .filter(Boolean)
-        .map((email) => new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'));
+        .map((user) => String(user.email || '').trim().toLowerCase())
+        .filter(Boolean);
       const rawOrders = userIds.length ? await Order.find({
         $or: [
           { user: { $in: userIds } },
           { customerEmail: { $in: userEmails } },
         ],
-      }).sort({ createdAt: -1 }).select('-razorpaySignature').lean() : [];
+      }).sort({ createdAt: -1 }).select('user customerEmail status paymentStatus totalAmount orderNumber createdAt items').lean() : [];
 
       const usersById = new Map(rawUsers.map((user) => [user._id.toString(), user]));
       const usersByEmail = new Map(rawUsers.map((user) => [String(user.email || '').trim().toLowerCase(), user]));
@@ -81,7 +80,10 @@ router.put('/:id/role', protect, admin, async (req, res) => {
     if (!updated) {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
-    await cacheService.del(USERS_CACHE_KEY);
+    await Promise.all([
+      cacheService.del(USERS_CACHE_KEY),
+      cacheService.del(`sakthi:auth:user:${req.params.id}`),
+    ]);
     res.json({ success: true, message: 'Role updated successfully', role: updated.role });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -92,7 +94,10 @@ router.put('/:id/role', protect, admin, async (req, res) => {
 router.delete('/:id', protect, admin, async (req, res) => {
   try {
     await User.findByIdAndDelete(req.params.id);
-    await cacheService.del(USERS_CACHE_KEY);
+    await Promise.all([
+      cacheService.del(USERS_CACHE_KEY),
+      cacheService.del(`sakthi:auth:user:${req.params.id}`),
+    ]);
     res.json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

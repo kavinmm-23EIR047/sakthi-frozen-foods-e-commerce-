@@ -14,9 +14,19 @@ const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const { retryDueNotifications } = require('./services/notificationService');
 const cacheService = require('./services/cacheService');
 const socketService = require('./services/socketService');
+const compression = require('compression');
 
 const app = express();
 const server = http.createServer(app);
+
+// Enable gzip/deflate compression for JSON and text payloads
+app.use(compression({
+  threshold: 1024,
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) return false;
+    return compression.filter(req, res);
+  },
+}));
 
 // Initialize Socket.io
 socketService.init(server);
@@ -217,7 +227,7 @@ function startServer() {
           {
             key: 'sakthi:reviews:all',
             ttl: 600,
-            fetcherFn: async () => Review.find({ approved: true }).sort({ createdAt: -1 }).limit(50).lean(),
+            fetcherFn: async () => Review.find().sort({ createdAt: -1 }).limit(50).lean(),
           },
         ]).catch((e) => console.warn('Cache warmup error:', e.message));
       }

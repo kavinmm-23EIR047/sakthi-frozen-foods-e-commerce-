@@ -47,6 +47,30 @@ async function hydrateItems(items) {
   const productIds = [...new Set(items.map((item) => item.productId))];
   const products = await Product.find({ _id: { $in: productIds } }).select('_id name weight price variants stock image').lean();
   const productMap = new Map(products.map((product) => [product._id.toString(), product]));
+
+  // Pre-collect companion baseNames to eliminate N+1 sequential database lookups
+  const neededCompanions = [];
+  for (const item of items) {
+    const product = productMap.get(item.productId);
+    const variant = product?.variants?.find((candidate) => normalizeWeight(candidate.weight) === normalizeWeight(item.weight));
+    const isBaseWeight = product && normalizeWeight(product.weight) === normalizeWeight(item.weight);
+    if (product && !variant && !isBaseWeight) {
+      const baseName = cleanBaseName(product.name);
+      if (baseName) neededCompanions.push({ baseName, productId: product._id });
+    }
+  }
+
+  const companionMap = new Map();
+  if (neededCompanions.length > 0) {
+    const regexes = neededCompanions.map((c) => new RegExp('^' + escapeRegex(c.baseName), 'i'));
+    const companions = await Product.find({
+      name: { $in: regexes },
+    }).select('_id name weight price variants stock image').lean();
+    for (const c of companions) {
+      companionMap.set(cleanBaseName(c.name), c);
+    }
+  }
+
   const available = [];
   const unavailable = [];
 
@@ -58,12 +82,8 @@ async function hydrateItems(items) {
     if (product && !variant && !isBaseWeight) {
       const baseName = cleanBaseName(product.name);
       if (baseName) {
-        const companion = await Product.findOne({
-          _id: { $ne: product._id },
-          name: new RegExp('^' + escapeRegex(baseName), 'i'),
-        }).select('_id name weight price variants stock image').lean();
-
-        if (companion) {
+        const companion = companionMap.get(baseName);
+        if (companion && companion._id.toString() !== product._id.toString()) {
           const compVariant = companion.variants?.find((candidate) => normalizeWeight(candidate.weight) === normalizeWeight(item.weight));
           const compBase = normalizeWeight(companion.weight) === normalizeWeight(item.weight);
           if (compVariant || compBase) {

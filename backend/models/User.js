@@ -27,6 +27,8 @@ const userSchema = new mongoose.Schema(
 
 
 userSchema.index({ phone: 1 });
+userSchema.index({ createdAt: -1 });
+userSchema.index({ role: 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {

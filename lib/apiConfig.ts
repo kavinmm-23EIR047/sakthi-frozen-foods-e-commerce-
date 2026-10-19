@@ -30,7 +30,7 @@ export async function fetchApi<T = any>(
   options: RequestInit = {}
 ): Promise<{ success: boolean; data?: T; error?: string; [key: string]: any }> {
   const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const timeoutMs = normalizedEndpoint === '/upload' ? 60000 : 15000;
+  const timeoutMs = normalizedEndpoint === '/upload' ? 60000 : 8000;
   const requestController = options.signal ? null : new AbortController();
   const timeoutId = requestController ? setTimeout(() => requestController.abort(), timeoutMs) : null;
   const isFormData = options.body instanceof FormData;

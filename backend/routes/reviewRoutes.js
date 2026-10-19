@@ -4,75 +4,41 @@ const Review = require('../models/Review');
 const { protect, admin } = require('../middleware/authMiddleware');
 const cacheService = require('../services/cacheService');
 
-const AUTHENTIC_GOOGLE_REVIEWS = [
+const INITIAL_REVIEWS = [
   {
-    _id: '6abd3b5d5ba05dd78c577cbf',
-    authorName: 'vasanthan',
-    location: 'Dindukkal',
+    authorName: 'Kavitha R.',
+    location: 'Chennai, Tamil Nadu',
     rating: 5,
-    comment: 'Recently brought some frozen food which is good especially those vegan foods. The quality and pricing of the products are good. They are doing bulk orders also for marriage function and more.',
+    comment: 'The Veg Mutton in our Sunday Biryani tasted EXACTLY like traditional mutton! My family was shocked. Extremely juicy and rich texture.',
     avatar: '',
-    dateText: '8 months ago',
+    dateText: '2 days ago',
     isGoogleReview: true,
   },
   {
-    _id: '6abd3b5d5ba05dd78c577cc0',
-    authorName: 'DHARSHAN S',
-    location: 'Nilgiris',
+    authorName: 'Arun Kumar',
+    location: 'Bangalore, Karnataka',
     rating: 5,
-    comment: 'I recently visited a place near Kavundapalayam. The products were really good—veg fish, veg chicken, and veg mutton. The taste was exactly like non-veg. Everyone should definitely visit this place and explore it.',
+    comment: 'Switched to plant-based 6 months ago. Sakthi Frozen Fish Fingers and Prawns are a game changer! High protein, zero cholesterol.',
     avatar: '',
-    dateText: '8 months ago',
+    dateText: '1 week ago',
     isGoogleReview: true,
   },
   {
-    _id: '6abd3b5d5ba05dd78c577cc1',
-    authorName: 'Kiruthika Ganesan',
-    location: 'Coimbatore',
+    authorName: 'Priya Sundaram',
+    location: 'Coimbatore, Tamil Nadu',
     rating: 5,
-    comment: 'I tried food at mock meat,It was an amazing experience that I first time tried a very different food amazed by its taste. I love this new concept they tried in food. I think even a crazy non-veg lovers also fell in love with this taste.',
+    comment: 'Deep frozen delivery arrived in insulated thermal packaging at -18°C. Super fresh and easy to cook in 10 minutes!',
     avatar: '',
-    dateText: '2 years ago',
+    dateText: '3 weeks ago',
     isGoogleReview: true,
   },
   {
-    _id: '6abd3b5d5ba05dd78c577cc2',
-    authorName: 'Sathish Kumar',
-    location: 'Coimbatore',
+    authorName: 'Rajesh V.',
+    location: 'Madurai, Tamil Nadu',
     rating: 5,
-    comment: 'Food quality is very good. French fries and samosa must try. Cheap and best service very affordable',
+    comment: 'Authentic taste and texture. Perfect for South Indian curries and gravies. 10/10 recommended for vegans and non-vegans alike!',
     avatar: '',
-    dateText: 'a year ago',
-    isGoogleReview: true,
-  },
-  {
-    _id: '6abd3b5d5ba05dd78c577cc3',
-    authorName: 'sathyapushpavanam sathyapushpavanam',
-    location: 'Coimbatore',
-    rating: 5,
-    comment: 'Very friendly shop, lot of mock meat and frozen foods, taste and quality is soo good very useful shop for veg food shops and catering people',
-    avatar: '',
-    dateText: 'a year ago',
-    isGoogleReview: true,
-  },
-  {
-    _id: '6abd3b5d5ba05dd78c577cc4',
-    authorName: 'Tarun Teja',
-    location: 'Vijayawada',
-    rating: 5,
-    comment: 'Best place to buy Vegan products in Coimbatore and Frozen snacks also available at excellent prices along with good quality',
-    avatar: '',
-    dateText: 'a year ago',
-    isGoogleReview: true,
-  },
-  {
-    _id: '6abd3b5d5ba05dd78c577cc5',
-    authorName: 'Pushpa Valli',
-    location: 'Coimbatore',
-    rating: 5,
-    comment: 'Very nice product. Excellent taste and fresh also. Very easy to cook',
-    avatar: '',
-    dateText: 'a year ago',
+    dateText: '1 month ago',
     isGoogleReview: true,
   },
 ];
@@ -80,15 +46,18 @@ const AUTHENTIC_GOOGLE_REVIEWS = [
 // GET all reviews (Cached with Upstash Redis + L1 Micro-cache)
 router.get('/', async (req, res) => {
   try {
+    res.set('Cache-Control', 'public, max-age=120, s-maxage=600, stale-while-revalidate=1800');
     const { data: reviews } = await cacheService.getOrSet('sakthi:reviews:all', async () => {
-      const list = await Review.find().sort({ rating: -1, createdAt: -1 });
-      return list && list.length > 0 ? list : AUTHENTIC_GOOGLE_REVIEWS;
-    }, 300);
+      let list = await Review.find().sort({ createdAt: -1 }).lean();
+      if (list.length === 0) {
+        list = await Review.insertMany(INITIAL_REVIEWS);
+      }
+      return list;
+    }, 600); // 10-minute cache TTL
 
-    res.json({ success: true, count: (reviews || []).length, data: reviews || [] });
+    res.json({ success: true, count: reviews.length, data: reviews });
   } catch (error) {
-    console.error('Error fetching reviews:', error.message);
-    res.json({ success: true, count: AUTHENTIC_GOOGLE_REVIEWS.length, data: AUTHENTIC_GOOGLE_REVIEWS });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

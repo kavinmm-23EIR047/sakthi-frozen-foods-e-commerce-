@@ -2,6 +2,7 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
+const cacheService = require('../services/cacheService');
 const { dispatchNotification } = require('../services/notificationService');
 const { sendOtpEmail } = require('../services/emailService');
 
@@ -116,33 +117,39 @@ const loginUser = async (req, res) => {
     const isMobile = isValidMobileNumber(cleanedPhone);
     const normalizedEmail = rawInput.toLowerCase();
 
-    // Query user in single fast indexed lookup
-    const searchConditions = [];
+    // Targeted indexed lookup for maximum query speed
+    let user = null;
     if (isMobile) {
-      searchConditions.push({ phone: cleanedPhone });
-      searchConditions.push({ phone: `+91${cleanedPhone}` });
-      searchConditions.push({ phone: `91${cleanedPhone}` });
+      user = await User.findOne({
+        $or: [
+          { phone: cleanedPhone },
+          { phone: `+91${cleanedPhone}` },
+          { phone: `91${cleanedPhone}` },
+        ]
+      });
     }
-    searchConditions.push({ email: normalizedEmail });
-    if (rawInput && rawInput !== cleanedPhone && rawInput !== normalizedEmail) {
-      searchConditions.push({ phone: rawInput });
+    if (!user) {
+      user = await User.findOne({ email: normalizedEmail });
     }
-
-    const user = await User.findOne({ $or: searchConditions });
+    if (!user && rawInput && rawInput !== cleanedPhone && rawInput !== normalizedEmail) {
+      user = await User.findOne({ phone: rawInput });
+    }
 
     if (user && (await user.matchPassword(password))) {
+      // Background migration for legacy non-bcrypt passwords
       if (!/^\$2[aby]\$/.test(user.password || '')) {
         user.password = password;
         user.markModified('password');
-        await user.save();
+        await user.save().catch(() => {});
+        cacheService.del(`sakthi:auth:user:${user._id}`);
       }
 
       // Ensure user has a valid mobile number associated
       if (!user.phone || !isValidMobileNumber(user.phone)) {
-        // If legacy user missing valid mobile, check if rawInput was a mobile or block until updated
         if (isMobile) {
           user.phone = cleanedPhone;
-          await user.save();
+          await User.updateOne({ _id: user._id }, { $set: { phone: cleanedPhone } }).catch(() => {});
+          cacheService.del(`sakthi:auth:user:${user._id}`);
         } else {
           return res.status(403).json({
             success: false,
@@ -316,6 +323,7 @@ const resetPassword = async (req, res, next) => {
       { new: true, runValidators: true }
     ).select('-password');
     if (!user) return res.status(400).json({ success: false, message: 'Reset token is invalid or expired' });
+    cacheService.del(`sakthi:auth:user:${user._id}`);
     return res.json({ success: true, message: 'Password reset successfully. You can now login with your new password.' });
   } catch (error) {
     next(error);

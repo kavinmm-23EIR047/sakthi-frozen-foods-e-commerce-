@@ -30,6 +30,9 @@ function rateLimit(ip: string): boolean {
   return true;
 }
 
+// Fast in-memory cache for Next.js App Router (1-minute TTL)
+const productCache = new Map<string, { data: string; expiresAt: number }>();
+
 export async function GET(request: Request) {
   const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
   if (!rateLimit(ip)) {
@@ -40,10 +43,23 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const category = searchParams.get('category');
-  const search = searchParams.get('search');
+  const category = searchParams.get('category') || '';
+  const search = searchParams.get('search') || '';
   const page = parseInt(searchParams.get('page') || '1', 10);
   const limit = parseInt(searchParams.get('limit') || '0', 10);
+
+  const cacheKey = `next:prod:${category.toLowerCase().trim()}:${search.toLowerCase().trim()}:${page}:${limit}`;
+  const cached = productCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return new NextResponse(cached.data, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=600',
+        'X-Cache': 'HIT',
+      },
+    });
+  }
 
   try {
     const db = await connectToDatabase();
@@ -79,18 +95,32 @@ export async function GET(request: Request) {
       query.$or = searchConditions;
     }
     
-    let productQuery = Product.find(query).sort({ code: 1 });
+    let productQuery = Product.find(query)
+      .select('code name weight mrp price category description stock isAvailable image isPopular variants')
+      .sort({ code: 1 })
+      .lean();
     
     if (limit > 0) {
       productQuery = productQuery.skip((page - 1) * limit).limit(limit);
     }
     
-    const [rawProducts, totalCount] = await Promise.all([
-      productQuery,
-      Product.countDocuments(query)
-    ]);
+    let rawProducts: any[];
+    let totalCount: number;
+    if (page === 1 && limit > 0) {
+      rawProducts = await productQuery;
+      if (rawProducts.length < limit) {
+        totalCount = rawProducts.length;
+      } else {
+        totalCount = await Product.countDocuments(query);
+      }
+    } else {
+      [rawProducts, totalCount] = await Promise.all([
+        productQuery,
+        Product.countDocuments(query),
+      ]);
+    }
     
-    const products: ProductType[] = rawProducts.map((p) => ({
+    const products: ProductType[] = rawProducts.map((p: any) => ({
       id: p._id.toString(),
       code: p.code,
       name: p.name,
@@ -106,18 +136,23 @@ export async function GET(request: Request) {
       isPopular: p.isPopular,
     }));
 
-    return new NextResponse(JSON.stringify({ 
+    const responsePayload = JSON.stringify({ 
       success: true, 
       count: products.length, 
       total: totalCount,
       page,
       totalPages: limit > 0 ? Math.ceil(totalCount / limit) : 1,
       data: products 
-    }), {
+    });
+
+    productCache.set(cacheKey, { data: responsePayload, expiresAt: Date.now() + 60 * 1000 });
+
+    return new NextResponse(responsePayload, {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-store'
+        'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=600',
+        'X-Cache': 'MISS',
       }
     });
   } catch (error: any) {
@@ -153,6 +188,9 @@ export async function POST(request: Request) {
       rating: body.rating || 4.8,
       isPopular: typeof body.isPopular === 'boolean' ? body.isPopular : false,
     });
+
+    // Invalidate in-memory product cache on product creation
+    productCache.clear();
 
     return NextResponse.json({ success: true, data: newProd }, { status: 201 });
   } catch (error: any) {

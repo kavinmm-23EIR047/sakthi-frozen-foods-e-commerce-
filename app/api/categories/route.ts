@@ -3,14 +3,28 @@ import { connectToDatabase } from '@/lib/db';
 import Category from '@/models/Category';
 import Product from '@/models/Product';
 
+// Fast in-memory cache for Next.js categories (5-minute TTL)
+let categoriesCache: { data: string; expiresAt: number } | null = null;
+
 export async function GET(request: Request) {
+  if (categoriesCache && categoriesCache.expiresAt > Date.now()) {
+    return new NextResponse(categoriesCache.data, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=300, s-maxage=600, stale-while-revalidate=1800',
+        'X-Cache': 'HIT',
+      },
+    });
+  }
+
   try {
     const db = await connectToDatabase();
     let categories = [];
 
     if (db) {
-      const rawCategories = await Category.find().sort({ createdAt: 1 });
-      categories = rawCategories.map((c) => ({
+      const rawCategories = await Category.find().sort({ createdAt: 1 }).lean();
+      categories = rawCategories.map((c: any) => ({
         id: c._id.toString(),
         name: c.name,
         description: c.description,
@@ -31,8 +45,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, count: 0, data: [], error: 'Database is not connected; live categories are unavailable.' }, { status: 503 });
     }
 
-    return NextResponse.json({ success: true, count: categories.length, data: categories }, {
-      headers: { 'Cache-Control': 'private, max-age=60, stale-while-revalidate=300' },
+    const payload = JSON.stringify({ success: true, count: categories.length, data: categories });
+    categoriesCache = { data: payload, expiresAt: Date.now() + 5 * 60 * 1000 };
+
+    return new NextResponse(payload, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=300, s-maxage=600, stale-while-revalidate=1800',
+        'X-Cache': 'MISS',
+      },
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -56,6 +78,8 @@ export async function POST(request: Request) {
         image: body.image || '',
         icon: body.icon || 'Leaf',
       });
+
+      categoriesCache = null;
 
       return NextResponse.json({
         success: true,

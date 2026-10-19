@@ -13,4 +13,6 @@ const ReviewSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+ReviewSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.models.Review || mongoose.model('Review', ReviewSchema);

@@ -27,10 +27,10 @@ function formatProduct(p) {
 // GET /api/wishlist - Get user's wishlist with populated product details
 router.get('/', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).populate({
+    const user = await User.findById(req.user._id).select('wishlist').populate({
       path: 'wishlist',
       select: 'code name weight mrp price category description stock image isPopular variants',
-    });
+    }).lean();
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' });
@@ -53,7 +53,7 @@ router.get('/', protect, async (req, res) => {
 // GET /api/wishlist/ids - Get list of product IDs in user's wishlist
 router.get('/ids', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('wishlist');
+    const user = await User.findById(req.user._id).select('wishlist').lean();
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
@@ -79,38 +79,44 @@ router.post('/toggle', protect, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Valid productId is required' });
     }
 
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).select('wishlist').lean();
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
-    if (!Array.isArray(user.wishlist)) {
-      user.wishlist = [];
-    }
-
+    const currentWishlist = Array.isArray(user.wishlist) ? user.wishlist.map(String) : [];
     const strId = productId.toString();
-    const existingIndex = user.wishlist.findIndex((id) => id && id.toString() === strId);
+    const existingIndex = currentWishlist.indexOf(strId);
 
     let isSaved = false;
+    let updatedWishlist = [];
+
     if (existingIndex > -1) {
-      user.wishlist.splice(existingIndex, 1);
+      const updated = await User.findByIdAndUpdate(
+        req.user._id,
+        { $pull: { wishlist: productId } },
+        { new: true, select: 'wishlist' }
+      ).lean();
       isSaved = false;
+      updatedWishlist = (updated?.wishlist || []).map(String);
     } else {
-      // Check if product actually exists
       const productExists = await Product.exists({ _id: productId });
       if (!productExists) {
         return res.status(404).json({ success: false, error: 'Product not found' });
       }
-      user.wishlist.push(productId);
+      const updated = await User.findByIdAndUpdate(
+        req.user._id,
+        { $addToSet: { wishlist: productId } },
+        { new: true, select: 'wishlist' }
+      ).lean();
       isSaved = true;
+      updatedWishlist = (updated?.wishlist || []).map(String);
     }
-
-    await user.save();
 
     res.json({
       success: true,
       isSaved,
-      wishlistIds: user.wishlist.map((id) => id.toString()),
+      wishlistIds: updatedWishlist,
       message: isSaved ? 'Added to wishlist' : 'Removed from wishlist',
     });
   } catch (error) {

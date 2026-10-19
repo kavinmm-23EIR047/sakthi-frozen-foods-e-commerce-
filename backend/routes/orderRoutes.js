@@ -205,18 +205,27 @@ async function commitCashOnDeliveryStock(order) {
 router.get('/', protect, admin, async (req, res, next) => {
   try {
     const page = Math.max(Number.parseInt(req.query.page || '1', 10), 1);
-    const limit = Math.min(Math.max(Number.parseInt(req.query.limit || '20', 10), 1), 100);
+    const limit = Math.min(Math.max(Number.parseInt(req.query.limit || '50', 10), 1), 200);
     const cacheKey = `sakthi:orders:admin:${page}:${limit}`;
 
     res.set('Cache-Control', 'private, max-age=15');
 
     const { data: payload } = await cacheService.getOrSet(cacheKey, async () => {
-      const [orders, total] = await Promise.all([
-        Order.find().sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
-        Order.countDocuments(),
-      ]);
+      const orders = await Order.find()
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean();
+
+      let total;
+      if (page === 1 && orders.length < limit) {
+        total = orders.length;
+      } else {
+        total = await Order.countDocuments();
+      }
+
       return { count: orders.length, total, page, totalPages: Math.ceil(total / limit), data: orders.map(publicOrder) };
-    }, 30); // 30s cache — admin list stays fresh
+    }, 15); // 15s micro-cache — admin list stays fresh while eliminating database hammering
 
     res.json({ success: true, ...payload });
   } catch (error) {
@@ -302,7 +311,31 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
     const quantitiesByProduct = new Map();
     let subtotal = 0;
 
-    const items = await Promise.all(requestedItems.map(async (requested) => {
+    // Pre-collect companion baseNames to eliminate N+1 sequential database lookups during checkout
+    const neededCompanions = [];
+    for (const requested of requestedItems) {
+      const product = productMap.get(requested.productId);
+      if (product) {
+        const variant = product.variants?.find((candidate) => normalizeWeight(candidate.weight) === normalizeWeight(requested.weight));
+        const isBaseWeight = normalizeWeight(product.weight) === normalizeWeight(requested.weight);
+        if (!variant && !isBaseWeight) {
+          const baseName = cleanBaseName(product.name);
+          if (baseName) neededCompanions.push(baseName);
+        }
+      }
+    }
+
+    const companionMap = new Map();
+    if (neededCompanions.length > 0) {
+      const regexes = neededCompanions.map((n) => new RegExp('^' + escapeRegex(n), 'i'));
+      const companions = await Product.find({ name: { $in: regexes } }).select('_id name weight price variants stock isAvailable').lean();
+      for (const c of companions) {
+        companionMap.set(cleanBaseName(c.name), c);
+        productMap.set(c._id.toString(), c);
+      }
+    }
+
+    const items = requestedItems.map((requested) => {
       let product = productMap.get(requested.productId);
       if (!product) throw Object.assign(new Error('One or more products are unavailable'), { statusCode: 400 });
 
@@ -313,18 +346,15 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
         // Fallback: Check companion product (e.g. Retail vs Regular pack)
         const baseName = cleanBaseName(product.name);
         if (baseName) {
-          const companion = await Product.findOne({
-            _id: { $ne: product._id },
-            name: new RegExp('^' + escapeRegex(baseName), 'i'),
-          }).select('_id name weight price variants stock isAvailable').lean();
-
-          if (companion) {
+          const companion = companionMap.get(baseName);
+          if (companion && companion._id.toString() !== product._id.toString()) {
             const compVariant = companion.variants?.find((candidate) => normalizeWeight(candidate.weight) === normalizeWeight(requested.weight));
             const compBase = normalizeWeight(companion.weight) === normalizeWeight(requested.weight);
             if (compVariant || compBase) {
               product = companion;
               variant = compVariant;
               isBaseWeight = compBase;
+              productMap.set(companion._id.toString(), companion);
             }
           }
         }
@@ -339,7 +369,7 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
       quantitiesByProduct.set(targetId, (quantitiesByProduct.get(targetId) || 0) + requested.quantity);
       subtotal += price * requested.quantity;
       return { productId: targetId, name: product.name, weight: requested.weight, price, quantity: requested.quantity };
-    }));
+    });
 
     for (const [productId] of quantitiesByProduct) {
       const product = productMap.get(productId) || (await Product.findById(productId).select('name stock isAvailable').lean());
@@ -423,7 +453,10 @@ router.post('/', createOrderLimiter, optionalProtect, async (req, res, next) => 
       await Cart.deleteOne({ userId: req.user._id }).catch(() => {});
     }
 
-    await cacheService.del('sakthi:users:all');
+    await Promise.all([
+      cacheService.del('sakthi:users:all'),
+      cacheService.delPattern('sakthi:orders:*'),
+    ]);
     void queueOrderNotifications(created, 'order.created');
     socketService.emitEvent('newOrder', publicOrder(created)); // Emit real-time event
 
@@ -462,7 +495,10 @@ router.post('/:id/cancel', protect, async (req, res, next) => {
         { new: true, session, runValidators: true }
       );
     });
-    await cacheService.del('sakthi:users:all');
+    await Promise.all([
+      cacheService.del('sakthi:users:all'),
+      cacheService.delPattern('sakthi:orders:*'),
+    ]);
     void queueOrderNotifications(cancelled, 'order.cancelled');
     res.json({ success: true, data: publicOrder(cancelled) });
   } catch (error) {
@@ -569,6 +605,7 @@ router.put('/:id/follow-up', protect, admin, async (req, res, next) => {
     );
 
     if (!updated) return res.status(404).json({ success: false, error: 'Order not found' });
+    await cacheService.delPattern('sakthi:orders:*');
     res.json({ success: true, data: publicOrder(updated) });
   } catch (error) {
     next(error);
@@ -628,7 +665,10 @@ router.put('/:id', protect, admin, async (req, res, next) => {
 
     const updated = await Order.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true, runValidators: true });
     if (!updated) return res.status(404).json({ success: false, error: 'Order not found' });
-    await cacheService.del('sakthi:users:all');
+    await Promise.all([
+      cacheService.del('sakthi:users:all'),
+      cacheService.delPattern('sakthi:orders:*'),
+    ]);
     void queueOrderNotifications(updated, `order.${req.body.status.toLowerCase()}`);
     
     const pub = publicOrder(updated);
@@ -651,7 +691,10 @@ router.post('/:id/refund', protect, admin, async (req, res, next) => {
     try {
       const refund = await getRazorpay().payments.refund(order.razorpayPaymentId, { amount: Math.round(order.totalAmount * 100), notes: { orderId: order._id.toString() } });
       const refunded = await Order.findByIdAndUpdate(order._id, { paymentStatus: 'Refunded', refundStatus: 'Processed', razorpayRefundId: refund.id, refundedAmount: refund.amount, refundedAt: new Date(), status: 'Cancelled', isLocked: true }, { new: true, runValidators: true });
-      await cacheService.del('sakthi:users:all');
+      await Promise.all([
+        cacheService.del('sakthi:users:all'),
+        cacheService.delPattern('sakthi:orders:*'),
+      ]);
       void queueOrderNotifications(refunded, 'payment.refunded');
       return res.json({ success: true, data: publicOrder(refunded) });
     } catch (error) {

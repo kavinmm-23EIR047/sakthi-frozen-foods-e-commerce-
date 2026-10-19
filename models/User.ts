@@ -49,5 +49,7 @@ UserSchema.pre('save', async function () {
 
 UserSchema.index({ email: 1 });
 UserSchema.index({ phone: 1 });
+UserSchema.index({ createdAt: -1 });
+UserSchema.index({ role: 1 });
 
 export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

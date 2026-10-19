@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
     res.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
     
     const { data: categories } = await cacheService.getOrSet('sakthi:categories:all', async () => {
-      const rawCategories = await Category.find().sort({ createdAt: 1 });
+      const rawCategories = await Category.find().sort({ createdAt: 1 }).lean();
       let list = rawCategories.map((c) => ({
         id: c._id.toString(),
         name: c.name,

@@ -74,10 +74,12 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ customerEmail: 1, createdAt: -1 });
 orderSchema.index({ createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 orderSchema.index({ paymentStatus: 1, paymentMethod: 1 });
+orderSchema.index({ paymentMethod: 1, paymentStatus: 1, paymentExpiresAt: 1 });
 orderSchema.index({ razorpayOrderId: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('Order', orderSchema);

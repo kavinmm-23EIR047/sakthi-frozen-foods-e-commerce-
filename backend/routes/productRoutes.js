@@ -52,7 +52,7 @@ function productInput(body, partial = false) {
 // GET all products (with optional category and search filters, cached via Upstash Redis)
 router.get('/', async (req, res) => {
   try {
-    res.set('Cache-Control', 'no-store');
+    res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
     const { category, search, page: pageQuery, limit: limitQuery } = req.query;
     const page = Math.max(parseInt(pageQuery || '1', 10), 1);
     const limit = Math.min(Math.max(parseInt(limitQuery || '50', 10), 1), 100);
@@ -98,10 +98,21 @@ router.get('/', async (req, res) => {
         .limit(limit)
         .lean();
       
-      const [rawProducts, totalCount] = await Promise.all([
-        productQuery,
-        Product.countDocuments(query)
-      ]);
+      let rawProducts;
+      let totalCount;
+      if (page === 1) {
+        rawProducts = await productQuery;
+        if (rawProducts.length < limit) {
+          totalCount = rawProducts.length;
+        } else {
+          totalCount = await Product.countDocuments(query);
+        }
+      } else {
+        [rawProducts, totalCount] = await Promise.all([
+          productQuery,
+          Product.countDocuments(query)
+        ]);
+      }
 
       const products = rawProducts.map((p) => ({
         id: p._id.toString(),
@@ -140,7 +151,7 @@ router.get('/:id', async (req, res) => {
   try {
     const paramId = String(req.params.id || '').trim();
     if (!paramId) return res.status(400).json({ success: false, error: 'Product ID required' });
-    res.set('Cache-Control', 'no-store');
+    res.set('Cache-Control', 'public, max-age=120, s-maxage=600, stale-while-revalidate=1200');
 
     const cacheKey = `sakthi:product:${paramId}`;
 

@@ -5,6 +5,9 @@ import { UserType } from '@/lib/types';
 import Order from '@/models/Order';
 import { getAuthToken, requireAdmin } from '@/lib/auth';
 
+// 30-second micro-cache for admin users list
+let usersCache: { data: string; expiresAt: number } | null = null;
+
 export async function GET() {
   try {
     const authError = await requireAdmin();
@@ -12,17 +15,30 @@ export async function GET() {
       return NextResponse.json({ success: false, error: authError.error }, { status: authError.status });
     }
 
+    if (usersCache && usersCache.expiresAt > Date.now()) {
+      return new NextResponse(usersCache.data, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'private, max-age=15',
+          'X-Cache': 'HIT',
+        },
+      });
+    }
+
     const db = await connectToDatabase();
     let users: UserType[] = [];
 
     if (db) {
       const rawUsers = await User.find().sort({ createdAt: -1 }).select('-password -sessionVersion').lean() as any[];
-      const emailPatterns = rawUsers
-        .map((user) => String(user.email || '').trim())
-        .filter(Boolean)
-        .map((email) => new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'));
-      const rawOrders = emailPatterns.length
-        ? await Order.find({ customerEmail: { $in: emailPatterns } }).sort({ createdAt: -1 }).lean()
+      const userEmails = rawUsers
+        .map((user) => String(user.email || '').trim().toLowerCase())
+        .filter(Boolean);
+      const rawOrders = userEmails.length
+        ? await Order.find({ customerEmail: { $in: userEmails } })
+            .select('customerEmail status paymentStatus totalAmount orderNumber createdAt items')
+            .sort({ createdAt: -1 })
+            .lean()
         : [];
       const ordersByEmail = new Map<string, any[]>();
       for (const order of rawOrders) {
@@ -57,6 +73,18 @@ export async function GET() {
             items: Array.isArray(order.items) ? order.items : [],
           })),
         };
+      });
+
+      const payload = JSON.stringify({ success: true, count: users.length, data: users });
+      usersCache = { data: payload, expiresAt: Date.now() + 30 * 1000 };
+
+      return new NextResponse(payload, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'private, max-age=15',
+          'X-Cache': 'MISS',
+        },
       });
     } else {
       const backendUrl = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL;

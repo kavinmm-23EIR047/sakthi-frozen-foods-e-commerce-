@@ -5,6 +5,7 @@ const request = require('supertest');
 const { MongoMemoryReplSet } = require('mongodb-memory-server');
 const Razorpay = require('razorpay');
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 
 process.env.JWT_SECRET = 'integration-test-secret';
 process.env.FRONTEND_URL = 'http://localhost:3005';
