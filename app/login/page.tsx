@@ -7,6 +7,7 @@ import { fetchApi } from '@/lib/apiConfig';
 import Link from 'next/link';
 import Image from 'next/image';
 const logo = '/logo.png';
+import GoogleAuthButton from '@/components/GoogleAuthButton';
 import {
   ArrowRight,
   ArrowLeft,
@@ -26,6 +27,7 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const { login } = useAuth();
   const router = useRouter();
@@ -357,6 +359,27 @@ function LoginForm() {
                   <span className="leading-relaxed">{error}</span>
                 </div>
               )}
+
+              {/* Fast 1-Click Google Sign In (Placed at Top) */}
+              <div className="mb-5 sm:mb-6">
+                <GoogleAuthButton
+                  redirectUrl={targetRedirect}
+                  onError={(err) => setError(err)}
+                  onLoadingChange={(v) => setGoogleLoading(v)}
+                  disabled={loading || googleLoading}
+                />
+
+                <div className="relative my-4 sm:my-5">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-stone-200"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="bg-white px-3 text-stone-400 font-extrabold tracking-wider uppercase text-[10px] sm:text-[11px]">
+                      Or sign in with email / mobile
+                    </span>
+                  </div>
+                </div>
+              </div>
 
               {/* Form */}
               <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">

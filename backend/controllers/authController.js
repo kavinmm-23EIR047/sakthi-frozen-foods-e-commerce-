@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const cacheService = require('../services/cacheService');
 const { dispatchNotification } = require('../services/notificationService');
 const { sendOtpEmail } = require('../services/emailService');
+const { OAuth2Client } = require('google-auth-library');
 
 // Generate JWT Token
 const generateToken = (id, role, sessionVersion = 0) => {
@@ -330,6 +331,243 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+// @desc    Google OAuth Login / Sign Up
+// @route   POST /api/auth/google
+// @access  Public
+const googleAuth = async (req, res) => {
+  const { code, idToken, credential } = req.body;
+
+  try {
+    const googleClientId = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+    if (!googleClientId) {
+      return res.status(500).json({
+        success: false,
+        message: 'Google OAuth is not configured on the server (missing GOOGLE_CLIENT_ID).',
+      });
+    }
+
+    const oauthClient = new OAuth2Client(
+      googleClientId,
+      googleClientSecret,
+      'postmessage'
+    );
+
+    let tokenToVerify = idToken || credential;
+
+    // If an authorization code was provided, exchange it for tokens
+    if (!tokenToVerify && code) {
+      try {
+        const tokenResponse = await oauthClient.getToken({
+          code,
+          redirect_uri: 'postmessage',
+        });
+        tokenToVerify = tokenResponse.tokens.id_token;
+      } catch (exchangeError) {
+        console.error('Failed to exchange Google authorization code:', exchangeError.message);
+        return res.status(400).json({
+          success: false,
+          message: 'Failed to exchange Google authorization code. Please try again.',
+        });
+      }
+    }
+
+    if (!tokenToVerify) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google authentication credential or code is required',
+      });
+    }
+
+    // Verify Google ID token cryptographically
+    let ticket;
+    try {
+      ticket = await oauthClient.verifyIdToken({
+        idToken: tokenToVerify,
+        audience: googleClientId,
+      });
+    } catch (verifyError) {
+      console.error('Google ID token verification failed:', verifyError.message);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid or expired Google authentication credentials.',
+      });
+    }
+
+    const payload = ticket.getPayload();
+    if (!payload) {
+      return res.status(401).json({
+        success: false,
+        message: 'Failed to retrieve user profile from Google token.',
+      });
+    }
+
+    const { sub: googleId, email, email_verified, name, picture } = payload;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'No email address found in your Google profile.',
+      });
+    }
+
+    // Validate email verification status
+    if (!email_verified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Your Google email address is not verified. Please verify your email with Google first.',
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const cleanName = String(name || payload.given_name || 'Google User').trim();
+    const avatar = String(picture || '').trim();
+
+    // Check whether the user already exists by googleId or email
+    let user = await User.findOne({ googleId });
+
+    if (!user) {
+      user = await User.findOne({ email: normalizedEmail });
+
+      if (user) {
+        // Safe account linking: Existing email/password user logging in with Google
+        let needsSave = false;
+        if (!user.googleId) {
+          user.googleId = googleId;
+          needsSave = true;
+        }
+        if (!user.avatar && avatar) {
+          user.avatar = avatar;
+          needsSave = true;
+        }
+        if (!user.isEmailVerified) {
+          user.isEmailVerified = true;
+          needsSave = true;
+        }
+        if (!user.authProvider) {
+          user.authProvider = 'google';
+          needsSave = true;
+        }
+        if (needsSave) {
+          await user.save();
+          cacheService.del(`sakthi:auth:user:${user._id}`);
+        }
+      } else {
+        // User does not exist, create a new account
+        user = await User.create({
+          name: cleanName,
+          email: normalizedEmail,
+          phone: '',
+          googleId,
+          avatar,
+          authProvider: 'google',
+          isEmailVerified: true,
+          role: 'Customer',
+          totalOrders: 0,
+          totalSpent: 0,
+          joinedDate: new Date().toISOString().split('T')[0],
+          address: '',
+          sessionVersion: 0,
+        });
+      }
+    } else {
+      // User found by googleId: Keep avatar and email verification up to date
+      let needsSave = false;
+      if (avatar && user.avatar !== avatar) {
+        user.avatar = avatar;
+        needsSave = true;
+      }
+      if (!user.isEmailVerified) {
+        user.isEmailVerified = true;
+        needsSave = true;
+      }
+      if (needsSave) {
+        await user.save();
+        cacheService.del(`sakthi:auth:user:${user._id}`);
+      }
+    }
+
+    const token = generateToken(user._id, user.role, user.sessionVersion || 0);
+
+    return res.json({
+      success: true,
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        role: user.role,
+        avatar: user.avatar || '',
+        authProvider: user.authProvider || 'google',
+        token,
+      },
+    });
+  } catch (error) {
+    console.error('Google auth error:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Google authentication failed',
+    });
+  }
+};
+
+// @desc    Update current user's phone number
+// @route   PUT /api/auth/phone
+// @access  Private
+const updateUserPhone = async (req, res) => {
+  try {
+    const { phone } = req.body;
+    const cleanedPhone = cleanPhoneNumber(phone);
+
+    if (!isValidMobileNumber(cleanedPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter a valid 10-digit Indian mobile number (e.g., 9876543210)',
+      });
+    }
+
+    // Check if another account is already using this phone number
+    const duplicate = await User.findOne({
+      phone: cleanedPhone,
+      _id: { $ne: req.user._id },
+    }).select('_id').lean();
+
+    if (duplicate) {
+      return res.status(400).json({
+        success: false,
+        message: 'This mobile number is already associated with another account.',
+      });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    user.phone = cleanedPhone;
+    await user.save();
+    cacheService.del(`sakthi:auth:user:${user._id}`);
+
+    return res.json({
+      success: true,
+      message: 'Mobile number updated successfully',
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        avatar: user.avatar || '',
+        authProvider: user.authProvider || 'local',
+      },
+    });
+  } catch (error) {
+    console.error('Update phone error:', error);
+    return res.status(500).json({ success: false, message: error.message || 'Failed to update phone number' });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -337,4 +575,6 @@ module.exports = {
   requestPasswordReset,
   verifyOtp,
   resetPassword,
+  googleAuth,
+  updateUserPhone,
 };

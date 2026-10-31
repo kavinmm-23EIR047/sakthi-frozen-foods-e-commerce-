@@ -7,9 +7,13 @@ const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true },
-    phone: { type: String, required: true },
+    password: { type: String, required: false },
+    phone: { type: String, default: '' },
     role: { type: String, enum: ['Customer', 'Admin'], default: 'Customer' },
+    googleId: { type: String, sparse: true, index: true },
+    authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
+    avatar: { type: String, default: '' },
+    isEmailVerified: { type: Boolean, default: false },
     totalOrders: { type: Number, default: 0 },
     totalSpent: { type: Number, default: 0 },
     joinedDate: { type: String, default: () => new Date().toISOString().split('T')[0] },
@@ -32,7 +36,7 @@ userSchema.index({ role: 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+  if (!this.isModified('password') || !this.password) {
     return next();
   }
   // rounds=8 (~25ms) vs rounds=10 (~100ms) — still very secure for stored passwords
@@ -43,6 +47,7 @@ userSchema.pre('save', async function (next) {
 // Method to compare passwords
 userSchema.methods.matchPassword = async function (enteredPassword) {
   const storedPassword = String(this.password || '');
+  if (!storedPassword) return false;
   if (/^\$2[aby]\$/.test(storedPassword)) {
     try {
       return await bcrypt.compare(enteredPassword, storedPassword);

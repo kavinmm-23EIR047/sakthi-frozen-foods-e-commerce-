@@ -7,6 +7,7 @@ import { fetchApi } from '@/lib/apiConfig';
 import Link from 'next/link';
 import Image from 'next/image';
 const logo = '/logo.png';
+import GoogleAuthButton from '@/components/GoogleAuthButton';
 import {
   ArrowRight,
   ArrowLeft,
@@ -30,6 +31,7 @@ function RegisterForm() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const { login } = useAuth();
@@ -368,11 +370,32 @@ function RegisterForm() {
 
               {/* Error Message */}
               {error && (
-                <div className="mb-5 p-3.5 bg-red-50 rounded-2xl flex items-start gap-3 border border-red-200 text-red-800 text-xs font-semibold">
+                <div className="mb-4 p-3.5 bg-red-50 rounded-2xl flex items-start gap-3 border border-red-200 text-red-800 text-xs font-semibold">
                   <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                   <span className="leading-relaxed">{error}</span>
                 </div>
               )}
+
+              {/* Fast 1-Click Google Sign Up (Placed at Top) */}
+              <div className="mb-4 sm:mb-5">
+                <GoogleAuthButton
+                  redirectUrl={targetRedirect}
+                  onError={(err) => setError(err)}
+                  onLoadingChange={(v) => setGoogleLoading(v)}
+                  disabled={loading || googleLoading}
+                />
+
+                <div className="relative my-3.5 sm:my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-stone-200"></div>
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="bg-white px-3 text-stone-400 font-extrabold tracking-wider uppercase text-[10px] sm:text-[11px]">
+                      Or fill in details below
+                    </span>
+                  </div>
+                </div>
+              </div>
 
               {/* Form */}
               <form onSubmit={handleRegister} className="space-y-3.5 sm:space-y-4">

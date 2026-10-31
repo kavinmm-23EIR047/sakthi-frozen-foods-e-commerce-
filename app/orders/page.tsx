@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import NotificationManager from '@/components/NotificationManager';
+import PhonePromptModal from '@/components/PhonePromptModal';
 import { printCommercialBill } from '@/lib/printUtils';
 
 declare global {
@@ -54,6 +55,7 @@ export default function OrdersAndAccountPage() {
   const { clearCart } = useCart();
 
   const [activeTab, setActiveTab] = useState<'orders' | 'profile' | 'notifications'>('orders');
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [orders, setOrders] = useState<OrderType[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState('');
@@ -464,7 +466,19 @@ export default function OrdersAndAccountPage() {
               </div>
               <div className="min-w-0">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">Phone Number</span>
-                <span className="font-bold text-stone-800 truncate block">{user.phone || '+91 80563 89214'}</span>
+                {user.phone ? (
+                  <span className="font-bold text-stone-800 truncate block">
+                    {user.phone.startsWith('+91') ? user.phone : `+91 ${user.phone}`}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowPhoneModal(true)}
+                    className="text-[11px] font-bold text-amber-800 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 px-2.5 py-0.5 rounded-lg border border-amber-200 transition cursor-pointer mt-0.5 inline-block"
+                  >
+                    + Add Mobile Number
+                  </button>
+                )}
               </div>
             </div>
 
@@ -481,6 +495,32 @@ export default function OrdersAndAccountPage() {
             </div>
           </div>
         </section>
+
+        {/* Missing Phone Number Prompt Banner for Google Login Users */}
+        {!user.phone && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border border-amber-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 shadow-xs">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                <Phone className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-amber-950">
+                  Please Enter Your Mobile Number
+                </h4>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Add your 10-digit mobile number so we can coordinate your cold delivery and send WhatsApp status updates.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowPhoneModal(true)}
+              className="px-4 py-2.5 bg-amber-800 hover:bg-amber-900 active:bg-amber-950 text-white rounded-xl text-xs font-bold transition shadow-xs shrink-0 cursor-pointer text-center"
+            >
+              Add Mobile Number
+            </button>
+          </div>
+        )}
 
         {/* ========================================================================= */}
         {/* 2. TAB CONTROLS */}
@@ -911,8 +951,23 @@ export default function OrdersAndAccountPage() {
                 </div>
 
                 <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Contact Number</span>
-                  <p className="font-bold text-stone-900 text-sm">{user.phone || '+91 80563 89214'}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Contact Number</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowPhoneModal(true)}
+                      className="text-[11px] font-bold text-[#50563D] hover:underline cursor-pointer"
+                    >
+                      {user.phone ? 'Update' : '+ Add Number'}
+                    </button>
+                  </div>
+                  <p className="font-bold text-stone-900 text-sm">
+                    {user.phone ? (
+                      user.phone.startsWith('+91') ? user.phone : `+91 ${user.phone}`
+                    ) : (
+                      <span className="text-amber-700 italic font-medium">Not Provided</span>
+                    )}
+                  </p>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-1">
@@ -923,7 +978,11 @@ export default function OrdersAndAccountPage() {
                 <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-1 sm:col-span-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Default Shipping Address</span>
                   <p className="font-bold text-stone-900 text-sm leading-relaxed">
-                    {user.address || 'Peons Colony, Kalpana Theatre Opposite, Edayarpalayam - Koundampalayam Rd, Kavundampalayam, Coimbatore, Tamil Nadu 641030'}
+                    {user.address || (
+                      <span className="text-stone-400 italic font-normal">
+                        No default delivery address saved yet. You can add one during checkout.
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -957,6 +1016,12 @@ export default function OrdersAndAccountPage() {
         )}
 
       </main>
+
+      <PhonePromptModal
+        isOpen={showPhoneModal}
+        onClose={() => setShowPhoneModal(false)}
+        onSuccess={() => setShowPhoneModal(false)}
+      />
 
       <Footer />
     </div>

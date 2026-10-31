@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     const db = await connectToDatabase();
     if (db) {
       const user = await User.findById(decoded.id)
-        .select('_id name email phone role totalOrders totalSpent address sessionVersion')
+        .select('_id name email phone role totalOrders totalSpent address sessionVersion avatar authProvider')
         .lean();
 
       if (!user) {
@@ -58,6 +58,8 @@ export async function GET(request: Request) {
           email: u.email,
           phone: u.phone,
           role: u.role,
+          avatar: u.avatar || '',
+          authProvider: u.authProvider || 'local',
           totalOrders: u.totalOrders,
           totalSpent: u.totalSpent,
           address: u.address,

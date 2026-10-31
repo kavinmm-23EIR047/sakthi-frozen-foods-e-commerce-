@@ -11,12 +11,17 @@ export type UserType = {
   token: string;
   phone?: string;
   address?: string;
+  avatar?: string;
+  authProvider?: 'local' | 'google';
+  googleId?: string;
 };
 
 interface AuthContextType {
   user: UserType | null;
   login: (userData: UserType) => void;
   logout: () => void;
+  updateUser: (updatedData: Partial<UserType>) => void;
+  updatePhone: (phone: string) => Promise<{ success: boolean; message?: string }>;
   loading: boolean;
 }
 
@@ -24,6 +29,8 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   login: () => {},
   logout: () => {},
+  updateUser: () => {},
+  updatePhone: async () => ({ success: false }),
   loading: true,
 });
 
@@ -62,6 +69,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     showToast(`Welcome back, ${userData.name}!`, 'success');
   };
 
+  const updateUser = (updatedData: Partial<UserType>) => {
+    setUser((prev) => (prev ? { ...prev, ...updatedData } : null));
+  };
+
+  const updatePhone = async (phone: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const res = await fetch('/api/auth/phone', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.data) {
+        setUser((prev) => (prev ? { ...prev, phone: data.data.phone } : data.data));
+        showToast('Mobile number saved successfully!', 'success');
+        return { success: true };
+      }
+      return { success: false, message: data.message || 'Failed to update mobile number' };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Network error occurred' };
+    }
+  };
+
   const logout = async () => {
     setUser(null);
     sessionStorage.removeItem('auth_token');
@@ -76,7 +106,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, updatePhone, loading }}>
       {children}
     </AuthContext.Provider>
   );
