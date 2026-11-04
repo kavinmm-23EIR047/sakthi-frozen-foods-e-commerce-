@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const token = cookieStore.get('auth_token')?.value || bearerToken;
 
     if (!token) {
-      return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 });
+      return NextResponse.json({ success: false, data: null, message: 'No active session' }, { status: 200 });
     }
 
     const JWT_SECRET = process.env.JWT_SECRET;
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     try {
       decoded = jwt.verify(token, JWT_SECRET);
     } catch (err: any) {
-      const res = NextResponse.json({ success: false, error: 'Token expired or invalid' }, { status: 401 });
+      const res = NextResponse.json({ success: false, data: null, error: 'Token expired or invalid' }, { status: 200 });
       res.cookies.delete('auth_token');
       return res;
     }

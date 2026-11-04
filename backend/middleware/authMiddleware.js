@@ -10,6 +10,11 @@ const protect = async (req, res, next) => {
     req.headers.authorization.startsWith('Bearer')
   ) {
     token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies && req.cookies.auth_token) {
+    token = req.cookies.auth_token;
+  } else if (req.headers.cookie) {
+    const match = req.headers.cookie.match(/(?:^|;\s*)auth_token=([^;]+)/);
+    if (match) token = match[1];
   } else if (req.query && req.query.token) {
     token = req.query.token;
   }

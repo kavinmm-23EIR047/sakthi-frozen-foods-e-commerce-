@@ -11,6 +11,7 @@ interface PhonePromptModalProps {
   title?: string;
   description?: string;
   allowSkip?: boolean;
+  tokenOverride?: string;
 }
 
 export default function PhonePromptModal({
@@ -20,6 +21,7 @@ export default function PhonePromptModal({
   title = 'Please Enter Your Mobile Number',
   description = 'We need your 10-digit mobile number for order delivery coordination and WhatsApp status updates.',
   allowSkip = true,
+  tokenOverride,
 }: PhonePromptModalProps) {
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
@@ -40,7 +42,7 @@ export default function PhonePromptModal({
     }
 
     setLoading(true);
-    const res = await updatePhone(clean);
+    const res = await updatePhone(clean, tokenOverride);
 
     if (res.success) {
       setLoading(false);

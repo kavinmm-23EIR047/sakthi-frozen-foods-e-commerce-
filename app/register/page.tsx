@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { fetchApi } from '@/lib/apiConfig';
@@ -8,31 +8,38 @@ import Link from 'next/link';
 import Image from 'next/image';
 const logo = '/logo.png';
 import GoogleAuthButton from '@/components/GoogleAuthButton';
+import PhonePromptModal from '@/components/PhonePromptModal';
 import {
   ArrowRight,
   ArrowLeft,
-  Home,
-  Lock,
   Mail,
   User as UserIcon,
   Phone,
+  KeyRound,
   AlertCircle,
-  Eye,
-  EyeOff,
   Loader2,
+  CheckCircle2,
+  RefreshCw,
+  Home,
 } from 'lucide-react';
 
 function RegisterForm() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: '',
     phone: '',
   });
+  const [otp, setOtp] = useState('');
+  const [step, setStep] = useState<'details' | 'otp'>('details');
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [authToken, setAuthToken] = useState<string>('');
+  const authTokenRef = useRef<string>('');
+  const [pendingDestination, setPendingDestination] = useState<string>('');
 
   const { login } = useAuth();
   const router = useRouter();
@@ -40,47 +47,114 @@ function RegisterForm() {
   const redirectParam = searchParams.get('redirect');
   const targetRedirect = redirectParam && redirectParam.startsWith('/') ? redirectParam : '/';
 
+  // Timer for OTP resend countdown
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Step 1: Send OTP to Email
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setError('');
+    setSuccessMsg('');
 
-    const cleanPhone = formData.phone.replace(/\D/g, '').replace(/^91/, '');
-    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
-      setError('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
+    const cleanName = formData.name.trim();
+    if (!cleanName) {
+      setError('Please enter your full name.');
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+    const cleanEmail = formData.email.trim().toLowerCase();
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    const cleanPhone = formData.phone.replace(/\D/g, '').replace(/^91/, '');
+    if (cleanPhone && !/^[6-9]\d{9}$/.test(cleanPhone)) {
+      setError('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
       return;
     }
 
     setLoading(true);
 
     try {
-      const res = await fetchApi('/auth/register', {
+      const res = await fetchApi('/auth/otp/send', {
         method: 'POST',
         body: JSON.stringify({
-          ...formData,
+          name: cleanName,
+          email: cleanEmail,
+        }),
+      });
+
+      if (res.success) {
+        setStep('otp');
+        setCountdown(30);
+        setSuccessMsg(`Verification code sent to ${cleanEmail}`);
+      } else {
+        setError(res.message || 'Failed to send verification code. Please try again.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Network error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 2: Verify OTP and Complete Registration
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    const cleanOtp = otp.trim();
+    if (cleanOtp.length !== 6) {
+      setError('Please enter the complete 6-digit code sent to your email.');
+      return;
+    }
+
+    setLoading(true);
+
+    const cleanPhone = formData.phone.replace(/\D/g, '').replace(/^91/, '');
+
+    try {
+      const res = await fetchApi('/auth/otp/verify', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: formData.email.trim().toLowerCase(),
+          otp: cleanOtp,
+          name: formData.name.trim(),
           phone: cleanPhone,
         }),
       });
 
       if (res.success && res.data) {
-        if (login) {
-          login(res.data);
+        if (res.data.token) {
+          authTokenRef.current = res.data.token;
+          setAuthToken(res.data.token);
         }
-        router.replace(targetRedirect);
+        login(res.data);
+        const destination = res.data.role === 'Admin' ? '/admin' : targetRedirect;
+
+        // If user doesn't have a phone number, prompt for it
+        if (!res.data.phone && !cleanPhone) {
+          setPendingDestination(destination);
+          setShowPhoneModal(true);
+        } else {
+          router.replace(destination);
+        }
       } else {
-        setError(res.message || 'Failed to create account. Please check your details.');
-        setLoading(false);
+        setError(res.message || 'Invalid or expired verification code.');
       }
     } catch (err: any) {
-      setError(err.message || 'Something went wrong. Please try again.');
+      setError(err.message || 'Verification failed. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
@@ -91,6 +165,7 @@ function RegisterForm() {
       {/* Floating Back to Home Navigation Button on Right Side */}
       <Link
         href="/"
+        prefetch={true}
         className="fixed top-4 right-4 sm:top-6 sm:right-6 z-30 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/90 hover:bg-white text-stone-700 hover:text-[#4E553B] text-xs font-bold shadow-md border border-[#DCE4D4] backdrop-blur-md transition-all active:scale-95 group"
       >
         <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
@@ -268,7 +343,7 @@ function RegisterForm() {
 
             {/* Top Brand / Logo */}
             <div className="relative z-10 mb-2 sm:mb-4 lg:mb-6">
-              <Link href="/" className="inline-flex items-center gap-3 group">
+              <Link href="/" prefetch={true} className="inline-flex items-center gap-3 group">
                 <div className="relative w-10 h-10 sm:w-11 sm:h-11 bg-white rounded-2xl flex items-center justify-center shadow-md p-1.5 transition-transform group-hover:scale-105">
                   <Image src={logo} alt="Sakthi Frozen Foods" fill className="object-contain p-1" priority />
                 </div>
@@ -339,7 +414,7 @@ function RegisterForm() {
             </div>
           </div>
 
-          {/* ─── Right Panel: Clean Register Form ─── */}
+          {/* ─── Right Panel: Clean Passwordless Register Form ─── */}
           <div className="w-full lg:w-[52%] xl:w-[53%] bg-white p-6 sm:p-10 lg:p-12 xl:p-14 flex flex-col justify-center">
             <div className="max-w-[420px] mx-auto w-full">
 
@@ -348,6 +423,7 @@ function RegisterForm() {
                 <div className="inline-flex items-center p-1 bg-[#EEF2E8] rounded-full">
                   <Link
                     href={targetRedirect !== '/' ? `/login?redirect=${encodeURIComponent(targetRedirect)}` : '/login'}
+                    prefetch={true}
                     className="px-6 sm:px-7 py-2 rounded-full text-stone-500 hover:text-stone-900 text-xs sm:text-sm font-bold transition-colors"
                   >
                     Sign In
@@ -364,15 +440,23 @@ function RegisterForm() {
                   Create Account
                 </h1>
                 <p className="text-xs sm:text-sm text-stone-500 mt-1.5 leading-relaxed">
-                  Join to start ordering fresh mock meats today.
+                  Join to start ordering fresh mock meats today. No passwords needed!
                 </p>
               </div>
 
               {/* Error Message */}
               {error && (
-                <div className="mb-4 p-3.5 bg-red-50 rounded-2xl flex items-start gap-3 border border-red-200 text-red-800 text-xs font-semibold">
+                <div className="mb-4 p-3.5 bg-red-50 rounded-2xl flex items-start gap-3 border border-red-200 text-red-800 text-xs font-semibold animate-in fade-in duration-200">
                   <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                   <span className="leading-relaxed">{error}</span>
+                </div>
+              )}
+
+              {/* Success Message */}
+              {successMsg && (
+                <div className="mb-4 p-3.5 bg-green-50 rounded-2xl flex items-start gap-3 border border-green-200 text-green-800 text-xs font-semibold animate-in fade-in duration-200">
+                  <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">{successMsg}</span>
                 </div>
               )}
 
@@ -391,66 +475,66 @@ function RegisterForm() {
                   </div>
                   <div className="relative flex justify-center text-xs">
                     <span className="bg-white px-3 text-stone-400 font-extrabold tracking-wider uppercase text-[10px] sm:text-[11px]">
-                      Or fill in details below
+                      Or register with email OTP
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Form */}
-              <form onSubmit={handleRegister} className="space-y-3.5 sm:space-y-4">
-                {/* Full Name */}
-                <div>
-                  <label className="block text-[10px] sm:text-[11px] font-extrabold text-stone-800 uppercase tracking-wider mb-1.5">
-                    FULL NAME <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-500">
-                      <UserIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+              {/* ─── Passwordless Form ─── */}
+              {step === 'details' ? (
+                /* Step 1: Full Name, Email Address, and Optional Mobile */
+                <form onSubmit={handleSendOtp} className="space-y-3.5 sm:space-y-4">
+                  {/* Full Name */}
+                  <div>
+                    <label className="block text-[10px] sm:text-[11px] font-extrabold text-stone-800 uppercase tracking-wider mb-1.5">
+                      FULL NAME <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-500">
+                        <UserIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                      </div>
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        required
+                        disabled={loading || googleLoading}
+                        className="w-full pl-11 sm:pl-12 pr-4 py-3 sm:py-3.5 rounded-2xl bg-[#EDF2FE] hover:bg-[#E7EEFC] focus:bg-white border border-[#DFE7F8] text-xs sm:text-sm font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#4E553B]/25 focus:border-[#4E553B] transition-all placeholder:text-stone-400 disabled:opacity-60"
+                        placeholder="Enter your full name"
+                        autoComplete="name"
+                      />
                     </div>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      required
-                      disabled={loading}
-                      className="w-full pl-11 sm:pl-12 pr-4 py-3 sm:py-3.5 rounded-2xl bg-[#EDF2FE] hover:bg-[#E7EEFC] focus:bg-white border border-[#DFE7F8] text-xs sm:text-sm font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#4E553B]/25 focus:border-[#4E553B] transition-all placeholder:text-stone-400 disabled:opacity-60"
-                      placeholder="Enter your full name"
-                      autoComplete="name"
-                    />
                   </div>
-                </div>
 
-                {/* Email Address */}
-                <div>
-                  <label className="block text-[10px] sm:text-[11px] font-extrabold text-stone-800 uppercase tracking-wider mb-1.5">
-                    EMAIL ADDRESS <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-500">
-                      <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
+                  {/* Email Address */}
+                  <div>
+                    <label className="block text-[10px] sm:text-[11px] font-extrabold text-stone-800 uppercase tracking-wider mb-1.5">
+                      EMAIL ADDRESS <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-500">
+                        <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
+                      </div>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        required
+                        disabled={loading || googleLoading}
+                        className="w-full pl-11 sm:pl-12 pr-4 py-3 sm:py-3.5 rounded-2xl bg-[#EDF2FE] hover:bg-[#E7EEFC] focus:bg-white border border-[#DFE7F8] text-xs sm:text-sm font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#4E553B]/25 focus:border-[#4E553B] transition-all placeholder:text-stone-400 disabled:opacity-60"
+                        placeholder="Enter your email address"
+                        autoComplete="email"
+                      />
                     </div>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                      disabled={loading}
-                      className="w-full pl-11 sm:pl-12 pr-4 py-3 sm:py-3.5 rounded-2xl bg-[#EDF2FE] hover:bg-[#E7EEFC] focus:bg-white border border-[#DFE7F8] text-xs sm:text-sm font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#4E553B]/25 focus:border-[#4E553B] transition-all placeholder:text-stone-400 disabled:opacity-60"
-                      placeholder="Enter your email address"
-                      autoComplete="email"
-                    />
                   </div>
-                </div>
 
-                {/* Mobile & Password Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                   {/* Mobile Number */}
                   <div>
                     <label className="block text-[10px] sm:text-[11px] font-extrabold text-stone-800 uppercase tracking-wider mb-1.5">
-                      MOBILE <span className="text-red-500">*</span>
+                      MOBILE NUMBER <span className="text-stone-400 font-normal">(FOR DELIVERY UPDATES)</span>
                     </label>
                     <div className="relative flex items-center">
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none gap-1.5 text-stone-500">
@@ -466,66 +550,113 @@ function RegisterForm() {
                           const onlyNums = e.target.value.replace(/\D/g, '');
                           setFormData({ ...formData, phone: onlyNums });
                         }}
-                        required
-                        disabled={loading}
+                        disabled={loading || googleLoading}
                         className="w-full pl-[4.5rem] pr-3 py-3 sm:py-3.5 rounded-2xl bg-[#EDF2FE] hover:bg-[#E7EEFC] focus:bg-white border border-[#DFE7F8] text-xs sm:text-sm font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#4E553B]/25 focus:border-[#4E553B] transition-all placeholder:text-stone-400 disabled:opacity-60 tracking-wider"
-                        placeholder="Enter your mobile number"
+                        placeholder="Enter 10-digit mobile number"
                         autoComplete="tel"
                       />
                     </div>
                   </div>
 
-                  {/* Password */}
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={loading || googleLoading || !formData.name.trim() || !formData.email.trim()}
+                    className="w-full py-3.5 sm:py-4 bg-[#4E553B] hover:bg-[#40472F] active:bg-[#383E28] text-white font-bold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#4E553B]/20 hover:shadow-xl hover:shadow-[#4E553B]/30 transition-all active:scale-[0.98] disabled:opacity-75 cursor-pointer mt-4"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 sm:h-5 sm:w-5 animate-spin" />
+                        <span>Sending Verification Code...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Send Verification Code</span>
+                        <ArrowRight className="w-4 h-4 sm:h-5 sm:w-5" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                /* Step 2: 6-Digit OTP Verification */
+                <form onSubmit={handleVerifyOtp} className="space-y-4 sm:space-y-5 animate-in fade-in duration-200">
                   <div>
-                    <label className="block text-[10px] sm:text-[11px] font-extrabold text-stone-800 uppercase tracking-wider mb-1.5">
-                      PASSWORD <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-500">
-                        <Lock className="h-4 w-4" />
-                      </div>
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        name="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        required
-                        disabled={loading}
-                        className="w-full pl-10 pr-11 py-3 sm:py-3.5 rounded-2xl bg-[#EDF2FE] hover:bg-[#E7EEFC] focus:bg-white border border-[#DFE7F8] text-xs sm:text-sm font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#4E553B]/25 focus:border-[#4E553B] transition-all placeholder:text-stone-400 disabled:opacity-60"
-                        placeholder="Enter your password"
-                        autoComplete="new-password"
-                      />
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-[10px] sm:text-[11px] font-extrabold text-stone-800 uppercase tracking-wider">
+                        6-DIGIT VERIFICATION CODE
+                      </label>
                       <button
                         type="button"
-                        onClick={() => setShowPassword((v) => !v)}
-                        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        onClick={() => {
+                          setStep('details');
+                          setError('');
+                        }}
+                        className="text-xs font-bold text-[#4E553B] hover:underline"
                       >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        Change details
                       </button>
                     </div>
-                  </div>
-                </div>
 
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 sm:py-4 bg-[#4E553B] hover:bg-[#40472F] active:bg-[#383E28] text-white font-bold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#4E553B]/20 hover:shadow-xl hover:shadow-[#4E553B]/30 transition-all active:scale-[0.98] disabled:opacity-75 cursor-pointer mt-4"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 sm:h-5 sm:w-5 animate-spin" />
-                      <span>Creating Account...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Complete Registration</span>
-                      <ArrowRight className="w-4 h-4 sm:h-5 sm:w-5" />
-                    </>
-                  )}
-                </button>
-              </form>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-500">
+                        <KeyRound className="h-4 w-4 sm:h-5 sm:w-5" />
+                      </div>
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                        required
+                        disabled={loading || googleLoading}
+                        className="w-full pl-11 sm:pl-12 pr-4 py-3.5 sm:py-4 rounded-2xl bg-[#EDF2FE] hover:bg-[#E7EEFC] focus:bg-white border border-[#DFE7F8] text-sm sm:text-base font-bold text-stone-900 tracking-[6px] focus:outline-none focus:ring-2 focus:ring-[#4E553B]/25 focus:border-[#4E553B] transition-all placeholder:text-stone-400 placeholder:tracking-normal disabled:opacity-60"
+                        placeholder="123456"
+                        autoComplete="one-time-code"
+                        autoFocus
+                      />
+                    </div>
+                    <p className="text-[11px] text-stone-500 mt-1.5 pl-1">
+                      Check your inbox or spam folder for code sent to <strong className="text-stone-700">{formData.email}</strong>
+                    </p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading || googleLoading || otp.length !== 6}
+                    className="w-full py-3.5 sm:py-4 bg-[#4E553B] hover:bg-[#40472F] active:bg-[#383E28] text-white font-bold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#4E553B]/20 hover:shadow-xl hover:shadow-[#4E553B]/30 transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer mt-4"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 sm:h-5 sm:w-5 animate-spin" />
+                        <span>Verifying &amp; Creating Account...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Complete Registration</span>
+                        <ArrowRight className="w-4 h-4 sm:h-5 sm:w-5" />
+                      </>
+                    )}
+                  </button>
+
+                  {/* Resend Code Option */}
+                  <div className="text-center pt-2">
+                    {countdown > 0 ? (
+                      <span className="text-xs text-stone-400 font-semibold">
+                        Resend code in {countdown}s
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleSendOtp()}
+                        disabled={loading}
+                        className="text-xs font-bold text-[#4E553B] hover:text-[#3B4228] inline-flex items-center gap-1.5 hover:underline cursor-pointer"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Resend verification code</span>
+                      </button>
+                    )}
+                  </div>
+                </form>
+              )}
 
               {/* Footer Link */}
               <div className="mt-5 sm:mt-6 text-center pt-3.5 sm:pt-4 border-t border-stone-100 space-y-3">
@@ -533,6 +664,7 @@ function RegisterForm() {
                   Already registered?{' '}
                   <Link
                     href={targetRedirect !== '/' ? `/login?redirect=${encodeURIComponent(targetRedirect)}` : '/login'}
+                    prefetch={true}
                     className="text-stone-900 font-extrabold hover:text-[#4E553B] hover:underline"
                   >
                     Sign In
@@ -541,6 +673,7 @@ function RegisterForm() {
                 <div>
                   <Link
                     href="/"
+                    prefetch={true}
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-500 hover:text-[#4E553B] transition-colors"
                   >
                     <Home className="w-3.5 h-3.5" />
@@ -553,6 +686,21 @@ function RegisterForm() {
 
         </div>
       </div>
+
+      <PhonePromptModal
+        isOpen={showPhoneModal}
+        tokenOverride={authTokenRef.current || authToken}
+        onClose={() => {
+          setShowPhoneModal(false);
+          router.replace(pendingDestination || targetRedirect);
+        }}
+        onSuccess={() => {
+          setShowPhoneModal(false);
+          router.replace(pendingDestination || targetRedirect);
+        }}
+        title="Please Enter Your Mobile Number"
+        description="We need your 10-digit mobile number for order delivery coordination and WhatsApp status updates."
+      />
     </div>
   );
 }

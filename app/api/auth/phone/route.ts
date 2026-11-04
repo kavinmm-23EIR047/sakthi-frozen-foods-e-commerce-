@@ -8,8 +8,9 @@ import { cleanPhoneNumber, isValidMobileNumber } from '@/lib/authHelper';
 export async function PUT(request: Request) {
   try {
     const cookieStore = await cookies();
-    const bearerToken = request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
-    const token = cookieStore.get('auth_token')?.value || bearerToken;
+    const authHeader = request.headers.get('authorization') || '';
+    const bearerToken = authHeader.replace(/^Bearer\s+/i, '').trim();
+    const token = bearerToken || cookieStore.get('auth_token')?.value;
 
     if (!token) {
       return NextResponse.json({ success: false, message: 'Not authenticated' }, { status: 401 });
@@ -24,8 +25,18 @@ export async function PUT(request: Request) {
     try {
       decoded = jwt.verify(token, JWT_SECRET);
     } catch {
-      return NextResponse.json({ success: false, message: 'Token expired or invalid' }, { status: 401 });
+      const cookieToken = cookieStore.get('auth_token')?.value;
+      if (cookieToken && cookieToken !== token) {
+        try {
+          decoded = jwt.verify(cookieToken, JWT_SECRET);
+        } catch {}
+      }
+      if (!decoded) {
+        return NextResponse.json({ success: false, message: 'Token expired or invalid' }, { status: 401 });
+      }
     }
+
+    const userId = decoded.id || decoded._id || decoded.userId;
 
     const body = await request.json();
     const { phone } = body;
@@ -43,17 +54,17 @@ export async function PUT(request: Request) {
       // Check if phone number is already registered by another user
       const duplicate = await User.findOne({
         phone: cleaned,
-        _id: { $ne: decoded.id },
+        _id: { $ne: userId },
       }).select('_id').lean();
 
       if (duplicate) {
         return NextResponse.json(
-          { success: false, message: 'This mobile number is already associated with another account.' },
+          { success: false, message: 'This mobile number is already associated with another account. Please use a different number.' },
           { status: 400 }
         );
       }
 
-      const user = await User.findById(decoded.id);
+      const user = await User.findById(userId);
       if (!user) {
         return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
       }

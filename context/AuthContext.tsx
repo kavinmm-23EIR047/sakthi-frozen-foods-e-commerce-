@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from './ToastContext';
+import { fetchApi } from '@/lib/apiConfig';
 
 export type UserType = {
   _id: string;
@@ -21,7 +22,7 @@ interface AuthContextType {
   login: (userData: UserType) => void;
   logout: () => void;
   updateUser: (updatedData: Partial<UserType>) => void;
-  updatePhone: (phone: string) => Promise<{ success: boolean; message?: string }>;
+  updatePhone: (phone: string, tokenOverride?: string) => Promise<{ success: boolean; message?: string }>;
   loading: boolean;
 }
 
@@ -40,10 +41,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { showToast } = useToast();
 
   useEffect(() => {
-    // Check session via Next.js proxy route which reads the HttpOnly cookie
+    // Check session via Next.js proxy route which reads the HttpOnly cookie or Bearer token
     const checkSession = async () => {
       try {
-        const res = await fetch('/api/auth/me');
+        const storedToken =
+          typeof window !== 'undefined'
+            ? sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token')
+            : null;
+
+        const headers: Record<string, string> = {};
+        if (storedToken) {
+          headers['Authorization'] = `Bearer ${storedToken}`;
+        }
+
+        const res = await fetch('/api/auth/me', {
+          headers,
+          credentials: 'include',
+        });
+
         if (res.ok) {
           const text = await res.text();
           if (text && text.trim()) {
@@ -65,7 +80,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = (userData: UserType) => {
     setUser(userData);
-    if (userData.token) sessionStorage.setItem('auth_token', userData.token);
+    if (userData.token) {
+      sessionStorage.setItem('auth_token', userData.token);
+      localStorage.setItem('auth_token', userData.token);
+    }
     showToast(`Welcome back, ${userData.name}!`, 'success');
   };
 
@@ -73,20 +91,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser((prev) => (prev ? { ...prev, ...updatedData } : null));
   };
 
-  const updatePhone = async (phone: string): Promise<{ success: boolean; message?: string }> => {
+  const updatePhone = async (phone: string, tokenOverride?: string): Promise<{ success: boolean; message?: string }> => {
     try {
-      const res = await fetch('/api/auth/phone', {
+      const storedToken =
+        tokenOverride ||
+        user?.token ||
+        (typeof window !== 'undefined'
+          ? sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token')
+          : null);
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+
+      const res = await fetchApi('/auth/phone', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ phone }),
       });
-      const data = await res.json();
-      if (res.ok && data.success && data.data) {
-        setUser((prev) => (prev ? { ...prev, phone: data.data.phone } : data.data));
+
+      if (res.success && res.data) {
+        setUser((prev) => (prev ? { ...prev, phone: res.data.phone } : res.data));
         showToast('Mobile number saved successfully!', 'success');
         return { success: true };
       }
-      return { success: false, message: data.message || 'Failed to update mobile number' };
+      return { success: false, message: res.message || res.error || 'Failed to update mobile number' };
     } catch (err: any) {
       return { success: false, message: err.message || 'Network error occurred' };
     }
@@ -95,6 +127,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = async () => {
     setUser(null);
     sessionStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_token');
     try {
       // Clear the HttpOnly cookie
       await fetch('/api/auth/logout', { method: 'POST' });

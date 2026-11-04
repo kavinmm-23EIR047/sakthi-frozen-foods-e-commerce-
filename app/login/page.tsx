@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { fetchApi } from '@/lib/apiConfig';
@@ -8,26 +8,31 @@ import Link from 'next/link';
 import Image from 'next/image';
 const logo = '/logo.png';
 import GoogleAuthButton from '@/components/GoogleAuthButton';
+import PhonePromptModal from '@/components/PhonePromptModal';
 import {
   ArrowRight,
   ArrowLeft,
-  Home,
-  Lock,
   Mail,
-  Phone,
+  KeyRound,
   AlertCircle,
-  Eye,
-  EyeOff,
   Loader2,
+  CheckCircle2,
+  RefreshCw,
 } from 'lucide-react';
 
 function LoginForm() {
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [step, setStep] = useState<'email' | 'otp'>('email');
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [authToken, setAuthToken] = useState<string>('');
+  const authTokenRef = useRef<string>('');
+  const [pendingDestination, setPendingDestination] = useState<string>('');
 
   const { login } = useAuth();
   const router = useRouter();
@@ -35,36 +40,88 @@ function LoginForm() {
   const redirectParam = searchParams.get('redirect');
   const targetRedirect = redirectParam && redirectParam.startsWith('/') ? redirectParam : '/';
 
-  const isNumericOnly = /^\d+$/.test(identifier.trim().replace(/\+91|\s/g, ''));
+  // Timer for OTP resend countdown
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Step 1: Send OTP to Email
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setError('');
+    setSuccessMsg('');
 
-    const cleanInput = identifier.trim();
-    if (!cleanInput) {
-      setError('Please enter your mobile number or email address');
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setError('Please enter a valid email address.');
       return;
     }
 
     setLoading(true);
 
     try {
-      const res = await fetchApi('/auth/login', {
+      const res = await fetchApi('/auth/otp/send', {
         method: 'POST',
-        body: JSON.stringify({ identifier: cleanInput, password }),
+        body: JSON.stringify({ email: cleanEmail }),
+      });
+
+      if (res.success) {
+        setStep('otp');
+        setCountdown(30);
+        setSuccessMsg(`Verification code sent to ${cleanEmail}`);
+      } else {
+        setError(res.message || 'Failed to send verification code. Please try again.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Network error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 2: Verify OTP and Log In
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    const cleanOtp = otp.trim();
+    if (cleanOtp.length !== 6) {
+      setError('Please enter the complete 6-digit code sent to your email.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetchApi('/auth/otp/verify', {
+        method: 'POST',
+        body: JSON.stringify({ email: email.trim().toLowerCase(), otp: cleanOtp }),
       });
 
       if (res.success && res.data) {
+        if (res.data.token) {
+          authTokenRef.current = res.data.token;
+          setAuthToken(res.data.token);
+        }
         login(res.data);
         const destination = res.data.role === 'Admin' ? '/admin' : targetRedirect;
-        router.replace(destination);
+
+        // If user doesn't have a phone number, ask for it
+        if (!res.data.phone) {
+          setPendingDestination(destination);
+          setShowPhoneModal(true);
+        } else {
+          router.replace(destination);
+        }
       } else {
-        setError(res.message || 'Invalid mobile number/email or password');
-        setLoading(false);
+        setError(res.message || 'Invalid or expired verification code.');
       }
     } catch (err: any) {
-      setError(err.message || 'Something went wrong. Please check your connection.');
+      setError(err.message || 'Verification failed. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
@@ -75,6 +132,7 @@ function LoginForm() {
       {/* Floating Back to Home Navigation Button on Right Side */}
       <Link
         href="/"
+        prefetch={true}
         className="fixed top-4 right-4 sm:top-6 sm:right-6 z-30 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/90 hover:bg-white text-stone-700 hover:text-[#4E553B] text-xs font-bold shadow-md border border-[#DCE4D4] backdrop-blur-md transition-all active:scale-95 group"
       >
         <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
@@ -100,7 +158,7 @@ function LoginForm() {
       <div className="w-full max-w-[1180px] relative z-10">
         <div className="bg-white rounded-[28px] sm:rounded-[36px] lg:rounded-[40px] shadow-[0_25px_80px_-20px_rgba(50,60,40,0.18)] border border-[#DCE4D4]/80 overflow-hidden flex flex-col lg:flex-row">
 
-          {/* ─── Left Panel: Organic Wave S-Curve Background with Botanical Leaf Art ─── */}
+          {/* ─── Left Panel: Organic Wave Background with Botanical Leaf Art ─── */}
           <div className="relative w-full lg:w-[48%] xl:w-[47%] min-h-[360px] sm:min-h-[440px] lg:min-h-[690px] flex flex-col justify-between p-5 sm:p-7 lg:p-10 z-10 overflow-hidden text-white">
 
             {/* Desktop Organic S-Curve Wave Background with Botanical Art */}
@@ -119,140 +177,51 @@ function LoginForm() {
                 </linearGradient>
               </defs>
 
-              {/* Precise Organic S-Wave Body */}
               <path
                 d="M 0 0 L 470 0 C 470 90, 365 140, 355 240 C 345 345, 485 395, 500 515 C 510 605, 475 675, 430 720 L 0 720 Z"
                 fill="url(#desktopWaveGrad)"
               />
 
-              {/* Soft Lighter Green Botanical Patch behind Leaf */}
               <path
                 d="M 40 720 C 30 630, 95 560, 180 560 C 235 610, 225 675, 195 720 Z"
                 fill="#6E7D52"
                 fillOpacity="0.45"
               />
 
-              {/* Botanical Line-Art Leaves at Bottom (Image 1 Style) */}
               <path
                 d="M 85 720 C 65 655, 70 580, 120 535 C 145 580, 140 655, 115 720"
                 stroke="white"
                 strokeWidth="1.8"
                 strokeLinecap="round"
-                strokeLinejoin="round"
                 fill="none"
-                opacity="0.85"
+                opacity="0.9"
               />
-              <path
-                d="M 100 720 C 95 650, 103 590, 120 535"
-                stroke="white"
-                strokeWidth="1.3"
-                strokeLinecap="round"
-                fill="none"
-                opacity="0.85"
-              />
-
-              <path
-                d="M 115 720 C 130 660, 170 610, 215 585 C 205 640, 170 685, 135 720"
-                stroke="white"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                fill="none"
-                opacity="0.85"
-              />
-              <path
-                d="M 125 720 C 145 665, 175 630, 215 585"
-                stroke="white"
-                strokeWidth="1.3"
-                strokeLinecap="round"
-                fill="none"
-                opacity="0.85"
-              />
-
-              {/* Orbital Dashed Curves */}
-              <path
-                d="M -30 180 C 130 60, 310 90, 460 220"
-                stroke="rgba(255,255,255,0.25)"
-                strokeWidth="1.3"
-                strokeDasharray="4 6"
-              />
-              <path
-                d="M -40 400 C 160 260, 350 370, 500 230"
-                stroke="rgba(255,255,255,0.2)"
-                strokeWidth="1.3"
-                strokeDasharray="5 7"
-              />
-              <path
-                d="M 50 610 C 200 530, 370 640, 500 540"
-                stroke="rgba(255,255,255,0.22)"
-                strokeWidth="1.3"
-                strokeDasharray="4 6"
-              />
-
-              {/* Constellation Glow Dots */}
-              <circle cx="85" cy="180" r="3.5" fill="white" opacity="0.85" />
-              <circle cx="210" cy="95" r="2.5" fill="white" opacity="0.75" />
-              <circle cx="430" cy="190" r="3" fill="white" opacity="0.8" />
-              <circle cx="45" cy="380" r="2" fill="white" opacity="0.65" />
-              <circle cx="465" cy="360" r="3.5" fill="white" opacity="0.85" />
-              <circle cx="380" cy="500" r="3" fill="white" opacity="0.8" />
-              <circle cx="270" cy="610" r="2.5" fill="white" opacity="0.75" />
             </svg>
 
             {/* Mobile / Tablet Organic Wave Background */}
             <svg
               className="lg:hidden absolute inset-0 w-full h-full pointer-events-none"
-              viewBox="0 0 400 420"
+              viewBox="0 0 400 480"
               preserveAspectRatio="none"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
               <defs>
-                <linearGradient id="mobileWaveGrad" x1="0" y1="0" x2="400" y2="420" gradientUnits="userSpaceOnUse">
+                <linearGradient id="mobileWaveGrad" x1="0" y1="0" x2="400" y2="480" gradientUnits="userSpaceOnUse">
                   <stop offset="0%" stopColor="#50573D" />
-                  <stop offset="50%" stopColor="#464D33" />
+                  <stop offset="70%" stopColor="#464D33" />
                   <stop offset="100%" stopColor="#373D26" />
                 </linearGradient>
               </defs>
-
-              {/* Organic Curved Bottom */}
               <path
-                d="M 0 0 L 400 0 L 400 365 C 340 405, 230 425, 150 400 C 80 380, 40 395, 0 375 Z"
+                d="M 0 0 L 400 0 L 400 420 C 300 460, 200 400, 100 440 C 50 460, 20 475, 0 480 Z"
                 fill="url(#mobileWaveGrad)"
               />
-
-              {/* Botanical Line Art on Mobile Bottom */}
-              <path
-                d="M 310 420 C 300 370, 320 330, 355 300 C 365 335, 355 385, 335 420"
-                stroke="white"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                fill="none"
-                opacity="0.8"
-              />
-              <path
-                d="M 320 420 C 325 375, 335 340, 355 300"
-                stroke="white"
-                strokeWidth="1.2"
-                strokeLinecap="round"
-                fill="none"
-                opacity="0.8"
-              />
-
-              {/* Orbital Dashed Curves */}
-              <path
-                d="M -20 140 C 90 60, 240 80, 380 160"
-                stroke="rgba(255,255,255,0.25)"
-                strokeWidth="1.2"
-                strokeDasharray="4 6"
-              />
-              <circle cx="70" cy="135" r="3" fill="white" opacity="0.8" />
-              <circle cx="340" cy="150" r="3" fill="white" opacity="0.8" />
             </svg>
 
             {/* Top Brand / Logo */}
             <div className="relative z-10 mb-2 sm:mb-4 lg:mb-6">
-              <Link href="/" className="inline-flex items-center gap-3 group">
+              <Link href="/" prefetch={true} className="inline-flex items-center gap-3 group">
                 <div className="relative w-10 h-10 sm:w-11 sm:h-11 bg-white rounded-2xl flex items-center justify-center shadow-md p-1.5 transition-transform group-hover:scale-105">
                   <Image src={logo} alt="Sakthi Frozen Foods" fill className="object-contain p-1" priority />
                 </div>
@@ -270,17 +239,14 @@ function LoginForm() {
             {/* Center Food Dishes Collage */}
             <div className="relative z-10 flex-1 flex items-center justify-center my-2 sm:my-3 lg:my-6">
               <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5 lg:gap-4 w-full max-w-[270px] sm:max-w-[330px] lg:max-w-[380px]">
-                {/* Column 1 */}
                 <div className="space-y-2.5 sm:space-y-3.5 lg:space-y-4">
-                  {/* Top-Left: Fries with Dips */}
                   <div className="aspect-[1.05/1] rounded-[20px] sm:rounded-[24px] lg:rounded-[28px] overflow-hidden shadow-xl border-2 border-white/25 relative group bg-[#3B4228]">
                     <img
                       src="https://res.cloudinary.com/q4rjd6rf/image/upload/v1789200235/sakthi-frozen-foods/products/kth5umi9goth7ysb8bef.webp"
-                      alt="Crispy French Fries & Dips"
+                      alt="Crispy French Fries"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   </div>
-                  {/* Bottom-Left: Sliced Roast / Cutlet */}
                   <div className="aspect-[1.3/1] rounded-[20px] sm:rounded-[24px] lg:rounded-[28px] overflow-hidden shadow-xl border-2 border-white/25 relative group bg-[#3B4228]">
                     <img
                       src="https://res.cloudinary.com/q4rjd6rf/image/upload/v1789111701/sakthi-frozen-foods/products/dplxqn7yetyl4pzpvzie.webp"
@@ -290,9 +256,7 @@ function LoginForm() {
                   </div>
                 </div>
 
-                {/* Column 2 */}
                 <div className="space-y-2.5 sm:space-y-3.5 lg:space-y-4 pt-4 sm:pt-6 lg:pt-8">
-                  {/* Top-Right: Spiced Meatballs */}
                   <div className="aspect-[1.3/1] rounded-[20px] sm:rounded-[24px] lg:rounded-[28px] overflow-hidden shadow-xl border-2 border-white/25 relative group bg-[#3B4228]">
                     <img
                       src="https://res.cloudinary.com/q4rjd6rf/image/upload/v1789109104/sakthi-frozen-foods/products/agmpachausl3cvtlzgnt.webp"
@@ -300,7 +264,6 @@ function LoginForm() {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   </div>
-                  {/* Bottom-Right: Crispy Nuggets / Tenders */}
                   <div className="aspect-[1.05/1] rounded-[20px] sm:rounded-[24px] lg:rounded-[28px] overflow-hidden shadow-xl border-2 border-white/25 relative group bg-[#3B4228]">
                     <img
                       src="https://res.cloudinary.com/q4rjd6rf/image/upload/v1789111892/sakthi-frozen-foods/products/mucozhoq31dby2awvkow.webp"
@@ -312,7 +275,7 @@ function LoginForm() {
               </div>
             </div>
 
-            {/* Bottom Tagline with elegant underline */}
+            {/* Bottom Tagline */}
             <div className="relative z-10 mt-3 sm:mt-4 lg:mt-6 text-center lg:text-left">
               <p className="text-xs sm:text-sm lg:text-[15px] font-medium italic text-white/90 tracking-wide">
                 <span className="relative inline-block pb-0.5 border-b-2 border-white/50">
@@ -323,7 +286,7 @@ function LoginForm() {
             </div>
           </div>
 
-          {/* ─── Right Panel: Clean Form Area ─── */}
+          {/* ─── Right Panel: Clean Form Area (Passwordless OTP) ─── */}
           <div className="w-full lg:w-[52%] xl:w-[53%] bg-white p-6 sm:p-10 lg:p-12 xl:p-16 flex flex-col justify-center">
             <div className="max-w-[400px] mx-auto w-full">
 
@@ -335,6 +298,7 @@ function LoginForm() {
                   </span>
                   <Link
                     href={targetRedirect !== '/' ? `/register?redirect=${encodeURIComponent(targetRedirect)}` : '/register'}
+                    prefetch={true}
                     className="px-6 sm:px-7 py-2 rounded-full text-stone-500 hover:text-stone-900 text-xs sm:text-sm font-bold transition-colors"
                   >
                     Register
@@ -348,15 +312,23 @@ function LoginForm() {
                   Welcome Back
                 </h1>
                 <p className="text-xs sm:text-sm text-stone-500 mt-1.5 leading-relaxed">
-                  Sign in to manage your orders and track deliveries.
+                  Sign in with 1-click Google or a fast email verification code. No password required.
                 </p>
               </div>
 
               {/* Error Message */}
               {error && (
-                <div className="mb-5 p-3.5 bg-red-50 rounded-2xl flex items-start gap-3 border border-red-200 text-red-800 text-xs font-semibold">
+                <div className="mb-5 p-3.5 bg-red-50 rounded-2xl flex items-start gap-3 border border-red-200 text-red-800 text-xs font-semibold animate-in fade-in duration-200">
                   <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                   <span className="leading-relaxed">{error}</span>
+                </div>
+              )}
+
+              {/* Success Message */}
+              {successMsg && (
+                <div className="mb-5 p-3.5 bg-green-50 rounded-2xl flex items-start gap-3 border border-green-200 text-green-800 text-xs font-semibold animate-in fade-in duration-200">
+                  <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">{successMsg}</span>
                 </div>
               )}
 
@@ -375,101 +347,136 @@ function LoginForm() {
                   </div>
                   <div className="relative flex justify-center text-xs">
                     <span className="bg-white px-3 text-stone-400 font-extrabold tracking-wider uppercase text-[10px] sm:text-[11px]">
-                      Or sign in with email / mobile
+                      Or sign in with email OTP
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Form */}
-              <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
-                {/* Email / Mobile Input */}
-                <div>
-                  <label className="block text-[10px] sm:text-[11px] font-extrabold text-stone-800 uppercase tracking-wider mb-2">
-                    EMAIL OR MOBILE NUMBER
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-500">
-                      {isNumericOnly && identifier.trim().length > 0 ? (
-                        <Phone className="h-4 w-4 sm:h-5 sm:w-5 text-[#4E553B]" />
-                      ) : (
-                        <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
-                      )}
-                    </div>
-                    <input
-                      type="text"
-                      value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value)}
-                      required
-                      disabled={loading}
-                      className="w-full pl-11 sm:pl-12 pr-4 py-3.5 sm:py-4 rounded-2xl bg-[#EDF2FE] hover:bg-[#E7EEFC] focus:bg-white border border-[#DFE7F8] text-xs sm:text-sm font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#4E553B]/25 focus:border-[#4E553B] transition-all placeholder:text-stone-400 disabled:opacity-60"
-                      placeholder="Enter your email or mobile number"
-                      autoComplete="username"
-                    />
-                  </div>
-                </div>
-
-                {/* Password Input */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-[10px] sm:text-[11px] font-extrabold text-stone-800 uppercase tracking-wider">
-                      PASSWORD
+              {/* ─── Passwordless OTP Form ─── */}
+              {step === 'email' ? (
+                /* Step 1: Enter Email */
+                <form onSubmit={handleSendOtp} className="space-y-4 sm:space-y-5">
+                  <div>
+                    <label className="block text-[10px] sm:text-[11px] font-extrabold text-stone-800 uppercase tracking-wider mb-2">
+                      EMAIL ADDRESS
                     </label>
-                    <Link
-                      href="/forgot-password"
-                      className="text-xs font-medium text-stone-600 hover:text-[#4E553B] hover:underline"
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-500">
-                      <Lock className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-500">
+                        <Mail className="h-4 w-4 sm:h-5 sm:w-5" />
+                      </div>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        disabled={loading || googleLoading}
+                        className="w-full pl-11 sm:pl-12 pr-4 py-3.5 sm:py-4 rounded-2xl bg-[#EDF2FE] hover:bg-[#E7EEFC] focus:bg-white border border-[#DFE7F8] text-xs sm:text-sm font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#4E553B]/25 focus:border-[#4E553B] transition-all placeholder:text-stone-400 disabled:opacity-60"
+                        placeholder="Enter your email address"
+                        autoComplete="email"
+                        autoFocus
+                      />
                     </div>
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      disabled={loading}
-                      className="w-full pl-11 sm:pl-12 pr-12 py-3.5 sm:py-4 rounded-2xl bg-[#EDF2FE] hover:bg-[#E7EEFC] focus:bg-white border border-[#DFE7F8] text-xs sm:text-sm font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#4E553B]/25 focus:border-[#4E553B] transition-all placeholder:text-stone-400 disabled:opacity-60"
-                      placeholder="Enter your password"
-                      autoComplete="current-password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((v) => !v)}
-                      className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" />
-                      ) : (
-                        <Eye className="h-4 w-4 sm:h-5 sm:w-5" />
-                      )}
-                    </button>
                   </div>
-                </div>
 
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3.5 sm:py-4 bg-[#4E553B] hover:bg-[#40472F] active:bg-[#383E28] text-white font-bold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#4E553B]/20 hover:shadow-xl hover:shadow-[#4E553B]/30 transition-all active:scale-[0.98] disabled:opacity-75 cursor-pointer mt-5"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 sm:h-5 sm:w-5 animate-spin" />
-                      <span>Signing In...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Sign In to Account</span>
-                      <ArrowRight className="w-4 h-4 sm:h-5 sm:w-5" />
-                    </>
-                  )}
-                </button>
-              </form>
+                  <button
+                    type="submit"
+                    disabled={loading || googleLoading || !email.trim()}
+                    className="w-full py-3.5 sm:py-4 bg-[#4E553B] hover:bg-[#40472F] active:bg-[#383E28] text-white font-bold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#4E553B]/20 hover:shadow-xl hover:shadow-[#4E553B]/30 transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer mt-5"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 sm:h-5 sm:w-5 animate-spin" />
+                        <span>Sending Verification Code...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Send Login Code</span>
+                        <ArrowRight className="w-4 h-4 sm:h-5 sm:w-5" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                /* Step 2: Enter 6-Digit OTP */
+                <form onSubmit={handleVerifyOtp} className="space-y-4 sm:space-y-5 animate-in fade-in duration-200">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-[10px] sm:text-[11px] font-extrabold text-stone-800 uppercase tracking-wider">
+                        6-DIGIT VERIFICATION CODE
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStep('email');
+                          setError('');
+                        }}
+                        className="text-xs font-bold text-[#4E553B] hover:underline"
+                      >
+                        Change email
+                      </button>
+                    </div>
+
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-stone-500">
+                        <KeyRound className="h-4 w-4 sm:h-5 sm:w-5" />
+                      </div>
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                        required
+                        disabled={loading || googleLoading}
+                        className="w-full pl-11 sm:pl-12 pr-4 py-3.5 sm:py-4 rounded-2xl bg-[#EDF2FE] hover:bg-[#E7EEFC] focus:bg-white border border-[#DFE7F8] text-sm sm:text-base font-bold text-stone-900 tracking-[6px] focus:outline-none focus:ring-2 focus:ring-[#4E553B]/25 focus:border-[#4E553B] transition-all placeholder:text-stone-400 placeholder:tracking-normal disabled:opacity-60"
+                        placeholder="123456"
+                        autoComplete="one-time-code"
+                        autoFocus
+                      />
+                    </div>
+                    <p className="text-[11px] text-stone-500 mt-1.5 pl-1">
+                      Check your inbox or spam folder for code sent to <strong className="text-stone-700">{email}</strong>
+                    </p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading || googleLoading || otp.length !== 6}
+                    className="w-full py-3.5 sm:py-4 bg-[#4E553B] hover:bg-[#40472F] active:bg-[#383E28] text-white font-bold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#4E553B]/20 hover:shadow-xl hover:shadow-[#4E553B]/30 transition-all active:scale-[0.98] disabled:opacity-60 cursor-pointer mt-4"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 sm:h-5 sm:w-5 animate-spin" />
+                        <span>Verifying Code...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Verify &amp; Sign In</span>
+                        <ArrowRight className="w-4 h-4 sm:h-5 sm:w-5" />
+                      </>
+                    )}
+                  </button>
+
+                  {/* Resend Code Option */}
+                  <div className="text-center pt-2">
+                    {countdown > 0 ? (
+                      <span className="text-xs text-stone-400 font-semibold">
+                        Resend code in {countdown}s
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleSendOtp()}
+                        disabled={loading}
+                        className="text-xs font-bold text-[#4E553B] hover:text-[#3B4228] inline-flex items-center gap-1.5 hover:underline"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Resend verification code</span>
+                      </button>
+                    )}
+                  </div>
+                </form>
+              )}
 
               {/* Footer Link */}
               <div className="mt-6 sm:mt-8 text-center pt-4 sm:pt-6 border-t border-stone-100 space-y-3">
@@ -477,26 +484,34 @@ function LoginForm() {
                   New to Sakthi Foods?{' '}
                   <Link
                     href={targetRedirect !== '/' ? `/register?redirect=${encodeURIComponent(targetRedirect)}` : '/register'}
+                    prefetch={true}
                     className="text-stone-900 font-extrabold hover:text-[#4E553B] hover:underline"
                   >
                     Create Account
                   </Link>
                 </p>
-                <div>
-                  <Link
-                    href="/"
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-500 hover:text-[#4E553B] transition-colors"
-                  >
-                    <Home className="w-3.5 h-3.5" />
-                    <span>Return to Store Home</span>
-                  </Link>
-                </div>
               </div>
+
             </div>
           </div>
 
         </div>
       </div>
+
+      <PhonePromptModal
+        isOpen={showPhoneModal}
+        tokenOverride={authTokenRef.current || authToken}
+        onClose={() => {
+          setShowPhoneModal(false);
+          router.replace(pendingDestination || targetRedirect);
+        }}
+        onSuccess={() => {
+          setShowPhoneModal(false);
+          router.replace(pendingDestination || targetRedirect);
+        }}
+        title="Please Enter Your Mobile Number"
+        description="Your account is verified! Please enter your 10-digit mobile number for order delivery coordination and WhatsApp status updates."
+      />
     </div>
   );
 }
@@ -505,14 +520,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#EEF4E8] flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-xl border border-stone-200/60 animate-pulse space-y-4">
-            <div className="h-8 bg-stone-200 rounded w-1/2 mx-auto" />
-            <div className="h-4 bg-stone-200 rounded w-1/3 mx-auto" />
-            <div className="h-12 bg-stone-200 rounded-2xl" />
-            <div className="h-12 bg-stone-200 rounded-2xl" />
-            <div className="h-12 bg-stone-200 rounded-2xl" />
-          </div>
+        <div className="min-h-screen bg-[#EEF4E8] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-[#4E553B]" />
         </div>
       }
     >

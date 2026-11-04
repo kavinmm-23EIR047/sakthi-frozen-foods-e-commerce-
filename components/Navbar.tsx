@@ -375,6 +375,7 @@ export default function Navbar({
               ) : (
                 <Link
                   href="/login"
+                  prefetch={true}
                   className="px-2 py-1.5 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all flex items-center gap-1.5"
                 >
                   <User className="w-4 h-4" />
@@ -662,7 +663,7 @@ export default function Navbar({
                 </div>
               </div>
               <div className="border-t border-[#e4e9df] p-4">
-                {user ? <button onClick={() => { logout(); setIsMobileMenuOpen(false); }} className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 px-4 py-3 text-sm font-bold text-red-700"><LogOut className="h-4 w-4" />Sign out</button> : <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#50563D] px-4 py-3 text-sm font-bold text-white"><UserRound className="h-4 w-4" />Sign in to your account</Link>}
+                {user ? <button onClick={() => { logout(); setIsMobileMenuOpen(false); }} className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 px-4 py-3 text-sm font-bold text-red-700"><LogOut className="h-4 w-4" />Sign out</button> : <Link href="/login" prefetch={true} onClick={() => setIsMobileMenuOpen(false)} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#50563D] px-4 py-3 text-sm font-bold text-white"><UserRound className="h-4 w-4" />Sign in to your account</Link>}
               </div>
             </aside>
           </div>
@@ -753,6 +754,7 @@ export default function Navbar({
           {/* Account */}
           <Link
             href={user ? '/orders' : '/login'}
+            prefetch={true}
             className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all duration-200 min-w-[56px] ${
               pathname.startsWith('/account') || pathname.startsWith('/orders') || pathname.startsWith('/login')
                 ? 'bg-[#50563D] text-white shadow-xs'

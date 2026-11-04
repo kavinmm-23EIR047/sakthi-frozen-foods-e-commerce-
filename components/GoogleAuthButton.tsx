@@ -59,6 +59,8 @@ export default function GoogleAuthButton({
   const [loading, setLoading] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [authToken, setAuthToken] = useState<string>('');
+  const authTokenRef = useRef<string>('');
   const [pendingDestination, setPendingDestination] = useState<string>('');
   const isSubmittingRef = useRef(false);
 
@@ -113,6 +115,10 @@ export default function GoogleAuthButton({
       });
 
       if (res.success && res.data) {
+        if (res.data.token) {
+          authTokenRef.current = res.data.token;
+          setAuthToken(res.data.token);
+        }
         login(res.data);
         const destination = res.data.role === 'Admin' ? '/admin' : redirectUrl;
 
@@ -258,6 +264,7 @@ export default function GoogleAuthButton({
 
       <PhonePromptModal
         isOpen={showPhoneModal}
+        tokenOverride={authTokenRef.current || authToken}
         onClose={() => {
           setShowPhoneModal(false);
           router.replace(pendingDestination || redirectUrl);

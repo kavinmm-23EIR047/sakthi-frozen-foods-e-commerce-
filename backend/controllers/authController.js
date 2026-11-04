@@ -536,7 +536,7 @@ const updateUserPhone = async (req, res) => {
     if (duplicate) {
       return res.status(400).json({
         success: false,
-        message: 'This mobile number is already associated with another account.',
+        message: 'This mobile number is already associated with another account. Please use a different number.',
       });
     }
 
@@ -568,6 +568,142 @@ const updateUserPhone = async (req, res) => {
   }
 };
 
+// @desc    Send OTP for Login or Signup
+// @route   POST /api/auth/otp/send
+// @access  Public
+const sendOtpForLogin = async (req, res, next) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const name = String(req.body?.name || '').trim();
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ success: false, message: 'Please enter a valid email address.' });
+    }
+
+    const otp = generateOtp();
+    const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    let user = await User.findOne({ email }).select('+otpHash +otpExpiresAt +otpAttempts');
+    let displayName = name || 'Customer';
+
+    if (user) {
+      if (user.otpExpiresAt && user.otpExpiresAt > new Date() && (user.otpAttempts || 0) >= 5) {
+        return res.status(429).json({
+          success: false,
+          message: 'Too many requests. Please wait a few minutes before requesting another code.',
+        });
+      }
+      user.otpHash = otpHash;
+      user.otpExpiresAt = otpExpiresAt;
+      user.otpAttempts = (user.otpAttempts || 0) + 1;
+      displayName = user.name || displayName;
+      await user.save();
+    } else {
+      displayName = name || email.split('@')[0];
+      user = await User.create({
+        name: displayName,
+        email,
+        phone: '',
+        role: 'Customer',
+        isEmailVerified: false,
+        authProvider: 'local',
+        otpHash,
+        otpExpiresAt,
+        otpAttempts: 1,
+        totalOrders: 0,
+        totalSpent: 0,
+        joinedDate: new Date().toISOString().split('T')[0],
+        address: '',
+        sessionVersion: 0,
+      });
+    }
+
+    try {
+      await sendOtpEmail(email, displayName, otp);
+    } catch (err) {
+      console.error('Failed to send OTP email:', err.message);
+    }
+
+    return res.json({
+      success: true,
+      message: `A 6-digit verification code has been sent to ${email}`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Verify OTP for Login or Signup
+// @route   POST /api/auth/otp/verify
+// @access  Public
+const verifyOtpForLogin = async (req, res, next) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const otp = String(req.body?.otp || '').trim();
+    const name = String(req.body?.name || '').trim();
+    const rawPhone = String(req.body?.phone || '').trim();
+
+    if (!email || !otp || otp.length !== 6) {
+      return res.status(400).json({ success: false, message: 'Please enter your email and the 6-digit verification code.' });
+    }
+
+    const user = await User.findOne({ email }).select('+otpHash +otpExpiresAt +otpAttempts +sessionVersion');
+    if (!user || !user.otpHash || !user.otpExpiresAt) {
+      return res.status(400).json({ success: false, message: 'No verification code found. Please request a new code.' });
+    }
+
+    if (new Date() > new Date(user.otpExpiresAt)) {
+      return res.status(400).json({ success: false, message: 'The verification code has expired. Please request a new one.' });
+    }
+
+    const submittedHash = crypto.createHash('sha256').update(otp).digest('hex');
+    if (submittedHash !== user.otpHash) {
+      return res.status(400).json({ success: false, message: 'Incorrect verification code. Please check your email and try again.' });
+    }
+
+    user.isEmailVerified = true;
+    user.otpHash = undefined;
+    user.otpExpiresAt = undefined;
+    user.otpAttempts = 0;
+
+    if (name && (!user.name || user.name === email.split('@')[0])) {
+      user.name = name;
+    }
+
+    if (rawPhone) {
+      const cleanPhone = cleanPhoneNumber(rawPhone);
+      if (isValidMobileNumber(cleanPhone)) {
+        const duplicatePhone = await User.findOne({ phone: cleanPhone, _id: { $ne: user._id } }).select('_id').lean();
+        if (!duplicatePhone) {
+          user.phone = cleanPhone;
+        }
+      }
+    }
+
+    await user.save();
+
+    const token = generateToken(user._id, user.role, user.sessionVersion || 0);
+
+    return res.json({
+      success: true,
+      message: 'Signed in successfully!',
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        role: user.role,
+        avatar: user.avatar || '',
+        authProvider: user.authProvider || 'local',
+        token,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -577,4 +713,6 @@ module.exports = {
   resetPassword,
   googleAuth,
   updateUserPhone,
+  sendOtpForLogin,
+  verifyOtpForLogin,
 };

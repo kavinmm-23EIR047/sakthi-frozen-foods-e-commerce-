@@ -36,7 +36,7 @@ export async function fetchApi<T = any>(
   const isFormData = options.body instanceof FormData;
   const headers = new Headers(options.headers);
   if (!headers.has('Authorization') && typeof window !== 'undefined') {
-    const token = sessionStorage.getItem('auth_token');
+    const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
     if (token) headers.set('Authorization', `Bearer ${token}`);
   }
   if (!isFormData && !headers.has('Content-Type')) {
@@ -45,6 +45,7 @@ export async function fetchApi<T = any>(
   try {
     const url = API_BASE_URL ? `${API_BASE_URL}${normalizedEndpoint}` : `/api${normalizedEndpoint}`;
     const res = await fetch(url, {
+      credentials: 'include',
       ...options,
       headers,
       signal: options.signal || requestController?.signal,
@@ -60,7 +61,12 @@ export async function fetchApi<T = any>(
       const fallbackController = options.signal ? null : new AbortController();
       const fallbackTimeoutId = fallbackController ? setTimeout(() => fallbackController.abort(), timeoutMs) : null;
       try {
-        const res = await fetch(fallbackUrl, { ...options, headers, signal: options.signal || fallbackController?.signal });
+        const res = await fetch(fallbackUrl, {
+          credentials: 'include',
+          ...options,
+          headers,
+          signal: options.signal || fallbackController?.signal,
+        });
         return await safeParseResponse(res);
       } finally {
         if (fallbackTimeoutId) clearTimeout(fallbackTimeoutId);
