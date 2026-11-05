@@ -559,21 +559,6 @@ export default function AdminPortalPage() {
     }
   };
 
-  const handleRefundOrder = async (orderId: string) => {
-    if (!confirm('Issue a full refund for this Razorpay order?')) return;
-    if (!beginAdminAction(`order-refund:${orderId}`)) return;
-    try {
-      const data = await fetchApi(`/orders/${orderId}/refund`, { method: 'POST' });
-      if (data.success) await fetchData(true);
-      else alert(data.error || 'Refund failed');
-    } catch (error) {
-      console.error('Refund request failed:', error);
-      alert('Refund could not be completed. Please verify the order before retrying.');
-    } finally {
-      finishAdminAction();
-    }
-  };
-
   const openEditModal = (prod: ProductType) => {
     setEditingProduct(prod);
     setFormData({
@@ -1927,18 +1912,6 @@ export default function AdminPortalPage() {
                                 <Printer className="w-3.5 h-3.5" />
                               </button>
                             </div>
-
-                            {/* Refund Trigger if Eligible */}
-                            {ord.paymentStatus === 'Paid' && ord.paymentMethod === 'Razorpay (Online)' && (
-                              <div>
-                                <button
-                                  onClick={() => handleRefundOrder(ord.id)}
-                                  className="px-2 py-1 text-[10px] font-bold rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
-                                >
-                                  Issue Refund
-                                </button>
-                              </div>
-                            )}
                           </td>
                         </tr>
                       ))
