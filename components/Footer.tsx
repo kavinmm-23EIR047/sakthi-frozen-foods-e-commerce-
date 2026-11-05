@@ -269,7 +269,7 @@ export default function Footer() {
           <div className="flex flex-col items-center sm:items-start gap-0.5">
             <p>© 2026 Sakthi Frozen Foods Traders. All rights reserved.</p>
             <p className="text-white/70">
-              Developed by <a href="https://akwebflairtechnologies.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-[#A9F2B7]/70 hover:text-[#A9F2B7] transition-colors underline underline-offset-2">akwebflairtechnologies</a>
+              Developed by <a href="https://www.akwebflairtechnologies.in/" target="_blank" rel="noopener noreferrer" className="text-[#A9F2B7]/70 hover:text-[#A9F2B7] transition-colors underline underline-offset-2">akwebflairtechnologies</a>
             </p>
           </div>
 
