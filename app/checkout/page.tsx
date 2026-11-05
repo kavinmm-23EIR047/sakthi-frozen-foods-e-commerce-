@@ -97,6 +97,7 @@ export default function CheckoutPage() {
   const [paymentPollRun, setPaymentPollRun] = useState(0);
   const [paymentMessage, setPaymentMessage] = useState('');
   const [isRedirectingToOrders, setIsRedirectingToOrders] = useState(false);
+  const paymentCapturedRef = useRef(false);
 
   const redirectToConfirmedOrder = useCallback((order: any, fallbackOrderId?: string) => {
     const confirmedId = order?.id || order?._id || fallbackOrderId;
@@ -105,6 +106,10 @@ export default function CheckoutPage() {
     setIsRedirectingToOrders(true);
     setIsRecoveringPayment(false);
     setPaymentPollingActive(false);
+    clearPendingCheckoutPayment();
+    setPendingPayment(null);
+    clearCart();
+
     const keys = [confirmedId, order?._id, order?.id, order?.orderNumber, fallbackOrderId].filter(Boolean);
     keys.forEach((key: string) => {
       setCachedData('order_detail_' + key, order);
@@ -119,15 +124,15 @@ export default function CheckoutPage() {
     } catch (error) {}
     invalidateCache('user_orders_cache');
     router.replace(`/order-success/${confirmedId}`);
-  }, [router]);
+  }, [clearCart, router]);
 
-  const startPaymentRecovery = (pending: PendingCheckoutPayment, verificationError?: string, showLoader = true) => {
+  const startPaymentRecovery = (pending: PendingCheckoutPayment, verificationError?: string, showLoader = false) => {
     const recovery = { ...pending, verificationError };
     persistPendingCheckoutPayment(recovery);
     setPendingPayment(recovery);
     setPaymentMessage(verificationError
-      ? `Payment verification returned: ${verificationError}. Checking the saved order status.`
-      : 'Checking the saved order status. Do not start another payment while it is being confirmed.');
+      ? `Payment verification returned: ${verificationError}. Order is saved.`
+      : 'Checking order status. Your order is safely saved.');
     setIsRecoveringPayment(showLoader);
     setPaymentPollingActive(true);
     setPaymentPollRun((run) => run + 1);
@@ -145,12 +150,21 @@ export default function CheckoutPage() {
     }
   }, [user, flatHouse, streetArea]);
 
-  // Resume a pending payment after a refresh or return from an external payment app.
+  // Resume a pending payment silently after a refresh or return from an external payment app.
   useEffect(() => {
     const pending = readPendingCheckoutPayment();
     if (!pending) return;
+
+    // Check if order is older than 30 minutes (grace period expired)
+    const ageMs = Date.now() - (pending.timestamp || 0);
+    if (pending.timestamp && ageMs > 30 * 60 * 1000) {
+      clearPendingCheckoutPayment();
+      return;
+    }
+
     setPendingPayment(pending);
-    setIsRecoveringPayment(true);
+    setIsRecoveringPayment(false);
+    // Silent background check to auto-detect completed UPI payment without blocking UI
     setPaymentPollingActive(true);
     setPaymentPollRun((run) => run + 1);
   }, []);
@@ -161,7 +175,7 @@ export default function CheckoutPage() {
     let cancelled = false;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     let pollCount = 0;
-    const MAX_POLLS = 20;
+    const MAX_POLLS = 8;
 
     const pollStatus = async () => {
       pollCount += 1;
@@ -179,21 +193,17 @@ export default function CheckoutPage() {
           setPendingPayment(null);
           setPaymentPollingActive(false);
           setIsRecoveringPayment(false);
-          setPaymentMessage('The existing order payment was not completed. You may try checkout again.');
+          setPaymentMessage('The previous payment was marked failed. You may retry or place a new order.');
           return;
         }
       } catch (error) {
-        if (process.env.NODE_ENV !== 'production') console.error('Payment status recovery check failed:', error);
+        if (process.env.NODE_ENV !== 'production') console.error('Payment status check failed:', error);
       }
 
       if (cancelled) return;
       if (pollCount >= MAX_POLLS) {
         setPaymentPollingActive(false);
         setIsRecoveringPayment(false);
-        const errorDetail = pendingPayment.verificationError
-          ? ` Verification error: ${pendingPayment.verificationError}.`
-          : '';
-        setPaymentMessage(`Payment is not confirmed yet.${errorDetail} Your existing order is saved. Check Orders before attempting another payment.`);
         return;
       }
 
@@ -212,8 +222,17 @@ export default function CheckoutPage() {
       if (document.visibilityState !== 'visible' || paymentPollingActive) return;
       const pending = readPendingCheckoutPayment();
       if (!pending) return;
+
+      const ageMs = Date.now() - (pending.timestamp || 0);
+      if (pending.timestamp && ageMs > 30 * 60 * 1000) {
+        clearPendingCheckoutPayment();
+        setPendingPayment(null);
+        return;
+      }
+
       setPendingPayment(pending);
-      setIsRecoveringPayment(true);
+      // Silent background check on return from external UPI app (GPay/PhonePe)
+      setIsRecoveringPayment(false);
       setPaymentPollingActive(true);
       setPaymentPollRun((run) => run + 1);
     };
@@ -225,6 +244,143 @@ export default function CheckoutPage() {
       document.removeEventListener('visibilitychange', resumePendingPayment);
     };
   }, [paymentPollingActive]);
+
+  const handleRetryExistingPayment = async () => {
+    if (!pendingPayment) return;
+    if (typeof window === 'undefined' || !window.Razorpay) {
+      alert('Payment gateway is loading. Please try again in a moment.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setPaymentMessage('');
+
+    try {
+      // 1. Check if already confirmed on backend
+      const statusRes = await fetchApi<any>(`/payment/status/${pendingPayment.rzpOrderId}`);
+      if (statusRes.success && statusRes.data?.paymentStatus === 'Paid') {
+        redirectToConfirmedOrder(statusRes.data, pendingPayment.orderId);
+        return;
+      }
+
+      // 2. Call backend retry endpoint (preserves 30-min window & ACID state)
+      const retryRes = await fetchApi<any>(`/orders/${pendingPayment.orderId}/retry-payment`, {
+        method: 'POST',
+      });
+
+      if (!retryRes.success) {
+        clearPendingCheckoutPayment();
+        setPendingPayment(null);
+        alert(retryRes.error || 'Payment retry window has expired (30 minutes). Please place a new order.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (retryRes.alreadyPaid) {
+        redirectToConfirmedOrder(retryRes.data || statusRes.data, pendingPayment.orderId);
+        return;
+      }
+
+      const { razorpayOrderId, razorpayAmount, razorpayKeyId } = retryRes;
+      const currentPending: PendingCheckoutPayment = {
+        rzpOrderId: razorpayOrderId,
+        orderId: pendingPayment.orderId,
+        orderNumber: pendingPayment.orderNumber,
+        timestamp: Date.now(),
+      };
+      persistPendingCheckoutPayment(currentPending);
+      setPendingPayment(currentPending);
+
+      paymentCapturedRef.current = false;
+      const options = {
+        key: razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
+        amount: razorpayAmount,
+        currency: 'INR',
+        name: 'Sakthi Frozen Foods',
+        description: `Payment for Order #${pendingPayment.orderNumber || ''}`,
+        order_id: razorpayOrderId,
+        handler: async function (response: any) {
+          paymentCapturedRef.current = true;
+          setIsVerifyingPayment(true);
+          setPaymentMessage('');
+          try {
+            const verifyData = await fetchApi<any>('/payment/verify', {
+              method: 'POST',
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                orderId: pendingPayment.orderId,
+              }),
+            });
+
+            if (verifyData.success) {
+              const confirmedOrder = verifyData.data;
+              redirectToConfirmedOrder(confirmedOrder, pendingPayment.orderId);
+              return;
+            }
+          } catch (err: any) {
+            if (process.env.NODE_ENV !== 'production') console.error('Retry verify direct error:', err);
+          }
+
+          // Resilient check: Keep loading screen active, never expose checkout page after money captured!
+          let pollAttempts = 0;
+          const pollInterval = setInterval(async () => {
+            pollAttempts += 1;
+            try {
+              const statusRes = await fetchApi<any>(`/payment/status/${pendingPayment.rzpOrderId}`);
+              if (statusRes.success && statusRes.data?.paymentStatus === 'Paid') {
+                clearInterval(pollInterval);
+                redirectToConfirmedOrder(statusRes.data, pendingPayment.orderId);
+                return;
+              }
+            } catch (e) {}
+
+            if (pollAttempts >= 10) {
+              clearInterval(pollInterval);
+              paymentCapturedRef.current = false;
+              setIsVerifyingPayment(false);
+              setPaymentMessage('Payment was received by bank. Please check your Orders page.');
+            }
+          }, 1500);
+        },
+        modal: {
+          ondismiss: function () {
+            if (paymentCapturedRef.current) return;
+            setIsSubmitting(false);
+            setIsVerifyingPayment(false);
+            setIsRecoveringPayment(false);
+            setPaymentPollingActive(false);
+            setPaymentMessage('Payment was cancelled or closed. Your order is saved and reserved for 30 minutes.');
+          },
+        },
+        prefill: {
+          name: customerName || user?.name || '',
+          email: user?.email || customerEmail || `${customerPhone}@customer.com`,
+          contact: customerPhone || user?.phone || '',
+        },
+        theme: {
+          color: '#656B4F',
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response: any) {
+        setIsSubmitting(false);
+        setIsVerifyingPayment(false);
+        setIsRecoveringPayment(false);
+        setPaymentPollingActive(false);
+        const failureMessage = response?.error?.description || 'Payment attempt failed.';
+        setPaymentMessage(`Payment failed: ${failureMessage}. Your order is reserved for 30 minutes.`);
+      });
+      rzp.open();
+    } catch (err: any) {
+      console.error('Retry payment error:', err);
+      alert('Unable to launch payment. Please check your network or view your order in My Orders.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     if (isRedirectingToOrders) {
@@ -299,8 +455,7 @@ export default function CheckoutPage() {
     state &&
     /^\d{6}$/.test(pincode.trim()) &&
     deliveryCalc.isServiceable &&
-    cart.length > 0 &&
-    !pendingPayment
+    cart.length > 0
   );
 
   // Address search / Live GPS fills the street, door no, coordinates, and PIN
@@ -345,8 +500,14 @@ export default function CheckoutPage() {
     e.preventDefault();
 
     if (pendingPayment) {
-      setPaymentMessage('An existing order is still awaiting payment confirmation. Check its status before starting another payment.');
-      return;
+      const ageMs = Date.now() - (pendingPayment.timestamp || 0);
+      if (ageMs < 30 * 60 * 1000) {
+        await handleRetryExistingPayment();
+        return;
+      } else {
+        clearPendingCheckoutPayment();
+        setPendingPayment(null);
+      }
     }
 
     if (!user) {
@@ -427,6 +588,7 @@ export default function CheckoutPage() {
       startPaymentRecovery(pendingInfo, undefined, false);
 
       // 3. Initialize Razorpay popup
+      paymentCapturedRef.current = false;
       const options = {
         key: orderData.razorpayKeyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
         amount: orderData.razorpayAmount,
@@ -435,9 +597,11 @@ export default function CheckoutPage() {
         description: 'Secure Online Payment',
         order_id: orderData.razorpayOrderId,
         handler: async function (response: any) {
-          // 4. Verify Payment with backend
+          // 4. Payment captured by Razorpay — stay on confirming screen until success page opens
+          paymentCapturedRef.current = true;
           setIsVerifyingPayment(true);
           setPaymentMessage('');
+
           try {
             const verifyData = await fetchApi<any>('/payment/verify', {
               method: 'POST',
@@ -453,28 +617,43 @@ export default function CheckoutPage() {
               const confirmedOrder = verifyData.data || orderData.data;
               redirectToConfirmedOrder(confirmedOrder, pendingInfo.orderId);
               return;
-            } else {
-              const verificationError = verifyData.error || 'The payment server did not confirm the transaction.';
-              if (process.env.NODE_ENV !== 'production') console.error('Payment verification failed:', verifyData);
-              startPaymentRecovery(
-                { ...pendingInfo, paymentId: response.razorpay_payment_id },
-                verificationError
-              );
             }
           } catch (err) {
-            const verificationError = err instanceof Error ? err.message : 'The verification response was unavailable.';
-            if (process.env.NODE_ENV !== 'production') console.error('Payment verification request failed:', err);
-            startPaymentRecovery(
-              { ...pendingInfo, paymentId: response?.razorpay_payment_id },
-              verificationError
-            );
-          } finally {
-            setIsVerifyingPayment(false);
+            if (process.env.NODE_ENV !== 'production') console.error('Payment verification direct error:', err);
           }
+
+          // Resilient check: Keep loading screen active, never expose checkout page after money captured!
+          let pollAttempts = 0;
+          const pollInterval = setInterval(async () => {
+            pollAttempts += 1;
+            try {
+              const statusRes = await fetchApi<any>(`/payment/status/${pendingInfo.rzpOrderId}`);
+              if (statusRes.success && statusRes.data?.paymentStatus === 'Paid') {
+                clearInterval(pollInterval);
+                redirectToConfirmedOrder(statusRes.data, pendingInfo.orderId);
+                return;
+              }
+            } catch (e) {}
+
+            if (pollAttempts >= 10) {
+              clearInterval(pollInterval);
+              paymentCapturedRef.current = false;
+              setIsVerifyingPayment(false);
+              setPaymentMessage('Your payment was received by bank. Please check your Orders page for confirmation.');
+            }
+          }, 1500);
         },
         modal: {
           ondismiss: function () {
-            startPaymentRecovery(pendingInfo, 'The payment window closed before confirmation was received.');
+            if (paymentCapturedRef.current) {
+              // Payment was already captured! Do not show checkout or interrupt verification screen!
+              return;
+            }
+            setIsSubmitting(false);
+            setIsVerifyingPayment(false);
+            setIsRecoveringPayment(false);
+            setPaymentPollingActive(false);
+            setPaymentMessage('Payment was cancelled or closed. Your order is saved and reserved for 30 minutes.');
           },
         },
         prefill: {
@@ -489,11 +668,12 @@ export default function CheckoutPage() {
 
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', function (response: any) {
+        setIsSubmitting(false);
+        setIsVerifyingPayment(false);
+        setIsRecoveringPayment(false);
+        setPaymentPollingActive(false);
         const failureMessage = response?.error?.description || 'Razorpay reported that this payment attempt failed.';
-        startPaymentRecovery(
-          { ...pendingInfo, paymentId: response?.error?.metadata?.payment_id },
-          failureMessage
-        );
+        setPaymentMessage(`Payment failed: ${failureMessage}. Your order is reserved for 30 minutes.`);
       });
       rzp.open();
     } catch (err: any) {
@@ -513,7 +693,7 @@ export default function CheckoutPage() {
             : isRecoveringPayment
             ? paymentMessage || 'Checking payment status with bank... Please do not refresh'
             : isVerifyingPayment
-            ? 'Confirming your payment securely'
+            ? 'Payment received! Confirming your order securely...'
             : isSubmitting
             ? 'Preparing secure checkout'
             : 'Loading your checkout'
@@ -612,12 +792,62 @@ export default function CheckoutPage() {
           {/* Checkout Form */}
           <div className="grid grid-cols-1 items-start gap-6 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8 lg:p-8">
             <form id="checkout-form" onSubmit={handleSubmitOrder} className="min-w-0 space-y-6">
-                {paymentMessage && (
+                {pendingPayment ? (
+                  <div role="alert" className="rounded-2xl border border-amber-300 bg-amber-50/90 p-4 sm:p-5 shadow-xs space-y-3 animate-in fade-in duration-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                        <h4 className="font-black text-amber-950 text-sm sm:text-base">
+                          Order #{pendingPayment.orderNumber || 'Saved'} is Awaiting Payment
+                        </h4>
+                      </div>
+                      <span className="text-[11px] font-black uppercase tracking-wider text-amber-900 bg-amber-200/80 px-2.5 py-1 rounded-full w-fit">
+                        Reserved for 30 minutes
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-amber-900 font-medium leading-relaxed">
+                      {paymentMessage || 'Your payment was closed or interrupted. Your order is safely held for 30 minutes. You can retry paying now or view it in Orders.'}
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleRetryExistingPayment}
+                        disabled={isSubmitting || isVerifyingPayment}
+                        className="px-4 py-2.5 bg-[#656B4F] text-white font-black rounded-xl hover:bg-[#50563D] transition-all text-xs flex items-center gap-2 shadow-xs cursor-pointer active:scale-95 disabled:opacity-50"
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        <span>Retry Payment Now</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => router.push('/orders')}
+                        className="px-3.5 py-2.5 bg-white text-stone-700 font-bold border border-stone-300 rounded-xl hover:bg-stone-50 transition-all text-xs cursor-pointer"
+                      >
+                        View in Orders
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          clearPendingCheckoutPayment();
+                          setPendingPayment(null);
+                          setPaymentMessage('');
+                        }}
+                        className="text-xs font-semibold text-amber-800 hover:text-amber-950 underline underline-offset-2 ml-auto cursor-pointer"
+                      >
+                        Start New Order Instead
+                      </button>
+                    </div>
+                  </div>
+                ) : paymentMessage ? (
                   <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold leading-relaxed text-amber-950">
                     {paymentMessage}{' '}
                     <button type="button" onClick={() => router.push('/orders')} className="underline underline-offset-2">Check order status</button>
                   </div>
-                )}
+                ) : null}
 
                 {/* Mobile Top Collapsible Order Summary Bar (Visible only on mobile) */}
                 <div className="md:hidden bg-[#EAF0E5] rounded-2xl border border-[#4F534C]/20 overflow-hidden shadow-2xs">
@@ -1079,6 +1309,8 @@ export default function CheckoutPage() {
                       <Loader2 className="w-5 h-5 animate-spin text-white" />
                       <span>Initializing Payment...</span>
                     </>
+                  ) : pendingPayment ? (
+                    <span>Retry &amp; Pay ₹{grandTotal}</span>
                   ) : (
                     <span>Proceed &amp; Pay ₹{grandTotal}</span>
                   )}
